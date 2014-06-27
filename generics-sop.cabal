@@ -1,0 +1,54 @@
+name:                generics-sop
+version:             0.1.0.0
+license-file:        LICENSE
+author:              Edsko de Vries, Andres Löh
+maintainer:          edsko@well-typed.com
+category:            Generics
+build-type:          Simple
+cabal-version:       >=1.10
+tested-with:         GHC == 7.6.3, GHC == 7.8.2
+
+
+library
+  exposed-modules:     Generics.SOP   
+                       Generics.SOP.TH
+                       -- exposed via Generics.SOP:
+                       Generics.SOP.BasicFunctors
+                       Generics.SOP.Classes
+                       Generics.SOP.Constraint
+                       Generics.SOP.Metadata
+                       Generics.SOP.NP
+                       Generics.SOP.NS
+                       Generics.SOP.Universe
+                       Generics.SOP.Sing
+  build-depends:       base                 >= 4.6  && < 5,
+                       template-haskell     >= 2.8  && < 2.10,
+                       tagged               >= 0.7  && < 0.8,
+                       ghc-prim             >= 0.3  && < 0.4
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  default-extensions:  ScopedTypeVariables
+                       TypeFamilies
+                       RankNTypes
+                       TypeOperators
+                       GADTs
+                       ConstraintKinds
+                       MultiParamTypeClasses
+                       TypeSynonymInstances
+                       FlexibleInstances
+                       FlexibleContexts
+                       DeriveFunctor
+                       DeriveFoldable
+                       DeriveTraversable
+                       DefaultSignatures
+                       KindSignatures
+                       DataKinds
+                       FunctionalDependencies
+                       AutoDeriveTypeable
+  other-extensions:    OverloadedStrings
+                       OverlappingInstances
+                       PolyKinds
+                       UndecidableInstances
+                       TemplateHaskell
+                       CPP
