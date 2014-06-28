@@ -1,13 +1,18 @@
 name:                generics-sop
 version:             0.1.0.0
+synopsis:            Generic Programming using True Sums of Products
+license:             BSD3
 license-file:        LICENSE
-author:              Edsko de Vries, Andres Löh
+author:              Edsko de Vries <edsko@well-typed.com>, Andres Löh <andres@well-typed.com>
 maintainer:          edsko@well-typed.com
 category:            Generics
 build-type:          Simple
 cabal-version:       >=1.10
 tested-with:         GHC == 7.6.3, GHC == 7.8.2
 
+source-repository head
+  type:                git
+  location:            https://github.com/well-typed/generics-sop
 
 library
   exposed-modules:     Generics.SOP   
