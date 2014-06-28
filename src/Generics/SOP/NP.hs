@@ -10,7 +10,34 @@ import Generics.SOP.Classes
 import Generics.SOP.Constraint
 import Generics.SOP.Sing
 
--- | n-ary product
+-- | An n-ary product.
+--
+-- The product is parameterized by a type constructor @f@ and
+-- indexed by a type-level list @xs@. The length of the list
+-- determines the number of elements in the product, and if the
+-- @i@-th element of the list is of type @x@, then the @i@-th
+-- element of the product is of type @f x@.
+--
+-- Two common instantiations of @f@ are the identity functor @I@
+-- and the constant functor @K@. For @I@, the product becomes a
+-- heterogeneous list, where the type-level list describes the
+-- types of its components. For @K a@, the product becomes a
+-- homogeneous list, where the contents of the type-level list are
+-- ignored, but its length still specifies the number of elements.
+--
+-- The constructor names are chosen to resemble the names of the
+-- list constructors.
+--
+-- In the context of the SOP approach to generic programming, an
+-- n-ary product describes the structure of the arguments of a
+-- single data constructor.
+--
+-- /Examples:/
+--
+-- > I 'x'    :* I True  :* Nil  ::  NP I       '[ Char, Bool ]
+-- > K 0      :* K 1     :* Nil  ::  NP (K Int) '[ Char, Bool ]
+-- > Just 'x' :* Nothing :* Nil  ::  NP Maybe   '[ Char, Bool ]
+--
 data NP :: (k -> *) -> [k] -> * where
   Nil  :: NP f '[]
   (:*) :: f x -> NP f xs -> NP f (x ': xs)
@@ -21,7 +48,20 @@ deriving instance All Show (Map f xs) => Show (NP f xs)
 deriving instance All Eq   (Map f xs) => Eq   (NP f xs)
 deriving instance (All Eq (Map f xs), All Ord (Map f xs)) => Ord (NP f xs)
 
--- | n-ary product-of-products
+-- | A product of products.
+--
+-- This is a 'newtype' for an 'NP' of an 'NP'. The elements of the
+-- inner product are applications of the parameter @f@. The type
+-- 'POP' is indexed by the list of lists that determines the lengths
+-- of both the outer and all the inner products, as well as the types
+-- of all the elements of the inner products.
+--
+-- A 'POP' is reminiscent of a two-dimensional table (but the inner
+-- lists can all be of different length). In the context of the SOP
+-- approach to generic programming, a 'POP' is useful to represent
+-- information that is available for all arguments of all constructors
+-- of a datatype.
+--
 newtype POP (f :: (k -> *)) (xss :: [[k]]) = POP { unPOP :: NP (NP f) xss }
   deriving (Show, Eq, Ord)
 
@@ -32,22 +72,49 @@ type instance AllMap POP c xs = All2 c xs
   Constructing products
 -------------------------------------------------------------------------------}
 
+-- | Specialization of 'hpure'.
+--
+-- The call 'pure_NP x' generates a product that contains 'x' in every
+-- element position.
+--
+-- /Example:/
+--
+-- > >>> pure_NP [] :: NP [] '[Char, Bool]
+-- > "" :* [] :* Nil
+-- > >>> pure_NP (K 0) :: NP (K Int) '[Double, Int, String]
+-- > K 0 :* K 0 :* K 0 :* Nil
+--
 pure_NP :: forall f xs. SingI xs => (forall a. f a) -> NP f xs
 pure_NP f = case sing :: Sing xs of
   SNil   -> Nil
   SCons  -> f :* pure_NP f
 
+-- | Specialization of 'hpure'.
+--
+-- The call 'pure_POP x' generates a product of products that contains 'x'
+-- in every element position.
+--
 pure_POP :: forall f xss. SingI xss => (forall a. f a) -> POP f xss
 pure_POP f = case sing :: Sing xss of
   SNil   -> POP Nil
   SCons  -> POP (pure_NP f :* unPOP (pure_POP f))
 
+-- | Specialization of 'hcpure'.
+--
+-- The call 'cpure_NP p x' generates a product that contains 'x' in every
+-- element position.
+--
 cpure_NP :: forall c xs f. (All c xs, SingI xs)
          => Proxy c -> (forall a. c a => f a) -> NP f xs
 cpure_NP p f = case sing :: Sing xs of
   SNil   -> Nil
   SCons  -> f :* cpure_NP p f
 
+-- | Specialization of 'hcpure'.
+--
+-- The call 'cpure_NP p x' generates a product of products that contains 'x'
+-- in every element position.
+--
 cpure_POP :: forall c f xss. (All2 c xss, SingI xss)
           => Proxy c -> (forall a. c a => f a) -> POP f xss
 cpure_POP p f = case sing :: Sing xss of
@@ -64,11 +131,13 @@ instance HPure POP where
   hpure  = pure_POP
   hcpure = cpure_POP
 
+-- | Specialization of 'hap'.
 ap_NP :: NP (f -.-> g) xs -> NP f xs -> NP g xs
 ap_NP Nil           Nil        = Nil
 ap_NP (Fn f :* fs)  (x :* xs)  = f x :* ap_NP fs xs
 ap_NP _ _ = error "inaccessible"
 
+-- | Specialization of 'hap'.
 ap_POP  :: POP (f -.-> g) xs -> POP  f xs -> POP  g xs
 ap_POP (POP Nil        ) (POP Nil        ) = POP Nil
 ap_POP (POP (fs :* fss)) (POP (xs :* xss)) = POP (ap_NP fs xs :* unPOP (ap_POP (POP fss) (POP xss)))
