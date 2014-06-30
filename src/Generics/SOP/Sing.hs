@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, NoAutoDeriveTypeable #-}
+{-# LANGUAGE PolyKinds #-}
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the
