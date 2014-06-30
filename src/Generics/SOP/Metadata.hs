@@ -16,8 +16,6 @@
 --
 module Generics.SOP.Metadata where
 
-import Data.Proxy (Proxy(..))
-
 import Generics.SOP.Constraint
 import Generics.SOP.NP
 import Generics.SOP.Sing

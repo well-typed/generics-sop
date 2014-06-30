@@ -11,9 +11,8 @@ module Generics.SOP (
   , I(..)
   , (:.:)(..)
     -- * Codes and interpretations
-  , Code
-  , Rep
   , Generic(..)
+  , Rep
     -- * n-ary datatypes
   , NP(..)
   , NS(..)
