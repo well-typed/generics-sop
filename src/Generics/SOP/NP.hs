@@ -21,15 +21,15 @@ import Generics.SOP.Sing
 -- @i@-th element of the list is of type @x@, then the @i@-th
 -- element of the product is of type @f x@.
 --
+-- The constructor names are chosen to resemble the names of the
+-- list constructors.
+--
 -- Two common instantiations of @f@ are the identity functor @I@
 -- and the constant functor @K@. For @I@, the product becomes a
 -- heterogeneous list, where the type-level list describes the
 -- types of its components. For @K a@, the product becomes a
 -- homogeneous list, where the contents of the type-level list are
 -- ignored, but its length still specifies the number of elements.
---
--- The constructor names are chosen to resemble the names of the
--- list constructors.
 --
 -- In the context of the SOP approach to generic programming, an
 -- n-ary product describes the structure of the arguments of a
@@ -54,7 +54,7 @@ deriving instance (All Eq (Map f xs), All Ord (Map f xs)) => Ord (NP f xs)
 -- | A product of products.
 --
 -- This is a 'newtype' for an 'NP' of an 'NP'. The elements of the
--- inner product are applications of the parameter @f@. The type
+-- inner products are applications of the parameter @f@. The type
 -- 'POP' is indexed by the list of lists that determines the lengths
 -- of both the outer and all the inner products, as well as the types
 -- of all the elements of the inner products.
