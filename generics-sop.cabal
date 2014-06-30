@@ -15,7 +15,8 @@ source-repository head
   location:            https://github.com/well-typed/generics-sop
 
 library
-  exposed-modules:     Generics.SOP   
+  exposed-modules:     Generics.SOP
+                       Generics.SOP.GGP
                        Generics.SOP.TH
                        -- exposed via Generics.SOP:
                        Generics.SOP.BasicFunctors
