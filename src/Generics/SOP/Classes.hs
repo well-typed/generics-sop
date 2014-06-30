@@ -1,4 +1,7 @@
 {-# LANGUAGE PolyKinds #-}
+#if MIN_VERSION_base(4,7,0)
+{-# LANGUAGE AutoDeriveTypeable #-}
+#endif
 -- | Classes for generalized combinators on SOP types.
 --
 -- In the SOP approach to generic programming, we're predominantly

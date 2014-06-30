@@ -1,4 +1,7 @@
 {-# LANGUAGE PolyKinds #-}
+#if MIN_VERSION_base(4,7,0)
+{-# LANGUAGE AutoDeriveTypeable #-}
+#endif
 -- | Constraints for indexed datatypes.
 --
 -- This module contains code that helps to specify that all

@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, UndecidableInstances, NoAutoDeriveTypeable #-}
+{-# LANGUAGE PolyKinds, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 -- | Sum-of-products generic universe
 --

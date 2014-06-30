@@ -1,4 +1,7 @@
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE PolyKinds, DeriveGeneric #-}
+#if MIN_VERSION_base(4,7,0)
+{-# LANGUAGE AutoDeriveTypeable #-}
+#endif
 -- | Basic functors.
 --
 -- Definitions of the type-level equivalents of
@@ -16,9 +19,10 @@ module Generics.SOP.BasicFunctors
   ) where
 
 import Control.Applicative
-import Data.Foldable (Foldable)
+import Data.Foldable (Foldable(..))
 import Data.Monoid (Monoid, mempty, (<>))
-import Data.Traversable (Traversable)
+import Data.Traversable (Traversable(..))
+import qualified GHC.Generics as GHC
 
 -- | The constant type functor.
 --
@@ -26,7 +30,21 @@ import Data.Traversable (Traversable)
 -- in its second argument and with a shorter name.
 --
 newtype K (a :: *) (b :: k) = K { unK :: a }
-  deriving (Show, Functor, Foldable, Traversable)
+#if MIN_VERSION_base(4,7,0)
+  deriving (Show, Functor, Foldable, Traversable, GHC.Generic)
+#else
+  deriving (Show, GHC.Generic)
+
+instance Functor (K a) where
+  fmap _ (K x) = K x
+
+instance Foldable (K a) where
+  foldr _ z (K _) = z
+  foldMap _ (K _) = mempty
+
+instance Traversable (K a) where
+  traverse _ (K x) = pure (K x)
+#endif
 
 instance Monoid a => Applicative (K a) where
   pure _      = K mempty
@@ -37,7 +55,21 @@ instance Monoid a => Applicative (K a) where
 -- Like 'Data.Functor.Identity.Identity', but with a shorter name.
 --
 newtype I (a :: *) = I { unI :: a }
-  deriving (Show, Functor, Foldable, Traversable)
+#if MIN_VERSION_base(4,7,0)
+  deriving (Show, Functor, Foldable, Traversable, GHC.Generic)
+#else
+  deriving (Show, GHC.Generic)
+
+instance Functor I where
+  fmap f (I x) = I (f x)
+
+instance Foldable I where
+  foldr f z (I x) = f x z
+  foldMap f (I x) = f x
+
+instance Traversable I where
+  traverse f (I x) = fmap I (f x)
+#endif
 
 instance Applicative I where
   pure = I
@@ -53,7 +85,7 @@ instance Monad I where
 -- and with a shorter name.
 --
 newtype (:.:) (f :: l -> *) (g :: k -> l) (p :: k) = Comp { unComp :: f (g p) }
-  deriving (Show)
+  deriving (Show, GHC.Generic)
 
 infixr 7 :.:
 
