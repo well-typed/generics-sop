@@ -173,6 +173,9 @@ gfrom x = gSumFrom (GHC.from x) (error "gfrom: internal error" :: SOP.SOP SOP.I 
 gto :: forall a. (GSumTo (GHC.Rep a), GHC.Generic a) => SOP I (GCode a) -> a
 gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.Rep a) x))
 
+gdatatypeInfo :: forall a. (GDatatypeInfo (GHC.Rep a)) => Proxy a -> DatatypeInfo (GCode a)
+gdatatypeInfo _ = gDatatypeInfo (Proxy :: Proxy (GHC.Rep a))
+
 {-
 type instance Code a = GCode a
 

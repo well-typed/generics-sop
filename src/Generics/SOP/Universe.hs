@@ -91,4 +91,6 @@ class SingI (Code a) => Generic (a :: *) where
 -- 'deriveGeneric' and Template Haskell to generate that for you.
 --
 class HasDatatypeInfo a where
-  datatypeInfo :: Proxy a -> DatatypeInfo (Code a)
+  datatypeInfo         :: Proxy a -> DatatypeInfo (Code a)
+  default datatypeInfo :: (GDatatypeInfo (GHC.Rep a)) => Proxy a -> DatatypeInfo (GCode a)
+  datatypeInfo = gdatatypeInfo
