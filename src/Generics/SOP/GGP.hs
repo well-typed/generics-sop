@@ -3,7 +3,6 @@ module Generics.SOP.GGP where
 
 import Data.Proxy
 import GHC.Generics as GHC
-import Generics.SOP.Universe as SOP
 import Generics.SOP.NP as SOP
 import Generics.SOP.NS as SOP
 import Generics.SOP.BasicFunctors as SOP
@@ -30,6 +29,17 @@ data InfoProxy (c :: *) (f :: * -> *) (x :: *) = InfoProxy
 
 class GDatatypeInfo (a :: * -> *) where
   gDatatypeInfo :: Proxy a -> DatatypeInfo (ToSumCode a '[])
+
+#if !(MIN_VERSION_base(4,7,0))
+
+-- | 'isNewtype' does not exist in "GHC.Generics" before GHC-7.8.
+--
+-- The only safe assumption to make is that it always returns 'False'.
+--
+isNewtype :: Datatype d => t d (f :: * -> *) a -> Bool
+isNewtype _ = False
+
+#endif
 
 instance (SingI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatypeInfo (M1 D c a) where
   gDatatypeInfo _ =
@@ -163,6 +173,7 @@ gfrom x = gSumFrom (GHC.from x) (error "gfrom: internal error" :: SOP.SOP SOP.I 
 gto :: forall a. (GSumTo (GHC.Rep a), GHC.Generic a) => SOP I (GCode a) -> a
 gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.Rep a) x))
 
+{-
 type instance Code a = GCode a
 
 instance (GSumFrom (GHC.Rep a), GSumTo (GHC.Rep a), SingI (Code a), GHC.Generic a) => SOP.Generic a where
@@ -171,3 +182,4 @@ instance (GSumFrom (GHC.Rep a), GSumTo (GHC.Rep a), SingI (Code a), GHC.Generic 
 
 instance (GDatatypeInfo (GHC.Rep a)) => HasDatatypeInfo a where
   datatypeInfo _ = gDatatypeInfo (Proxy :: Proxy (GHC.Rep a))
+-}

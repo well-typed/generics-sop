@@ -18,7 +18,6 @@ import Data.Proxy (Proxy(..))
 import Generics.SOP.Constraint
 import Generics.SOP.NP
 import Generics.SOP.Sing
-import Generics.SOP.Universe
 
 -- | The name of a datatype.
 type DatatypeName    = String
@@ -72,14 +71,3 @@ data FieldInfo :: * -> * where
   FieldInfo :: FieldName -> FieldInfo a
   deriving (Show, Eq, Ord, Functor)
 
--- | A class of datatypes that have associated metadata.
---
--- It is possible to use the sum-of-products approach to generic programming
--- without metadata. If you need metadata in a function, an additional
--- constraint on this class is in order.
---
--- You typically don't define instances of this class by hand, but use
--- 'deriveGeneric' and Template Haskell to generate that for you.
---
-class HasDatatypeInfo a where
-  datatypeInfo :: Proxy a -> DatatypeInfo (Code a)
