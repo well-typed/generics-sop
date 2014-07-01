@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, CPP #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Generics.SOP.TH
   ( deriveGeneric
   ) where
@@ -36,9 +36,10 @@ import Generics.SOP
 --
 -- then you get code that is equivalent to:
 --
--- > type instance Code Tree = '[ '[Int], '[Tree, Tree] ]
--- >
 -- > instance Generic Tree where
+-- >
+-- >   type Code Tree = '[ '[Int], '[Tree, Tree] ]
+-- >
 -- >   from (Leaf x)   = SOP (   Z (I x :* Nil))
 -- >   from (Node l r) = SOP (S (Z (I l :* I r :* Nil)))
 -- >
@@ -66,18 +67,18 @@ deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name]
 deriveGenericForDataDec isNewtype _cxt name bndrs cons _derivs = do
   let typ = appTyVars name bndrs
 #if MIN_VERSION_template_haskell(2,9,0)
-  codeSyn <- tySynInstD ''Code $ tySynEqn [typ] (codeFor cons)
+  let codeSyn = tySynInstD ''Code $ tySynEqn [typ] (codeFor cons)
 #else
-  codeSyn <- tySynInstD ''Code [typ] (codeFor cons)
+  let codeSyn = tySynInstD ''Code [typ] (codeFor cons)
 #endif
   inst <- instanceD
             (cxt [])
             [t| Generic $typ |]
-            [embedding cons, projection cons]
+            [codeSyn, embedding cons, projection cons]
   md   <- instanceD (cxt [])
             [t| HasDatatypeInfo $typ |]
             [metadata isNewtype name cons]
-  return [codeSyn, inst, md]
+  return [inst, md]
 
 {-------------------------------------------------------------------------------
   Computing the code for a data type
