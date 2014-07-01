@@ -22,6 +22,7 @@ library
                        Generics.SOP.BasicFunctors
                        Generics.SOP.Classes
                        Generics.SOP.Constraint
+                       Generics.SOP.Instances
                        Generics.SOP.Metadata
                        Generics.SOP.NP
                        Generics.SOP.NS

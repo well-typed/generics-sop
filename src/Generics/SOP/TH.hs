@@ -13,7 +13,11 @@ import GHC.Generics (Associativity(..))
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax hiding (Infix)
 
-import Generics.SOP
+import Generics.SOP.BasicFunctors
+import Generics.SOP.Metadata
+import Generics.SOP.NP
+import Generics.SOP.NS
+import Generics.SOP.Universe
 
 -- | Generate @generics-sop@ boilerplate for the given datatype.
 --
