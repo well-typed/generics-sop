@@ -57,4 +57,3 @@ library
                        PolyKinds
                        UndecidableInstances
                        TemplateHaskell
-                       CPP

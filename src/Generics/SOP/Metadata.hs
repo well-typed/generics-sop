@@ -16,6 +16,9 @@
 --
 module Generics.SOP.Metadata where
 
+import GHC.Generics (Associativity(..))
+-- TODO: re-export Associativity
+
 import Generics.SOP.Constraint
 import Generics.SOP.NP
 import Generics.SOP.Sing
@@ -31,6 +34,9 @@ type ConstructorName = String
 
 -- | The name of a field / record selector.
 type FieldName       = String
+
+-- | The fixity of an infix constructor.
+type Fixity          = Int
 
 -- | Metadata for a datatype.
 --
@@ -59,9 +65,10 @@ deriving instance (All Eq (Map ConstructorInfo xs), All Ord (Map ConstructorInfo
 data ConstructorInfo :: [*] -> * where
   -- Normal constructor
   Constructor :: SingI xs => ConstructorName -> ConstructorInfo xs
+  -- Infix constructor
+  Infix :: ConstructorName -> Associativity -> Fixity -> ConstructorInfo '[ x, y ]
   -- Record constructor
   Record :: SingI xs => ConstructorName -> NP FieldInfo xs -> ConstructorInfo xs
--- TODO: Add support for InfixC
 
 deriving instance All Show (Map FieldInfo xs) => Show (ConstructorInfo xs)
 deriving instance All Eq   (Map FieldInfo xs) => Eq   (ConstructorInfo xs)

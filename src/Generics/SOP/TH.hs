@@ -3,15 +3,15 @@ module Generics.SOP.TH
   ( deriveGeneric
   ) where
 
--- TODO: Handle infix constructors.
 -- TODO: Allow to not generate metadata.
 -- TODO: Automatically invoke this function for base datatypes
 --   (not here, but in a dedicated module / library).
 
 import Control.Monad (replicateM)
 import Data.Maybe (fromMaybe)
+import GHC.Generics (Associativity(..))
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax
+import Language.Haskell.TH.Syntax hiding (Infix)
 
 import Generics.SOP
 
@@ -153,11 +153,21 @@ metadata isNewtype typeName cs =
     mdCon (RecC n ts)     = [| Record      $(stringE (nameBase n))
                                            $(npE (map mdField ts))
                              |]
-    mdCon (InfixC _ _ _)  = fail "Infix constructors not supported" -- TODO
+    mdCon (InfixC _ n _)  = do
+      i <- reify n
+      case i of
+        DataConI _ _ _ (Fixity f a) ->
+                            [| Infix       $(stringE (nameBase n)) $(mdAssociativity a) f |]
+        _                -> fail "Strange infix operator"
     mdCon (ForallC _ _ _) = fail "Existentials not supported"
 
     mdField :: VarStrictType -> Q Exp
     mdField (n, _, _) = [| FieldInfo $(stringE (nameBase n)) |]
+
+    mdAssociativity :: FixityDirection -> Q Exp
+    mdAssociativity InfixL = [| LeftAssociative  |]
+    mdAssociativity InfixR = [| RightAssociative |]
+    mdAssociativity InfixN = [| NotAssociative   |]
 
 nameModule' :: Name -> String
 nameModule' = fromMaybe "" . nameModule
