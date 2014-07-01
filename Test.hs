@@ -20,4 +20,10 @@ deriveGeneric ''Either
 
 deriveGeneric ''Ratio
 
--- instance HasDatatypeInfo (Ratio a)
+data Foo = Bool :+ Char | C { } | D
+  deriving (GHC.Generic, Show)
+
+infixr 5 :+
+
+instance Generic Foo
+instance HasDatatypeInfo Foo
