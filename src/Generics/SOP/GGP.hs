@@ -47,24 +47,24 @@ instance (SingI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatype
         ci  = gConstructorInfos (Proxy :: Proxy a) Nil
     in if isNewtype p
        then case isNewtypeShape sing ci of
-              Yes c -> Newtype (moduleName p) (datatypeName p) c
-              No    -> adt ci
+              NewYes c -> Newtype (moduleName p) (datatypeName p) c
+              NewNo    -> adt ci -- should not happen
        else adt ci
     where
      p :: InfoProxy c a x
      p = InfoProxy
 
 data IsNewtypeShape (xss :: [[*]]) where
-  Yes :: ConstructorInfo '[x] -> IsNewtypeShape '[ '[x] ]
-  No  :: IsNewtypeShape xss
+  NewYes :: ConstructorInfo '[x] -> IsNewtypeShape '[ '[x] ]
+  NewNo  :: IsNewtypeShape xss
 
 isNewtypeShape :: Sing xss -> NP ConstructorInfo xss -> IsNewtypeShape xss
 isNewtypeShape SCons (x :* Nil) = go shape x
   where
     go :: Shape xs -> ConstructorInfo xs -> IsNewtypeShape '[ xs ]
-    go (ShapeCons ShapeNil) c   = Yes c
-    go _                    _   = No
-isNewtypeShape _     _          = No
+    go (ShapeCons ShapeNil) c   = NewYes c
+    go _                    _   = NewNo
+isNewtypeShape _     _          = NewNo
 
 class GConstructorInfos (a :: * -> *) where
   gConstructorInfos :: Proxy a -> NP ConstructorInfo xss -> NP ConstructorInfo (ToSumCode a xss)
@@ -77,8 +77,12 @@ instance GConstructorInfos GHC.V1 where
 
 instance (Constructor c, GFieldInfos a, SingI (ToProductCode a '[])) => GConstructorInfos (M1 C c a) where
   gConstructorInfos _ xss
-    | conIsRecord p = Record      (conName p) (gFieldInfos (Proxy :: Proxy a) Nil) :* xss
-    | otherwise     = Constructor (conName p)                                      :* xss
+    | conIsRecord p = Record (conName p) (gFieldInfos (Proxy :: Proxy a) Nil) :* xss
+    | otherwise     = case conFixity p of
+        Prefix        -> Constructor (conName p) :* xss
+        GHC.Infix a f -> case (shape :: Shape (ToProductCode a '[])) of
+          ShapeCons (ShapeCons ShapeNil) -> SOP.Infix (conName p) a f :* xss
+          _                              -> Constructor (conName p) :* xss -- should not happen
     where
       p :: InfoProxy c a x
       p = InfoProxy
