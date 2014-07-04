@@ -1,5 +1,14 @@
 {-# LANGUAGE UndecidableInstances #-}
-module Generics.SOP.GGP where
+-- | Derive @generics-sop@ boilerplate instances from GHC's 'GHC.Generic'.
+module Generics.SOP.GGP
+  ( GCode
+  , GFrom
+  , GTo
+  , GDatatypeInfo
+  , gfrom
+  , gto
+  , gdatatypeInfo
+  ) where
 
 import Data.Proxy
 import GHC.Generics as GHC
@@ -23,12 +32,10 @@ type instance ToSumCode V1         xs = xs
 type instance ToSumCode (M1 D c a) xs = ToSumCode a xs
 type instance ToSumCode (M1 C c a) xs = ToProductCode a '[] ': xs
 
-type GCode (a :: *) = ToSumCode (GHC.Rep a) '[]
-
 data InfoProxy (c :: *) (f :: * -> *) (x :: *) = InfoProxy
 
-class GDatatypeInfo (a :: * -> *) where
-  gDatatypeInfo :: Proxy a -> DatatypeInfo (ToSumCode a '[])
+class GDatatypeInfo' (a :: * -> *) where
+  gDatatypeInfo' :: Proxy a -> DatatypeInfo (ToSumCode a '[])
 
 #if !(MIN_VERSION_base(4,7,0))
 
@@ -41,8 +48,8 @@ isNewtype _ = False
 
 #endif
 
-instance (SingI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatypeInfo (M1 D c a) where
-  gDatatypeInfo _ =
+instance (SingI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatypeInfo' (M1 D c a) where
+  gDatatypeInfo' _ =
     let adt = ADT     (moduleName p) (datatypeName p)
         ci  = gConstructorInfos (Proxy :: Proxy a) Nil
     in if isNewtype p
@@ -171,22 +178,55 @@ instance (GProductTo a) => GSumTo (M1 C c a) where
 instance (GSumTo a) => GSumTo (M1 D c a) where
   gSumTo xss s k = gSumTo xss (s . M1) k
 
-gfrom :: (GSumFrom (GHC.Rep a), GHC.Generic a) => a -> SOP I (GCode a)
+-- | Compute the SOP code of a datatype.
+--
+-- This requires that 'GHC.Rep' is defined, which in turn requires that
+-- the type has a 'GHC.Generic' (from module "GHC.Generics") instance.
+--
+-- This is the default definition for 'Generics.SOP.Code'.
+-- For more info, see 'Generics.SOP.Generic'.
+--
+type GCode (a :: *) = ToSumCode (GHC.Rep a) '[]
+
+-- | Constraint for the class that computes 'gfrom'.
+type GFrom a = GSumFrom (GHC.Rep a)
+
+-- | Constraint for the class that computes 'gto'.
+type GTo a = GSumTo (GHC.Rep a)
+
+-- | Constraint for the class that computes 'gdatatypeInfo'.
+type GDatatypeInfo a = GDatatypeInfo' (GHC.Rep a)
+
+-- | An automatically computed version of 'Generics.SOP.from'.
+--
+-- This requires that the type being converted has a
+-- 'GHC.Generic' (from module "GHC.Generics") instance.
+--
+-- This is the default definition for 'Generics.SOP.from'.
+-- For more info, see 'Generics.SOP.Generic'.
+--
+gfrom :: (GFrom a, GHC.Generic a) => a -> SOP I (GCode a)
 gfrom x = gSumFrom (GHC.from x) (error "gfrom: internal error" :: SOP.SOP SOP.I '[])
 
-gto :: forall a. (GSumTo (GHC.Rep a), GHC.Generic a) => SOP I (GCode a) -> a
+-- | An automatically computed version of 'Generics.SOP.to'.
+--
+-- This requires that the type being converted has a
+-- 'GHC.Generic' (from module "GHC.Generics") instance.
+--
+-- This is the default definition for 'Generics.SOP.to'.
+-- For more info, see 'Generics.SOP.Generic'.
+--
+gto :: forall a. (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
 gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.Rep a) x))
 
-gdatatypeInfo :: forall a. (GDatatypeInfo (GHC.Rep a)) => Proxy a -> DatatypeInfo (GCode a)
-gdatatypeInfo _ = gDatatypeInfo (Proxy :: Proxy (GHC.Rep a))
+-- | An automatically computed version of 'Generics.SOP.datatypeInfo'.
+--
+-- This requires that the type being converted has a
+-- 'GHC.Generic' (from module "GHC.Generics") instance.
+--
+-- This is the default definition for 'Generics.SOP.datatypeInfo'.
+-- For more info, see 'Generics.SOP.HasDatatypeInfo'.
+--
+gdatatypeInfo :: forall a. (GDatatypeInfo a) => Proxy a -> DatatypeInfo (GCode a)
+gdatatypeInfo _ = gDatatypeInfo' (Proxy :: Proxy (GHC.Rep a))
 
-{-
-type instance Code a = GCode a
-
-instance (GSumFrom (GHC.Rep a), GSumTo (GHC.Rep a), SingI (Code a), GHC.Generic a) => SOP.Generic a where
-  from = gfrom
-  to   = gto
-
-instance (GDatatypeInfo (GHC.Rep a)) => HasDatatypeInfo a where
-  datatypeInfo _ = gDatatypeInfo (Proxy :: Proxy (GHC.Rep a))
--}

@@ -74,11 +74,11 @@ class SingI (Code a) => Generic (a :: *) where
   type Code a = GCode a
 
   from         :: a -> Rep a
-  default from :: (GSumFrom (GHC.Rep a), GHC.Generic a) => a -> SOP I (GCode a)
+  default from :: (GFrom a, GHC.Generic a) => a -> SOP I (GCode a)
   from = gfrom
 
   to         :: Rep a -> a
-  default to :: (GSumTo (GHC.Rep a), GHC.Generic a) => SOP I (GCode a) -> a
+  default to :: (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
   to = gto
 
 -- | A class of datatypes that have associated metadata.
@@ -92,5 +92,5 @@ class SingI (Code a) => Generic (a :: *) where
 --
 class HasDatatypeInfo a where
   datatypeInfo         :: Proxy a -> DatatypeInfo (Code a)
-  default datatypeInfo :: (GDatatypeInfo (GHC.Rep a)) => Proxy a -> DatatypeInfo (GCode a)
+  default datatypeInfo :: (GDatatypeInfo a) => Proxy a -> DatatypeInfo (GCode a)
   datatypeInfo = gdatatypeInfo

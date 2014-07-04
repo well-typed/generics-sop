@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+-- | Generate @generics-sop@ boilerplate instances using Template Haskell.
 module Generics.SOP.TH
   ( deriveGeneric
   , deriveGenericOnly
