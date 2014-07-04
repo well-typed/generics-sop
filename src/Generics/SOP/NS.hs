@@ -23,8 +23,8 @@ import Generics.SOP.Sing
 -- choice of the sum is of type @f x@.
 --
 -- The constructor names are chosen to resemble Peano-style
--- natural numbers, i.e., |Z| is for "zero", and |S| is for
--- "successor". Chaining |S| and |Z| chooses the corresponding
+-- natural numbers, i.e., 'Z' is for "zero", and 'S' is for
+-- "successor". Chaining 'S' and 'Z' chooses the corresponding
 -- component of the sum.
 --
 -- /Examples:/
@@ -37,10 +37,10 @@ import Generics.SOP.Sing
 -- Note that empty sums (indexed by an empty list) have no
 -- non-bottom elements.
 --
--- Two common instantiations of @f@ are the identity functor @I@
--- and the constant functor @K@. For @I@, the sum becomes a
--- direct generalization of the |Either| type to arbitrarily many
--- choices. For @K a@, the result is a homogeneous choice type,
+-- Two common instantiations of @f@ are the identity functor 'I'
+-- and the constant functor 'K'. For 'I', the sum becomes a
+-- direct generalization of the 'Either' type to arbitrarily many
+-- choices. For @'K' a@, the result is a homogeneous choice type,
 -- where the contents of the type-level list are ignored, but its
 -- length specifies the number of options.
 --
@@ -70,7 +70,7 @@ deriving instance (All Eq (Map f xs), All Ord (Map f xs)) => Ord (NS f xs)
 -- of both the (outer) sum and all the (inner) products, as well as
 -- the types of all the elements of the inner products.
 --
--- An @SOP I@ reflects the structure of a normal Haskell datatype.
+-- An @'SOP' 'I'@ reflects the structure of a normal Haskell datatype.
 -- The sum structure represents the choice between the different
 -- constructors, the product structure represents the arguments of
 -- each constructor.

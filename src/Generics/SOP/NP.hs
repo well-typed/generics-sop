@@ -24,10 +24,10 @@ import Generics.SOP.Sing
 -- The constructor names are chosen to resemble the names of the
 -- list constructors.
 --
--- Two common instantiations of @f@ are the identity functor @I@
--- and the constant functor @K@. For @I@, the product becomes a
+-- Two common instantiations of @f@ are the identity functor 'I'
+-- and the constant functor 'K'. For 'I', the product becomes a
 -- heterogeneous list, where the type-level list describes the
--- types of its components. For @K a@, the product becomes a
+-- types of its components. For @'K' a@, the product becomes a
 -- homogeneous list, where the contents of the type-level list are
 -- ignored, but its length still specifies the number of elements.
 --
@@ -77,7 +77,7 @@ type instance AllMap POP c xs = All2 c xs
 
 -- | Specialization of 'hpure'.
 --
--- The call 'pure_NP x' generates a product that contains 'x' in every
+-- The call @'pure_NP' x@ generates a product that contains 'x' in every
 -- element position.
 --
 -- /Example:/
@@ -94,7 +94,7 @@ pure_NP f = case sing :: Sing xs of
 
 -- | Specialization of 'hpure'.
 --
--- The call 'pure_POP x' generates a product of products that contains 'x'
+-- The call @'pure_POP' x@ generates a product of products that contains 'x'
 -- in every element position.
 --
 pure_POP :: forall f xss. SingI xss => (forall a. f a) -> POP f xss
@@ -104,7 +104,7 @@ pure_POP f = case sing :: Sing xss of
 
 -- | Specialization of 'hcpure'.
 --
--- The call 'cpure_NP p x' generates a product that contains 'x' in every
+-- The call @'cpure_NP' p x@ generates a product that contains 'x' in every
 -- element position.
 --
 cpure_NP :: forall c xs f. (All c xs, SingI xs)
@@ -115,7 +115,7 @@ cpure_NP p f = case sing :: Sing xs of
 
 -- | Specialization of 'hcpure'.
 --
--- The call 'cpure_NP p x' generates a product of products that contains 'x'
+-- The call @'cpure_NP' p x@ generates a product of products that contains 'x'
 -- in every element position.
 --
 cpure_POP :: forall c f xss. (All2 c xss, SingI xss)
