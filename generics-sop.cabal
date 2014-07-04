@@ -14,10 +14,10 @@ description:
   Examples of using this library are provided by the following
   packages:
   .
-    * @<http://hackage.haskell.org/packages/basic-sop basic-sop>@ basic examples,
-    * @<http://hackage.haskell.org/packages/pretty-sop pretty-sop>@ generic pretty printing,
-    * @<http://hackage.haskell.org/packages/lens-sop lens-sop>@ generically computed lenses,
-    * @<http://hackage.haskell.org/packages/json-sop json-sop>@ generic JSON conversions.
+    * @<https://hackage.haskell.org/packages/basic-sop basic-sop>@ basic examples,
+    * @<https://hackage.haskell.org/packages/pretty-sop pretty-sop>@ generic pretty printing,
+    * @<https://hackage.haskell.org/packages/lens-sop lens-sop>@ generically computed lenses,
+    * @<https://hackage.haskell.org/packages/json-sop json-sop>@ generic JSON conversions.
   .
   A detailed description of the ideas behind this library is provided by
   the paper:
