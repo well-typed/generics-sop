@@ -1,11 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Generics.SOP.TH
   ( deriveGeneric
+  , deriveGenericOnly
   ) where
-
--- TODO: Allow to not generate metadata.
--- TODO: Automatically invoke this function for base datatypes
---   (not here, but in a dedicated module / library).
 
 import Control.Monad (replicateM)
 import Data.Maybe (fromMaybe)
@@ -62,10 +59,18 @@ import Generics.SOP.Universe
 deriveGeneric :: Name -> Q [Dec]
 deriveGeneric n = do
   dec <- reifyDec n
-  withDataDec dec deriveGenericForDataDec
+  ds1 <- withDataDec dec deriveGenericForDataDec
+  ds2 <- withDataDec dec deriveMetadataForDataDec
+  return (ds1 ++ ds2)
+
+-- | Like 'deriveGeneric', but omit the 'HasDatatypeInfo' instance.
+deriveGenericOnly :: Name -> Q [Dec]
+deriveGenericOnly n = do
+  dec <- reifyDec n
+  withDataDec dec deriveMetadataForDataDec
 
 deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
-deriveGenericForDataDec isNewtype _cxt name bndrs cons _derivs = do
+deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
   let typ = appTyVars name bndrs
 #if MIN_VERSION_template_haskell(2,9,0)
   let codeSyn = tySynInstD ''Code $ tySynEqn [typ] (codeFor cons)
@@ -76,10 +81,15 @@ deriveGenericForDataDec isNewtype _cxt name bndrs cons _derivs = do
             (cxt [])
             [t| Generic $typ |]
             [codeSyn, embedding cons, projection cons]
+  return [inst]
+
+deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
+deriveMetadataForDataDec isNewtype _cxt name bndrs cons _derivs = do
+  let typ = appTyVars name bndrs
   md   <- instanceD (cxt [])
             [t| HasDatatypeInfo $typ |]
             [metadata isNewtype name cons]
-  return [inst, md]
+  return [md]
 
 {-------------------------------------------------------------------------------
   Computing the code for a data type
