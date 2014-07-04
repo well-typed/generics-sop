@@ -59,9 +59,6 @@ import Generics.SOP.Universe
 -- datatypes that involve existential quantification, for
 -- datatypes with unboxed fields.
 --
--- It currently does not support datatypes with infix
--- constructors.
---
 deriveGeneric :: Name -> Q [Dec]
 deriveGeneric n = do
   dec <- reifyDec n
