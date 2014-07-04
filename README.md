@@ -22,7 +22,7 @@ A detailed description of the ideas behind this library is provided by
 the paper:
  
   * Edsko de Vries and Andres Löh.
-    [True Sums of Products][6]
+    [True Sums of Products][6].
     Workshop on Generic Programming (WGP) 2014.
  
 [0]: https://hackage.haskell.org/packages/generics-sop
