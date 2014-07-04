@@ -7,7 +7,6 @@ module Generics.SOP.TH
 
 import Control.Monad (replicateM)
 import Data.Maybe (fromMaybe)
-import GHC.Generics (Associativity(..))
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax hiding (Infix)
 

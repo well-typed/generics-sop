@@ -14,38 +14,26 @@
 -- datatype they're associated with, so matching on the metadata will reveal
 -- information about the shape of the datatype.
 --
-module Generics.SOP.Metadata where
+module Generics.SOP.Metadata
+  ( module Generics.SOP.Metadata
+    -- * re-exports
+  , Associativity(..)
+  ) where
 
 import GHC.Generics (Associativity(..))
--- TODO: re-export Associativity
 
 import Generics.SOP.Constraint
 import Generics.SOP.NP
 import Generics.SOP.Sing
 
--- | The name of a datatype.
-type DatatypeName    = String
-
--- | The name of a module.
-type ModuleName      = String
-
--- | The name of a data constructor.
-type ConstructorName = String
-
--- | The name of a field / record selector.
-type FieldName       = String
-
--- | The fixity of an infix constructor.
-type Fixity          = Int
-
 -- | Metadata for a datatype.
 --
--- A value of type @DatatypeInfo c@ contains the information about a datatype
--- that is not contained in its 'Code' @c@. This information consists
+-- A value of type @'DatatypeInfo' c@ contains the information about a datatype
+-- that is not contained in @'Code' c@. This information consists
 -- primarily of the names of the datatype, its constructors, and possibly its
 -- record selectors.
 --
--- The constructor indicates whether the datatype has been declared using 'newtype'
+-- The constructor indicates whether the datatype has been declared using @newtype@
 -- or not.
 --
 data DatatypeInfo :: [[*]] -> * where
@@ -78,4 +66,19 @@ deriving instance (All Eq (Map FieldInfo xs), All Ord (Map FieldInfo xs)) => Ord
 data FieldInfo :: * -> * where
   FieldInfo :: FieldName -> FieldInfo a
   deriving (Show, Eq, Ord, Functor)
+
+-- | The name of a datatype.
+type DatatypeName    = String
+
+-- | The name of a module.
+type ModuleName      = String
+
+-- | The name of a data constructor.
+type ConstructorName = String
+
+-- | The name of a field / record selector.
+type FieldName       = String
+
+-- | The fixity of an infix constructor.
+type Fixity          = Int
 

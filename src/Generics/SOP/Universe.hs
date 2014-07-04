@@ -40,7 +40,7 @@ type Rep a = SOP I (Code a)
 -- You typically don't define instances of this class by hand, but
 -- rather derive the class instance automatically.
 --
--- /Option 1/: Derive via the built-in GHC-generics. For this, you
+-- /Option 1:/ Derive via the built-in GHC-generics. For this, you
 -- need to use the @DeriveGeneric@ extension to first derive an
 -- instance of the 'GHC.Generics.Generic' class from module "GHC.Generics".
 -- With this, you can then give an empty instance for 'Generic', and
@@ -57,7 +57,7 @@ type Rep a = SOP I (Code a)
 -- > instance Generic T -- empty
 -- > instance HasMetadata T -- empty, if you want/need metadata
 --
--- /Option 2/: Derive via Template Haskell. For this, you need to
+-- /Option 2:/ Derive via Template Haskell. For this, you need to
 -- enable the @TemplateHaskell@ extension. You can then use
 -- 'Generics.SOP.TH.deriveGeneric' from module "Generics.SOP.TH"
 -- to have the instance generated for you. The pattern looks as
@@ -72,11 +72,11 @@ type Rep a = SOP I (Code a)
 -- >
 -- > deriveGeneric ''T -- derives HasMetadata as well
 --
--- /Tradeoffs/: Whether to use Option 1 or 2 is mainly a matter
+-- /Tradeoffs:/ Whether to use Option 1 or 2 is mainly a matter
 -- of personal taste. If you like Template Haskell, then this
 -- version has probably less run-time overhead.
 --
--- /Non-standard instances/:
+-- /Non-standard instances:/
 -- It is possible to give 'Generic' instances manually that deviate
 -- from the standard scheme, as long as at least
 --

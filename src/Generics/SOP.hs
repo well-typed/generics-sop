@@ -151,14 +151,16 @@ module Generics.SOP (
   , SOP(..)
   , POP(..)
     -- * Metadata
-  , DatatypeName
-  , ModuleName
-  , ConstructorName
-  , FieldName
   , DatatypeInfo(..)
   , ConstructorInfo(..)
   , FieldInfo(..)
   , HasDatatypeInfo(..)
+  , DatatypeName
+  , ModuleName
+  , ConstructorName
+  , FieldName
+  , Associativity(..)
+  , Fixity
     -- * Combinators
     -- ** Constructing products
   , HPure(..)
