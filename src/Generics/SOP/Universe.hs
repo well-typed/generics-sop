@@ -38,10 +38,47 @@ type Rep a = SOP I (Code a)
 -- > from . to === id :: Rep a -> Rep a
 --
 -- You typically don't define instances of this class by hand, but
--- rather use 'Generics.SOP.TH.deriveGeneric' and Template Haskell
--- to generate an instance for you automatically. It is, however,
--- possible to give 'Generic' instances manually that deviate from
--- the standard scheme, as long as at least
+-- rather derive the class instance automatically.
+--
+-- /Option 1/: Derive via the built-in GHC-generics. For this, you
+-- need to use the @DeriveGeneric@ extension to first derive an
+-- instance of the 'GHC.Generics.Generic' class from module "GHC.Generics".
+-- With this, you can then give an empty instance for 'Generic', and
+-- the default definitions will just work. The pattern looks as
+-- follows:
+--
+-- > import qualified GHC.Generics as GHC
+-- > import Generics.SOP
+-- >
+-- > ...
+-- >
+-- > data T = ... deriving (GHC.Generic, ...)
+-- >
+-- > instance Generic T -- empty
+-- > instance HasMetadata T -- empty, if you want/need metadata
+--
+-- /Option 2/: Derive via Template Haskell. For this, you need to
+-- enable the @TemplateHaskell@ extension. You can then use
+-- 'Generics.SOP.TH.deriveGeneric' from module "Generics.SOP.TH"
+-- to have the instance generated for you. The pattern looks as
+-- follows:
+--
+-- > import Generics.SOP
+-- > import Generics.SOP.TH
+-- >
+-- > ...
+-- >
+-- > data T = ...
+-- >
+-- > deriveGeneric ''T -- derives HasMetadata as well
+--
+-- /Tradeoffs/: Whether to use Option 1 or 2 is mainly a matter
+-- of personal taste. If you like Template Haskell, then this
+-- version has probably less run-time overhead.
+--
+-- /Non-standard instances/:
+-- It is possible to give 'Generic' instances manually that deviate
+-- from the standard scheme, as long as at least
 --
 -- > to . from === id :: a -> a
 --
@@ -65,18 +102,16 @@ class SingI (Code a) => Generic (a :: *) where
   -- >    , '[ Tree, Tree ]
   -- >    ]
   --
-  -- You can generate 'Code' instances using Template Haskell via
-  -- 'Generics.SOP.TH.deriveGeneric'. It's possible to give 'Code'
-  -- instances manually that deviate from the standard scheme if the
-  -- 'Generic' instance is defined accordingly.
-  --
   type Code a :: [[*]]
   type Code a = GCode a
 
+  -- | Converts from a value to its structural representation.
   from         :: a -> Rep a
   default from :: (GFrom a, GHC.Generic a) => a -> SOP I (GCode a)
   from = gfrom
 
+  -- | Converts from a structural representation back to the
+  -- original value.
   to         :: Rep a -> a
   default to :: (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
   to = gto
@@ -87,8 +122,9 @@ class SingI (Code a) => Generic (a :: *) where
 -- without metadata. If you need metadata in a function, an additional
 -- constraint on this class is in order.
 --
--- You typically don't define instances of this class by hand, but use
--- 'deriveGeneric' and Template Haskell to generate that for you.
+-- You typically don't define instances of this class by hand, but
+-- rather derive the class instance automatically. See the documentation
+-- of 'Generic' for the options.
 --
 class HasDatatypeInfo a where
   datatypeInfo         :: Proxy a -> DatatypeInfo (Code a)
