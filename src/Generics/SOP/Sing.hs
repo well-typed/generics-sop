@@ -1,4 +1,7 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving #-}
+#if MIN_VERSION_base(4,7,0)
+{-# LANGUAGE NoAutoDeriveTypeable #-}
+#endif
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the

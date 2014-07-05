@@ -78,6 +78,8 @@ library
                        KindSignatures
                        DataKinds
                        FunctionalDependencies
+  if impl (ghc >= 7.8)
+    default-extensions:  AutoDeriveTypeable
   other-extensions:    OverloadedStrings
                        OverlappingInstances
                        PolyKinds

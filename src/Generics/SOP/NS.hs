@@ -1,7 +1,4 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
-#if MIN_VERSION_base(4,7,0)
-{-# LANGUAGE AutoDeriveTypeable #-}
-#endif
 -- n-ary sums (and sums of products)
 module Generics.SOP.NS where
 

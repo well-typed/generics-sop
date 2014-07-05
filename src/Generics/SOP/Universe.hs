@@ -1,7 +1,4 @@
 {-# LANGUAGE UndecidableInstances #-}
-#if MIN_VERSION_base(4,7,0)
-{-# LANGUAGE AutoDeriveTypeable #-}
-#endif
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 

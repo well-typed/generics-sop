@@ -1,7 +1,4 @@
 {-# LANGUAGE PolyKinds, DeriveGeneric #-}
-#if MIN_VERSION_base(4,7,0)
-{-# LANGUAGE AutoDeriveTypeable #-}
-#endif
 -- | Basic functors.
 --
 -- Definitions of the type-level equivalents of

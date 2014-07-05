@@ -1,7 +1,4 @@
 {-# LANGUAGE StandaloneDeriving, UndecidableInstances #-}
-#if MIN_VERSION_base(4,7,0)
-{-# LANGUAGE AutoDeriveTypeable #-}
-#endif
 -- | Metadata about what a datatype looks like
 --
 -- In @generics-sop@, the metadata is completely independent of the main
