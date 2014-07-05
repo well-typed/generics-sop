@@ -75,8 +75,12 @@ deriving instance (All Eq (Map f xs), All Ord (Map f xs)) => Ord (NS f xs)
 -- constructors, the product structure represents the arguments of
 -- each constructor.
 --
-newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP { unSOP :: NS (NP f) xss }
+newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
   deriving (Show, Eq, Ord)
+
+-- | Unwrap a sum of products.
+unSOP :: SOP f xss -> NS (NP f) xss
+unSOP (SOP xss) = xss
 
 {-------------------------------------------------------------------------------
   Constructing sums

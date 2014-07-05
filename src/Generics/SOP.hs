@@ -45,77 +45,150 @@
 --
 -- == Instantiating a datatype for use with SOP generics
 --
--- Let's assume we have the datatype:
+-- Let's assume we have the datatypes:
 --
--- > data A = C Bool | D A Int | E
+-- > data A   = C Bool | D A Int | E (B ())
+-- > data B a = F | G a Char Bool
 --
--- To create a 'Generic' instance for @A@ via "GHC.Generics", we say
+-- To create 'Generic' instances for @A@ and @B@ via "GHC.Generics", we say
 --
 -- > {-# LANGUAGE DeriveGenerics #-}
 -- >
 -- > import qualified GHC.Generics as GHC
 -- > import Generics.SOP
 -- >
--- > data A = C Bool | D A Int | E
+-- > data A   = C Bool | D A Int | E (B ())
+-- >   deriving (Show, GHC.Generic)
+-- > data B a = F | G a Char Bool
 -- >   deriving (Show, GHC.Generic)
 -- >
--- > instance Generic A -- empty
+-- > instance Generic A     -- empty
+-- > instance Generic (B a) -- empty
 --
--- Now we can convert between @A@ and @'Rep' A@. For example,
+-- Now we can convert between @A@ and @'Rep' A@ (and between @B@ and @'Rep' B@).
+-- For example,
 --
 -- >>> from (D (C True) 3) :: Rep A
 -- > SOP (S (Z (I (C True) :* I 3 :* Nil)))
 -- >>> to it :: A
 -- > D (C True) 3
 --
+-- Note that the transformation is shallow: In @D (C True) 3@, the
+-- inner value @C True@ of type @A@ is not affected by the
+-- transformation.
+--
+-- For more details about @'Rep' A@, have a look at the
+-- "Generics.SOP.Universe" module.
+--
 -- == Defining a generic function
 --
--- Here's a definition of generic equality in SOP style, making use of
--- structural recursion on the sums and products:
+-- As an example of a generic function, let us define a generic
+-- version of 'Control.DeepSeq.rnf' from the @deepseq@ package.
 --
--- > geq :: (Generic a, All2 Eq (Code a)) => a -> a -> Bool
--- > geq x y = goS (from x) (from y)
--- >   where
--- >     goS :: (All2 Eq xss) => SOP I xss -> SOP I xss -> Bool
--- >     goS (SOP (Z xs))  (SOP (Z ys))  = goP xs ys
--- >     goS (SOP (S xss)) (SOP (S yss)) = goS (SOP xss) (SOP yss)
--- >     goS _             _             = False
--- >
--- >     goP :: (All Eq xs) => NP I xs -> NP I xs -> Bool
--- >     goP Nil         Nil         = True
--- >     goP (I x :* xs) (I y :* ys) = x == y && goP xs ys
+-- The type of 'Control.DeepSeq.rnf' is
 --
--- The 'All2' and 'All' constraints say that all components that occur
--- in the definition of type @a@ must be in the 'Eq' class.
+-- @
+-- NFData a => a -> ()
+-- @
 --
--- The local functions @goS@ and @goP@ operate on the structural
--- representations (note that @'Rep' A = 'SOP' 'I' ('Code' A)@).
+-- and the idea is that for a term @x@ of type @a@ in the 'NFData'
+-- class, @rnf x@ forces complete evaluation of @x@ (i.e., evaluation
+-- to /normal form/), and returns @()@.
 --
--- The wrapper just invokes the conversion function @from@ on the
--- arguments and then dispatches to the helper functions.
+-- We call the generic version of this function @grnf@. A direct
+-- definition in SOP style, making use of structural recursion on the
+-- sums and products, looks as follows:
+--
+-- @
+-- grnf :: ('Generic' a, 'All2' NFData ('Code' a)) => a -> ()
+-- grnf x = grnfS ('from' x)
+--
+-- grnfS :: ('All2' NFData xss) => 'SOP' 'I' xss -> ()
+-- grnfS ('SOP' ('Z' xs))  = grnfP xs
+-- grnfS ('SOP' ('S' xss)) = grnfS ('SOP' xss)
+--
+-- grnfP :: ('All' NFData xs) => 'NP' 'I' xs -> ()
+-- grnfP 'Nil'           = ()
+-- grnfP ('I' x ':*' xs) = deepseq x (grnfP xs)
+-- @
+--
+-- The @grnf@ function performs the conversion between @a@ and @'Rep' a@
+-- by applying 'from' and then applies @grnfS@. The type of @grnf@
+-- indicates that @a@ must be in the 'Generic' class so that we can
+-- apply 'from', and that all the components of @a@ (i.e., all the types
+-- that occur as constructor arguments) must be in the 'NFData' class
+-- ('All2').
+--
+-- The function @grnfS@ traverses the outer sum structure of the
+-- sum of products (note that @'Rep' a = 'SOP' 'I' ('Code' a)@). It
+-- encodes which constructor was used to construct the original
+-- argument of type @a@. Once we've found the constructor in question
+-- ('Z'), we traverse the arguments of that constructor using @grnfP@.
+--
+-- The function @grnfP@ traverses the product structure of the
+-- constructor arguments. Each argument is evaluated using the
+-- 'Control.DeepSeq.deepseq' function from the 'Control.DeepSeq.NFData'
+-- class. This requires that all components of the product must be
+-- in the 'NFData' class ('All') and triggers the corresponding
+-- constraints on the other functions. Once the end of the product
+-- is reached ('Nil'), we return @()@.
+--
+-- == Defining a generic function using combinators
 --
 -- In many cases, generic functions can be written in a much more
 -- concise way by avoiding the explicit structural recursion and
 -- resorting to the powerful combinators provided by this library
 -- instead.
 --
+-- For example, the @grnf@ function can also be defined as a one-liner
+-- as follows:
+--
+-- @
+-- grnf :: ('Generic' a, 'All2' NFData ('Code' a)) => a -> ()
+-- grnf = 'rnf' . 'hcollapse' . 'hcliftA' ('Proxy' :: 'Proxy' NFData) (\ ('I' x) -> 'K' (rnf x)) . 'from'
+-- @
+--
+-- The following interaction should provide an idea of the individual
+-- transformation steps:
+--
+-- >>> let x = G 2.5 'A' False :: B Double
+-- >>> from x
+-- > SOP (S (Z (I 2.5 :* I 'A' :* I False :* Nil)))
+-- >>> hcliftA (Proxy :: Proxy NFData) (\ (I x) -> K (rnf x)) it
+-- > SOP (S (Z (K () :* K () :* K () :* Nil)))
+-- >>> hcollapse it
+-- > [(),(),()]
+-- >>> rnf it
+-- > ()
+--
+-- The 'from' call converts into the structural representation.
+-- Via 'hcliftA', we apply 'rnf' to all the components. The result
+-- is a sum of products of the same shape, but the components are
+-- no longer heterogeneous ('I'), but homogeneous (@'K' ()@). A
+-- homogeneous structure can be collapsed ('hcollapse') into a
+-- normal Haskell list. Finally, 'rnf' actually forces evaluation
+-- of this list (and thereby actually drives the evaluation of all
+-- the previous steps) and produces the final result.
+--
 -- == Using a generic function
 --
--- We can directly invoke 'geq' on any type that is an instance of
--- class 'Generic'. However, the type of 'geq' requires that all components
--- of a type it is invoked on are in 'Eq'. Since for example @A@ is
--- recursive, this means that we have to make @A@ an instance of 'Eq'
--- in order to use it. But we can use 'geq' as the definition:
+-- We can directly invoke 'grnf' on any type that is an instance of
+-- class 'Generic'.
 --
--- > instance Eq A where
--- >   (==) = geq
+-- >>> grnf (G 2.5 'A' False)
+-- > ()
+-- >>> grnf (G 2.5 undefined False)
+-- > *** Exception: Prelude.undefined
 --
--- Now we can use the function:
+-- Note that the type of 'grnf' requires that all components of the
+-- type are in the 'Control.DeepSeq.NFData' class. For a recursive
+-- datatype such as @B@, this means that we have to make @A@
+-- (and in this case, also @B@) an instance of 'NFData' in order to
+-- be able to use the 'grnf' function. But we can use 'grnf' to
+-- supply the instance definitions:
 --
--- >>> D (C True) 3 == D (C True) 3
--- True
--- >>> D (C True) 3 == D (C True) 4
--- False
+-- > instance NFData A where rnf = grnf
+-- > instance NFData a => NFData (B a) where rnf = grnf
 --
 -- = More examples
 --
@@ -128,7 +201,7 @@
 --   * @<http://hackage.haskell.org/packages/lens-sop lens-sop>@ generically computed lenses,
 --   * @<http://hackage.haskell.org/packages/json-sop json-sop>@ generic JSON conversions.
 --
--- The generic functions in these package use a wide variety of the combinators
+-- The generic functions in these packages use a wide variety of the combinators
 -- that are offered by the library.
 --
 -- = Paper
@@ -149,7 +222,9 @@ module Generics.SOP (
   , NP(..)
   , NS(..)
   , SOP(..)
+  , unSOP
   , POP(..)
+  , unPOP
     -- * Metadata
   , DatatypeInfo(..)
   , ConstructorInfo(..)
@@ -203,8 +278,11 @@ module Generics.SOP (
     -- * Utilities
     -- ** Basic functors
   , K(..)
+  , unK
   , I(..)
+  , unI
   , (:.:)(..)
+  , unComp
     -- ** Mapping constraints
   , All
   , All2

@@ -65,8 +65,12 @@ deriving instance (All Eq (Map f xs), All Ord (Map f xs)) => Ord (NP f xs)
 -- information that is available for all arguments of all constructors
 -- of a datatype.
 --
-newtype POP (f :: (k -> *)) (xss :: [[k]]) = POP { unPOP :: NP (NP f) xss }
+newtype POP (f :: (k -> *)) (xss :: [[k]]) = POP (NP (NP f) xss)
   deriving (Show, Eq, Ord)
+
+-- | Unwrap a product of products.
+unPOP :: POP f xss -> NP (NP f) xss
+unPOP (POP xss) = xss
 
 type instance AllMap NP  c xs = All  c xs
 type instance AllMap POP c xs = All2 c xs
