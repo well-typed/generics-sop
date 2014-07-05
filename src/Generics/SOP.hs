@@ -91,9 +91,9 @@
 -- NFData a => a -> ()
 -- @
 --
--- and the idea is that for a term @x@ of type @a@ in the 'NFData'
--- class, @rnf x@ forces complete evaluation of @x@ (i.e., evaluation
--- to /normal form/), and returns @()@.
+-- and the idea is that for a term @x@ of type @a@ in the
+-- 'Control.DeepSeq.NFData' class, @rnf x@ forces complete evaluation
+-- of @x@ (i.e., evaluation to /normal form/), and returns @()@.
 --
 -- We call the generic version of this function @grnf@. A direct
 -- definition in SOP style, making use of structural recursion on the
@@ -108,8 +108,8 @@
 -- grnfS ('SOP' ('S' xss)) = grnfS ('SOP' xss)
 --
 -- grnfP :: ('All' NFData xs) => 'NP' 'I' xs -> ()
--- grnfP 'Nil'           = ()
--- grnfP ('I' x ':*' xs) = deepseq x (grnfP xs)
+-- grnfP 'Nil'         = ()
+-- grnfP ('I' x ':*' xs) = x \`deepseq\` (grnfP xs)
 -- @
 --
 -- The @grnf@ function performs the conversion between @a@ and @'Rep' a@
@@ -145,7 +145,7 @@
 --
 -- @
 -- grnf :: ('Generic' a, 'All2' NFData ('Code' a)) => a -> ()
--- grnf = 'rnf' . 'hcollapse' . 'hcliftA' ('Proxy' :: 'Proxy' NFData) (\ ('I' x) -> 'K' (rnf x)) . 'from'
+-- grnf = 'rnf' . 'hcollapse' . 'hcliftA' ('Proxy' :: 'Proxy' NFData) (\\ ('I' x) -> 'K' (rnf x)) . 'from'
 -- @
 --
 -- The following interaction should provide an idea of the individual
@@ -183,9 +183,9 @@
 -- Note that the type of 'grnf' requires that all components of the
 -- type are in the 'Control.DeepSeq.NFData' class. For a recursive
 -- datatype such as @B@, this means that we have to make @A@
--- (and in this case, also @B@) an instance of 'NFData' in order to
--- be able to use the 'grnf' function. But we can use 'grnf' to
--- supply the instance definitions:
+-- (and in this case, also @B@) an instance of 'Control.DeepSeq.NFData'
+-- in order to be able to use the 'grnf' function. But we can use 'grnf'
+-- to supply the instance definitions:
 --
 -- > instance NFData A where rnf = grnf
 -- > instance NFData a => NFData (B a) where rnf = grnf

@@ -2,6 +2,10 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fcontext-stack=50 #-}
 -- | Instances for 'Generic' and 'HasMetadata' for base types.
+--
+-- (There are only instances defined in this module, so the
+-- documentation is empty.)
+--
 module Generics.SOP.Instances where
 
 import Control.Exception
