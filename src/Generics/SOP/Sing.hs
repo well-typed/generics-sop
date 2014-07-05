@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE PolyKinds, StandaloneDeriving #-}
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the
@@ -24,6 +24,10 @@ data instance Sing (xs :: [k]) where
   SNil  :: Sing '[]
   SCons :: (SingI x, SingI xs) => Sing (x ': xs)
 
+deriving instance Show (Sing (xs :: [k]))
+deriving instance Eq   (Sing (xs :: [k]))
+deriving instance Ord  (Sing (xs :: [k]))
+
 -- | Singleton for types of kind '*'.
 --
 -- For types of kind '*', we explicitly *don't* want to reveal
@@ -32,6 +36,10 @@ data instance Sing (xs :: [k]) where
 --
 data instance Sing (x :: *) where
   SStar :: Sing (x :: *)
+
+deriving instance Show (Sing (x :: *))
+deriving instance Eq   (Sing (x :: *))
+deriving instance Ord  (Sing (x :: *))
 
 -- | Implicit singleton.
 --
@@ -64,6 +72,10 @@ instance (SingI x, SingI xs) => SingI (x ': xs) where
 data Shape :: [k] -> * where
   ShapeNil  :: Shape '[]
   ShapeCons :: SingI xs => Shape xs -> Shape (x ': xs)
+
+deriving instance Show (Shape xs)
+deriving instance Eq   (Shape xs)
+deriving instance Ord  (Shape xs)
 
 shape :: forall (xs :: [k]). SingI xs => Shape xs
 shape = case sing :: Sing xs of

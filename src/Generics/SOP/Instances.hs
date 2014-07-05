@@ -1,12 +1,15 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fcontext-stack=50 #-}
--- | Instances for 'Generic' and 'HasMetadata' for base types.
+-- | Instances for 'Generic' and 'HasMetadata'.
+--
+-- We define instances for datatypes from @generics-sop@ and
+-- @base@ that are supported.
 --
 -- (There are only instances defined in this module, so the
 -- documentation is empty.)
 --
-module Generics.SOP.Instances where
+module Generics.SOP.Instances () where
 
 import Control.Exception
 import Data.Char
@@ -29,7 +32,19 @@ import Text.Printf
 #endif
 import Text.Read.Lex
 
+import Generics.SOP.BasicFunctors
 import Generics.SOP.TH
+
+-- Types from Generics.SOP:
+
+deriveGeneric ''I
+deriveGeneric ''K
+deriveGeneric ''(:.:)
+
+-- Cannot derive instances for Sing
+-- Cannot derive instances for Shape
+-- Cannot derive instances for NP, NS, POP, SOP
+-- Cannot derive instances for metadata types
 
 -- Types from the Prelude:
 
