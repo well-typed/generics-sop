@@ -247,7 +247,7 @@ module Generics.SOP (
   , fn_4
   , Prod
   , HAp(..)
-    -- ** Derived application
+    -- ** Lifting / mapping
   , hliftA
   , hliftA2
   , hliftA3

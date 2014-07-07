@@ -220,7 +220,7 @@ hliftA  f xs       = hpure (fn   f) `hap` xs
 hliftA2 f xs ys    = hpure (fn_2 f) `hap` xs `hap` ys
 hliftA3 f xs ys zs = hpure (fn_3 f) `hap` xs `hap` ys `hap` zs
 
--- | Variant of 'hcliftA' that takes a constrained function.
+-- | Variant of 'hliftA' that takes a constrained function.
 --
 -- /Specification:/
 --
