@@ -71,7 +71,7 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   --
   -- @
   -- 'hcpure', 'Generics.SOP.NP.cpure_NP'  :: ('SingI' xs,  'All'  c xs ) => 'Proxy' c -> (forall a. c a => f a) -> 'Generics.SOP.NP.NP'  f xs
-  -- 'hcpure', 'Generics.SOP.NP.cpure_POP' :: ('SingI' xsx, 'All2' c xsx) => 'Proxy' c -> (forall a. c a => f a) -> 'Generics.SOP.NP.POP' f xs
+  -- 'hcpure', 'Generics.SOP.NP.cpure_POP' :: ('SingI' xss, 'All2' c xss) => 'Proxy' c -> (forall a. c a => f a) -> 'Generics.SOP.NP.POP' f xss
   -- @
   --
   hcpure :: (SingI xs, AllMap h c xs) => Proxy c -> (forall a. c a => f a) -> h f xs
@@ -80,14 +80,26 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   Application
 -------------------------------------------------------------------------------}
 
+-- | Lifted functions.
 newtype (f -.-> g) a = Fn { apFn :: f a -> g a }
 
 -- TODO: What is the right precedence?
 infixr 1 -.->
 
+-- | Construct a lifted function.
+--
+-- Same as 'Fn'. Only available for uniformity with the
+-- higher-arity versions.
+--
 fn   :: (f a -> f' a) -> (f -.-> f') a
+
+-- | Construct a binary lifted function.
 fn_2 :: (f a -> f' a -> f'' a) -> (f -.-> f' -.-> f'') a
+
+-- | Construct a ternary lifted function.
 fn_3 :: (f a -> f' a -> f'' a -> f''' a) -> (f -.-> f' -.-> f'' -.-> f''') a
+
+-- | Construct a quarternary lifted function.
 fn_4 :: (f a -> f' a -> f'' a -> f''' a -> f'''' a) -> (f -.-> f' -.-> f'' -.-> f''' -.-> f'''') a
 
 fn   f = Fn $ \x -> f x
@@ -117,10 +129,10 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
   -- /Instances:/
   --
   -- @
-  -- 'hap', 'Generics.SOP.NP.ap_NP'  :: 'Generics.SOP.NP.NP'  (f -.-> g) xs -> 'Generics.SOP.NP.NP'  f xs -> 'Generics.SOP.NP.NP'  g xs
-  -- 'hap', 'Generics.SOP.NS.ap_NS'  :: 'Generics.SOP.NS.NP'  (f -.-> g) xs -> 'Generics.SOP.NS.NS'  f xs -> 'Generics.SOP.NS.NS'  g xs
-  -- 'hap', 'Generics.SOP.NP.ap_POP' :: 'Generics.SOP.NP.POP' (f -.-> g) xs -> 'Generics.SOP.NP.POP' f xs -> 'Generics.SOP.NP.POP' g xs
-  -- 'hap', 'Generics.SOP.NS.ap_SOP' :: 'Generics.SOP.NS.POP' (f -.-> g) xs -> 'Generics.SOP.NS.SOP' f xs -> 'Generics.SOP.NS.SOP' g xs
+  -- 'hap', 'Generics.SOP.NP.ap_NP'  :: 'Generics.SOP.NP.NP'  (f -.-> g) xs  -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  g xs
+  -- 'hap', 'Generics.SOP.NS.ap_NS'  :: 'Generics.SOP.NS.NP'  (f -.-> g) xs  -> 'Generics.SOP.NS.NS'  f xs  -> 'Generics.SOP.NS.NS'  g xs
+  -- 'hap', 'Generics.SOP.NP.ap_POP' :: 'Generics.SOP.NP.POP' (f -.-> g) xss -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' g xss
+  -- 'hap', 'Generics.SOP.NS.ap_SOP' :: 'Generics.SOP.NS.POP' (f -.-> g) xss -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NS.SOP' g xss
   -- @
   --
   hap :: Prod h (f -.-> g) xs -> h f xs -> h g xs
@@ -129,16 +141,113 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
   Derived from application
 -------------------------------------------------------------------------------}
 
+-- | A generalized form of 'Control.Applicative.liftA',
+-- which in turn is a generalized 'map'.
+--
+-- Takes a lifted function and applies it to every element of
+-- a structure while preserving its shape.
+--
+-- /Specification:/
+--
+-- @
+-- 'hliftA' f xs = 'hpure' ('fn' f) \` 'hap' \` xs
+-- @
+--
+-- /Instances:/
+--
+-- @
+-- 'hliftA', 'Generics.SOP.NP.liftA_NP'  :: 'SingI' xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs
+-- 'hliftA', 'Generics.SOP.NS.liftA_NS'  :: 'SingI' xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NS.NS'  f xs  -> 'Generics.SOP.NS.NS'  f' xs
+-- 'hliftA', 'Generics.SOP.NP.liftA_POP' :: 'SingI' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss
+-- 'hliftA', 'Generics.SOP.NS.liftA_SOP' :: 'SingI' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NS.SOP' f' xss
+-- @
+--
 hliftA  :: (SingI xs, HAp h)               => (forall a. f a -> f' a)                                                   -> h f   xs -> h f'   xs
+
+-- | A generalized form of 'Control.Applicative.liftA2',
+-- which in turn is a generalized 'zipWith'.
+--
+-- Takes a lifted binary function and uses it to combine two
+-- structures of equal shape into a single structure.
+--
+-- It either takes two product structures to a product structure,
+-- or one product and one sum structure to a sum structure.
+--
+-- /Specification:/
+--
+-- @
+-- 'hliftA2' f xs ys = 'hpure' ('fn_2' f) \` 'hap' \` xs \` 'hap' \` ys
+-- @
+--
+-- /Instances:/
+--
+-- @
+-- 'hliftA2', 'Generics.SOP.NP.liftA2_NP'  :: 'SingI' xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs
+-- 'hliftA2', 'Generics.SOP.NS.liftA2_NS'  :: 'SingI' xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NS.NS'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs
+-- 'hliftA2', 'Generics.SOP.NP.liftA2_POP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NP.POP' f'' xss
+-- 'hliftA2', 'Generics.SOP.NS.liftA2_SOP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NS.SOP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss
+-- @
+--
 hliftA2 :: (SingI xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+
+-- | A generalized form of 'Control.Applicative.liftA3',
+-- which in turn is a generalized 'zipWith3'.
+--
+-- Takes a lifted ternary function and uses it to combine three
+-- structures of equal shape into a single structure.
+--
+-- It either takes three product structures to a product structure,
+-- or two product structures and one sum structure to a sum structure.
+--
+-- /Specification:/
+--
+-- @
+-- 'hliftA3' f xs ys zs = 'hpure' ('fn_3' f) \` 'hap' \` xs \` 'hap' \` ys \` 'hap' \` zs
+-- @
+--
+-- /Instances:/
+--
+-- @
+-- 'hliftA3', 'Generics.SOP.NP.liftA3_NP'  :: 'SingI' xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs  -> 'Generics.SOP.NP.NP'  f''' xs
+-- 'hliftA3', 'Generics.SOP.NS.liftA3_NS'  :: 'SingI' xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs  -> 'Generics.SOP.NS.NS'  f''' xs
+-- 'hliftA3', 'Generics.SOP.NP.liftA3_POP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NP.POP' f'' xss -> 'Generics.SOP.NP.POP' f''' xs
+-- 'hliftA3', 'Generics.SOP.NS.liftA3_SOP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss -> 'Generics.SOP.NP.SOP' f''' xs
+-- @
+--
 hliftA3 :: (SingI xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hliftA  f xs       = hpure (fn   f) `hap` xs
 hliftA2 f xs ys    = hpure (fn_2 f) `hap` xs `hap` ys
 hliftA3 f xs ys zs = hpure (fn_3 f) `hap` xs `hap` ys `hap` zs
 
+-- | Variant of 'hcliftA' that takes a constrained function.
+--
+-- /Specification:/
+--
+-- @
+-- 'hcliftA' p f xs = 'hcpure' p ('fn' f) \` 'hap' \` xs
+-- @
+--
 hcliftA  :: (AllMap (Prod h) c xs, SingI xs, HAp h)               => Proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+
+-- | Variant of 'hcliftA2' that takes a constrained function.
+--
+-- /Specification:/
+--
+-- @
+-- 'hcliftA2' p f xs ys = 'hcpure' p ('fn_2' f) \` 'hap' \` xs \` 'hap' \` ys
+-- @
+--
 hcliftA2 :: (AllMap (Prod h) c xs, SingI xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+
+-- | Variant of 'hcliftA3' that takes a constrained function.
+--
+-- /Specification:/
+--
+-- @
+-- 'hcliftA3' p f xs ys zs = 'hcpure' p ('fn_3' f) \` 'hap' \` xs \` 'hap' \` ys \` 'hap' \` zs
+-- @
+--
 hcliftA3 :: (AllMap (Prod h) c xs, SingI xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcliftA  p f xs       = hcpure p (fn   f) `hap` xs
@@ -172,13 +281,28 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
   --
   hcollapse :: SingI xs => h (K a) xs -> CollapseTo h a
 
+-- | A generalization of 'Data.Traversable.sequenceA'.
 class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
+
+  -- | Corresponds to 'Data.Traversable.sequenceA'.
+  --
+  -- Lifts an applicative functor out of a structure.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hsequence'', 'Generics.SOP.NP.sequence'_NP'  :: ('SingI' xs , 'Applicative' f) => 'Generics.SOP.NP.NP'  (f ':.:' g) xs  -> f ('Generics.SOP.NP.NP'  g xs )
+  -- 'hsequence'', 'Generics.SOP.NS.sequence'_NS'  :: ('SingI' xs , 'Applicative' f) => 'Generics.SOP.NS.NS'  (f ':.:' g) xs  -> f ('Generics.SOP.NS.NS'  g xs )
+  -- 'hsequence'', 'Generics.SOP.NP.sequence'_POP' :: ('SingI' xss, 'Applicative' f) => 'Generics.SOP.NP.POP' (f ':.:' g) xss -> f ('Generics.SOP.NP.POP' g xss)
+  -- 'hsequence'', 'Generics.SOP.NS.sequence'_SOP' :: ('SingI' xss, 'Applicative' f) => 'Generics.SOP.NS.SOP' (f ':.:' g) xss -> f ('Generics.SOP.NS.SOP' g xss)
+  -- @
+  --
   hsequence' :: (SingI xs, Applicative f) => h (f :.: g) xs -> f (h g xs)
 
+-- | Special case of 'hsequence'' where @g = 'I'@.
 hsequence :: (SingI xs, HSequence h) => Applicative f => h f xs -> f (h I xs)
 hsequence = hsequence' . hliftA (Comp . fmap I)
 
--- Special case for K
-
+-- | Special case of 'hsequence'' where @g = 'K' a@.
 hsequenceK ::  (SingI xs, Applicative f, HSequence h) => h (K (f a)) xs -> f (h (K a) xs)
 hsequenceK = hsequence' . hliftA (Comp . fmap K . unK)

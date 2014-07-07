@@ -138,25 +138,33 @@ instance HAp SOP where hap = ap_SOP
 
 -- Specialized functions, mostly to keep in line with the paper:
 
+-- | Specialization of 'hliftA'.
 liftA_NS  :: SingI xs  => (forall a. f a -> g a) -> NS  f xs  -> NS  g xs
+-- | Specialization of 'hliftA'.
 liftA_SOP :: SingI xss => (forall a. f a -> g a) -> SOP f xss -> SOP g xss
 
 liftA_NS  = hliftA
 liftA_SOP = hliftA
 
+-- | Specialization of 'hliftA2'.
 liftA2_NS  :: SingI xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS   h xs
+-- | Specialization of 'hliftA2'.
 liftA2_SOP :: SingI xss => (forall a. f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP  h xss
 
 liftA2_NS  = hliftA2
 liftA2_SOP = hliftA2
 
+-- | Specialization of 'hcliftA'.
 cliftA_NS  :: (All  c xs,  SingI xs)  => Proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
+-- | Specialization of 'hcliftA'.
 cliftA_SOP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
 
 cliftA_NS  = hcliftA
 cliftA_SOP = hcliftA
 
+-- | Specialization of 'hcliftA2'.
 cliftA2_NS  :: (All  c xs,  SingI xs)  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS  h xs
+-- | Specialization of 'hcliftA2'.
 cliftA2_SOP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP h xss
 
 cliftA2_NS  = hcliftA2

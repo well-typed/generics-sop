@@ -260,7 +260,7 @@ module Generics.SOP (
   , shift
   , apInjs_NP
   , apInjs_POP
-    -- ** Dealing with 'All c'
+    -- ** Dealing with @'All' c@
   , AllDict(..)
   , allDict_NP
   , hcliftA'
@@ -291,11 +291,11 @@ module Generics.SOP (
     -- ** Singletons
   , Sing(..)
   , SingI(..)
-    -- * Shape of type-level lists
+    -- *** Shape of type-level lists
   , Shape(..)
   , shape
   , lengthSing
-    -- * Re-exports
+    -- ** Re-exports
   , Proxy(..)
   ) where
 

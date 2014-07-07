@@ -11,7 +11,6 @@ module Generics.SOP.Constraint
   ) where
 
 import GHC.Exts (Constraint)
-
 import Generics.SOP.Sing
 
 -- | Require a constraint for every element of a list.
@@ -69,12 +68,16 @@ type family Map (f :: k -> l) (xs :: [k]) :: [l]
 type instance Map f '[]       = '[]
 type instance Map f (x ': xs) = f x ': Map f xs
 
--- | A generalization of |All| and |All2|.
+-- | A generalization of 'All' and 'All2'.
 --
--- The family |AllMap| expands to |All| or |All2| depending on whether
+-- The family 'AllMap' expands to 'All' or 'All2' depending on whether
 -- the argument is indexed by a list or a list of lists.
 --
 type family AllMap (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) (xs :: l) :: Constraint
 
+-- | Dictionary for a constraint for all elements of a type-level list.
+--
+-- A value of type @'AllDict' c xs@ captures the constraint @'All' c xs@.
+--
 data AllDict (c :: k -> Constraint) (xs :: [k]) where
   AllDictC :: (SingI xs, All c xs) => AllDict c xs

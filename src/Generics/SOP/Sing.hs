@@ -5,12 +5,23 @@
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the
--- singletons package. See the "True Sums of Products" paper for
--- details.
+-- @<https://hackage.haskell.org/packages/singletons singletons>@ package.
+-- See the <http://www.andres-loeh.de/TrueSumsOfProducts "True Sums of Products">
+-- paper for details.
 --
-module Generics.SOP.Sing where
+module Generics.SOP.Sing
+  ( -- * Singletons
+    Sing(..)
+  , SingI(..)
+    -- ** Shape of type-level lists
+  , Shape(..)
+  , shape
+  , lengthSing
+  ) where
 
 import Data.Proxy (Proxy(..))
+
+-- * Singletons
 
 -- | Explicit singleton.
 --
@@ -33,7 +44,7 @@ deriving instance Ord  (Sing (xs :: [k]))
 
 -- | Singleton for types of kind '*'.
 --
--- For types of kind '*', we explicitly *don't* want to reveal
+-- For types of kind '*', we explicitly /don't/ want to reveal
 -- more type analysis. Even functions that have a 'Sing' constraint
 -- should still be parametric in everything that is of kind '*'.
 --
@@ -66,9 +77,7 @@ instance SingI '[] where
 instance (SingI x, SingI xs) => SingI (x ': xs) where
   sing = SCons
 
-{-------------------------------------------------------------------------------
-  Shape of type-level lists
--------------------------------------------------------------------------------}
+-- * Shape of type-level lists
 
 -- | Occassionally it is useful to have an explicit, term-level, representation
 -- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108)
@@ -80,11 +89,13 @@ deriving instance Show (Shape xs)
 deriving instance Eq   (Shape xs)
 deriving instance Ord  (Shape xs)
 
+-- | The shape of a type-level list.
 shape :: forall (xs :: [k]). SingI xs => Shape xs
 shape = case sing :: Sing xs of
           SNil  -> ShapeNil
           SCons -> ShapeCons shape
 
+-- | The length of a type-level list.
 lengthSing :: forall (xs :: [k]). SingI xs => Proxy xs -> Int
 lengthSing _ = lengthShape (shape :: Shape xs)
   where

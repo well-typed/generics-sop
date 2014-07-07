@@ -136,12 +136,20 @@ instance HPure POP where
   hcpure = cpure_POP
 
 -- | Specialization of 'hap'.
+--
+-- Applies a product of (lifted) functions pointwise to a product of
+-- suitable arguments.
+--
 ap_NP :: NP (f -.-> g) xs -> NP f xs -> NP g xs
 ap_NP Nil           Nil        = Nil
 ap_NP (Fn f :* fs)  (x :* xs)  = f x :* ap_NP fs xs
 ap_NP _ _ = error "inaccessible"
 
 -- | Specialization of 'hap'.
+--
+-- Applies a product of (lifted) functions pointwise to a product of
+-- suitable arguments.
+--
 ap_POP  :: POP (f -.-> g) xs -> POP  f xs -> POP  g xs
 ap_POP (POP Nil        ) (POP Nil        ) = POP Nil
 ap_POP (POP (fs :* fss)) (POP (xs :* xss)) = POP (ap_NP fs xs :* unPOP (ap_POP (POP fss) (POP xss)))
@@ -155,25 +163,41 @@ instance HAp POP where hap = ap_POP
 
 -- Specialized functions, mostly to keep in line with the paper:
 
+-- | Specialization of 'hliftA'.
 liftA_NP  :: SingI xs  => (forall a. f a -> g a) -> NP  f xs  -> NP  g xs
+-- | Specialization of 'hliftA'.
 liftA_POP :: SingI xss => (forall a. f a -> g a) -> POP f xss -> POP g xss
 
 liftA_NP  = hliftA
 liftA_POP = hliftA
 
+-- | Specialization of 'hliftA2'.
 liftA2_NP  :: SingI xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP   h xs
+-- | Specialization of 'hliftA2'.
 liftA2_POP :: SingI xss => (forall a. f a -> g a -> h a) -> POP f xss -> POP g xss -> POP  h xss
 
 liftA2_NP  = hliftA2
 liftA2_POP = hliftA2
 
+-- | Specialization of 'hliftA3'.
+liftA3_NP  :: SingI xs  => (forall a. f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
+-- | Specialization of 'hliftA3'.
+liftA3_POP :: SingI xss => (forall a. f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
+
+liftA3_NP  = hliftA3
+liftA3_POP = hliftA3
+
+-- | Specialization of 'hcliftA'.
 cliftA_NP  :: (All  c xs,  SingI xs)  => Proxy c -> (forall a. c a => f a -> g a) -> NP   f xs  -> NP  g xs
+-- | Specialization of 'hcliftA'.
 cliftA_POP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
 
 cliftA_NP  = hcliftA
 cliftA_POP = hcliftA
 
+-- | Specialization of 'hcliftA2'.
 cliftA2_NP  :: (All  c xs,  SingI xs)  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
+-- | Specialization of 'hcliftA2'.
 cliftA2_POP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
 
 cliftA2_NP  = hcliftA2
