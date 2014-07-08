@@ -1,5 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 -- | Derive @generics-sop@ boilerplate instances from GHC's 'GHC.Generic'.
+--
+-- The technique being used here is described in the following paper:
+--
+--   * José Pedro Magalhães and Andres Löh.
+--     <http://www.andres-loeh.de/GenericGenericProgramming Generic Generic Programming>.
+--     Practical Aspects of Declarative Languages (PADL) 2014.
+--
 module Generics.SOP.GGP
   ( GCode
   , GFrom
