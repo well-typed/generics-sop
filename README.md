@@ -25,7 +25,7 @@ the paper:
     [True Sums of Products][6].
     Workshop on Generic Programming (WGP) 2014.
  
-[0]: https://hackage.haskell.org/packages/generics-sop
+[0]: https://hackage.haskell.org/package/generics-sop
 [1]: https://github.com/well-typed/generics-sop/blob/master/src/Generics/SOP.hs
 [2]: https://github.com/well-typed/basic-sop
 [3]: https://github.com/well-typed/pretty-sop
