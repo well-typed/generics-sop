@@ -5,7 +5,7 @@
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the
--- @<https://hackage.haskell.org/packages/singletons singletons>@ package.
+-- @<https://hackage.haskell.org/package/singletons singletons>@ package.
 -- See the <http://www.andres-loeh.de/TrueSumsOfProducts "True Sums of Products">
 -- paper for details.
 --

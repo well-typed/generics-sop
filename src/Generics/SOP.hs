@@ -196,10 +196,10 @@
 -- is to look at a few simple examples. Examples are provided by the following
 -- packages:
 --
---   * @<http://hackage.haskell.org/packages/basic-sop basic-sop>@ basic examples,
---   * @<http://hackage.haskell.org/packages/pretty-sop pretty-sop>@ generic pretty printing,
---   * @<http://hackage.haskell.org/packages/lens-sop lens-sop>@ generically computed lenses,
---   * @<http://hackage.haskell.org/packages/json-sop json-sop>@ generic JSON conversions.
+--   * @<http://hackage.haskell.org/package/basic-sop basic-sop>@ basic examples,
+--   * @<http://hackage.haskell.org/package/pretty-sop pretty-sop>@ generic pretty printing,
+--   * @<http://hackage.haskell.org/package/lens-sop lens-sop>@ generically computed lenses,
+--   * @<http://hackage.haskell.org/package/json-sop json-sop>@ generic JSON conversions.
 --
 -- The generic functions in these packages use a wide variety of the combinators
 -- that are offered by the library.
