@@ -27,7 +27,7 @@ import Generics.SOP.Universe
 -- Note that the generated code will require the @TypeFamilies@ and
 -- @DataKinds@ extensions to be enabled for the module.
 --
--- /Example:/ if you have the datatype
+-- /Example:/ If you have the datatype
 --
 -- > data Tree = Leaf Int | Node Tree Tree
 --
