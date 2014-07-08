@@ -1,6 +1,39 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
--- n-ary sums (and sums of products)
-module Generics.SOP.NS where
+-- | n-ary sums (and sums of products)
+module Generics.SOP.NS
+  ( -- * Datatypes
+    NS(..)
+  , SOP(..)
+  , unSOP
+    -- * Constructing sums
+  , Injection
+  , injections
+  , shift
+  , apInjs_NP
+  , apInjs_POP
+    -- * Application
+  , ap_NS
+  , ap_SOP
+    -- * Lifting / mapping
+  , liftA_NS
+  , liftA_SOP
+  , liftA2_NS
+  , liftA2_SOP
+  , cliftA_NS
+  , cliftA_SOP
+  , cliftA2_NS
+  , cliftA2_SOP
+    -- * Dealing with @'All' c@
+  , cliftA2'_NS
+    -- * Collapsing
+  , collapse_NS
+  , collapse_SOP
+    -- * Sequencing
+  , sequence'_NS
+  , sequence'_SOP
+  , sequence_NS
+  , sequence_SOP
+  ) where
 
 import Control.Applicative
 import Data.Proxy (Proxy(..))
@@ -10,6 +43,8 @@ import Generics.SOP.Classes
 import Generics.SOP.Constraint
 import Generics.SOP.NP
 import Generics.SOP.Sing
+
+-- * Datatypes
 
 -- | An n-ary sum.
 --
@@ -79,9 +114,7 @@ newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
 unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
 
-{-------------------------------------------------------------------------------
-  Constructing sums
--------------------------------------------------------------------------------}
+-- * Constructing sums
 
 -- | The type of injections into an n-ary sum.
 --
@@ -110,11 +143,36 @@ injections = case sing :: Sing xs of
 shift :: Injection f xs a -> Injection f (x ': xs) a
 shift (Fn f) = Fn $ K . S . unK . f
 
+-- | Apply injections to a product.
+--
+-- Given a product containing all possible choices, produce a
+-- list of sums by applying each injection to the appropriate
+-- element.
+--
+-- /Example:/
+--
+-- >>> apInjs_NP (I 'x' :* I True :* I 2 :* Nil)
+-- > [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
+--
 apInjs_NP  :: SingI xs  => NP  f xs  -> [NS  f xs]
 apInjs_NP  = hcollapse . hap injections
 
+-- | Apply injections to a product of product.
+--
+-- This operates on the outer product only. Given a product
+-- containing all possible choices (that are products),
+-- produce a list of sums (of products) by applying each
+-- injection to the appropriate element.
+--
+-- /Example:/
+--
+-- >>> apInjs_POP (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil))
+-- > [SOP (Z (I 'x' :* Nil)),SOP (S (Z (I True :* (I 2 :* Nil))))]
+--
 apInjs_POP :: SingI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
+
+-- * Application
 
 -- | Specialization of 'hap'.
 ap_NS :: NP (f -.-> g) xs -> NS f xs -> NS g xs
@@ -128,15 +186,13 @@ ap_SOP (POP (fs :* _)  ) (SOP (Z xs) ) = SOP (Z (ap_NP  fs  xs))
 ap_SOP (POP (_  :* fss)) (SOP (S xss)) = SOP (S (unSOP (ap_SOP (POP fss) (SOP xss))))
 ap_SOP _ _ = error "inaccessible"
 
--- Generalization
-
 type instance Prod NS  = NP
 type instance Prod SOP = POP
 
 instance HAp NS  where hap = ap_NS
 instance HAp SOP where hap = ap_SOP
 
--- Specialized functions, mostly to keep in line with the paper:
+-- * Lifting / mapping
 
 -- | Specialization of 'hliftA'.
 liftA_NS  :: SingI xs  => (forall a. f a -> g a) -> NS  f xs  -> NS  g xs
@@ -170,19 +226,14 @@ cliftA2_SOP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g 
 cliftA2_NS  = hcliftA2
 cliftA2_SOP = hcliftA2
 
-{-------------------------------------------------------------------------------
-  Dealing with 'All c'
--------------------------------------------------------------------------------}
+-- * Dealing with @'All' c@
 
--- Specializations, to keep in line with the paper
-
+-- | Specialization of 'hcliftA2''.
 cliftA2'_NS :: (All2 c xss, SingI xss) => Proxy c -> (forall xs. (SingI xs, All c xs) => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
 
 cliftA2'_NS = hcliftA2'
 
-{-------------------------------------------------------------------------------
-  Collapsing
--------------------------------------------------------------------------------}
+-- * Collapsing
 
 -- | Specialization of 'hcollapse'.
 collapse_NS  ::              NS  (K a) xs  ->   a
@@ -194,19 +245,18 @@ collapse_NS (S xs)    = collapse_NS xs
 
 collapse_SOP = collapse_NS . hliftA (K . collapse_NP) . unSOP
 
--- Generalization
-
 type instance CollapseTo NS  = I
 type instance CollapseTo SOP = []
 
 instance HCollapse NS  where hcollapse = I . collapse_NS
 instance HCollapse SOP where hcollapse = collapse_SOP
 
-{-------------------------------------------------------------------------------
-  Sequencing
--------------------------------------------------------------------------------}
+-- * Sequencing
 
+-- | Specialization of 'hsequence''.
 sequence'_NS  ::             Applicative f  => NS  (f :.: g) xs  -> f (NS  g xs)
+
+-- | Specialization of 'hsequence''.
 sequence'_SOP :: (SingI xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
 
 sequence'_NS (Z mx)  = Z <$> unComp mx
@@ -214,14 +264,13 @@ sequence'_NS (S mxs) = S <$> sequence'_NS mxs
 
 sequence'_SOP = fmap SOP . sequence'_NS . hliftA (Comp . sequence'_NP) . unSOP
 
--- Generalization
-
 instance HSequence NS  where hsequence' = sequence'_NS
 instance HSequence SOP where hsequence' = sequence'_SOP
 
--- Specializations, to keep in line with the paper
-
+-- | Specialization of 'hsequence'.
 sequence_NS  :: (SingI xs,  Applicative f) => NS  f xs  -> f (NS  I xs)
+
+-- | Specialization of 'hsequence'.
 sequence_SOP :: (SingI xss, Applicative f) => SOP f xss -> f (SOP I xss)
 
 sequence_NS   = hsequence

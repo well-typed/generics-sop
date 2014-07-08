@@ -307,9 +307,23 @@ cliftA2'_NP = hcliftA2'
 -- * Collapsing
 
 -- | Specialization of 'hcollapse'.
+--
+-- /Example:/
+--
+-- >>> collapse_NP (K 1 :* K 2 :* K 3 :* Nil)
+-- > [1,2,3]
+--
 collapse_NP  ::              NP  (K a) xs  ->  [a]
 
 -- | Specialization of 'hcollapse'.
+--
+-- /Example:/
+--
+-- >>> collapse_POP (POP ((K 'a' :* Nil) :* (K 'b' :* K 'c' :* Nil) :* Nil) :: POP (K Char) '[ '[(a :: *)], '[b, c] ])
+-- > ["a", "bc"]
+--
+-- (The type signature is only necessary in this case to fix the kind of the type variables.)
+--
 collapse_POP :: SingI xss => POP (K a) xss -> [[a]]
 
 collapse_NP Nil         = []
@@ -339,12 +353,22 @@ sequence'_POP = fmap POP . sequence'_NP . hliftA (Comp . sequence'_NP) . unPOP
 instance HSequence NP  where hsequence' = sequence'_NP
 instance HSequence POP where hsequence' = sequence'_POP
 
--- Specializations, to keep in line with the paper
-
 -- | Specialization of 'hsequence'.
+--
+-- /Example:/
+--
+-- >>> sequence_NP (Just 1 :* Just 2 :* Nil)
+-- > Just (I 1 :* I 2 :* Nil)
+--
 sequence_NP  :: (SingI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 
 -- | Specialization of 'hsequence'.
+--
+-- /Example:/
+--
+-- >>> sequence_POP (POP ((Just 1 :* Nil) :* (Just 2 :* Just 3 :* Nil) :* Nil))
+-- > Just (POP ((I 1 :* Nil) :* ((I 2 :* (I 3 :* Nil)) :* Nil)))
+--
 sequence_POP :: (SingI xss, Applicative f) => POP f xss -> f (POP I xss)
 
 sequence_NP   = hsequence
