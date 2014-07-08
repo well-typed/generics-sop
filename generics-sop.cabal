@@ -1,5 +1,5 @@
 name:                generics-sop
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            Generic Programming using True Sums of Products
 description:
   A library to support the definition of generic functions.
@@ -14,10 +14,13 @@ description:
   Examples of using this library are provided by the following
   packages:
   .
-    * @<https://hackage.haskell.org/packages/basic-sop basic-sop>@ basic examples,
-    * @<https://hackage.haskell.org/packages/pretty-sop pretty-sop>@ generic pretty printing,
-    * @<https://hackage.haskell.org/packages/lens-sop lens-sop>@ generically computed lenses,
-    * @<https://hackage.haskell.org/packages/json-sop json-sop>@ generic JSON conversions.
+    * @<https://hackage.haskell.org/package/basic-sop basic-sop>@ basic examples,
+  .
+    * @<https://hackage.haskell.org/package/pretty-sop pretty-sop>@ generic pretty printing,
+  .
+    * @<https://hackage.haskell.org/package/lens-sop lens-sop>@ generically computed lenses,
+  .
+    * @<https://hackage.haskell.org/package/json-sop json-sop>@ generic JSON conversions.
   .
   A detailed description of the ideas behind this library is provided by
   the paper:
