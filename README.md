@@ -1,6 +1,6 @@
 A library to support the definition of generic functions.
-Datatypes are viewed in a uniform, structured way: the choice
-way: the choice between constructors is represented using an n-ary
+Datatypes are viewed in a uniform, structured way:
+the choice between constructors is represented using an n-ary
 sum, and the arguments of each constructor are represented using
 an n-ary product.
 
