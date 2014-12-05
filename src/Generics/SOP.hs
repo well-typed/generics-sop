@@ -296,7 +296,9 @@ module Generics.SOP (
   , shape
   , lengthSing
     -- ** Re-exports
-  , Proxy(..)
+#if !(defined(__HADDOCK_VERSION__)) || MIN_TOOL_VERSION_haddock(2,14,0)
+  , Proxy(..) -- hidden from old Haddock versions, because it triggers an internal error
+#endif
   ) where
 
 import Data.Proxy (Proxy(..))
