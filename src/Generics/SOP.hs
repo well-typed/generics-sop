@@ -296,6 +296,13 @@ module Generics.SOP (
   , shape
   , lengthSing
     -- ** Re-exports
+
+-- Workaround for lack of MIN_TOOL_VERSION macro in Cabal 1.18, see:
+-- https://github.com/well-typed/generics-sop/issues/3
+#ifndef MIN_TOOL_VERSION_haddock
+#define MIN_TOOL_VERSION_haddock(x,y,z) 0
+#endif
+
 #if !(defined(__HADDOCK_VERSION__)) || MIN_TOOL_VERSION_haddock(2,14,0)
   , Proxy(..) -- hidden from old Haddock versions, because it triggers an internal error
 #endif
