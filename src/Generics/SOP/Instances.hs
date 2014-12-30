@@ -67,6 +67,21 @@ deriveGeneric ''(,,,,,,,,,,,)
 deriveGeneric ''(,,,,,,,,,,,,)
 deriveGeneric ''(,,,,,,,,,,,,,)
 deriveGeneric ''(,,,,,,,,,,,,,,) -- 15
+deriveGeneric ''(,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,) -- 20
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,,,,) -- 25
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,)
+deriveGeneric ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) -- 30
 deriveGeneric ''[]
 
 -- Other types from base:
