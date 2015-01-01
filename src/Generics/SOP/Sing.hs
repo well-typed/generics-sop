@@ -83,7 +83,7 @@ instance (SingI x, SingI xs) => SingI (x ': xs) where
 -- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108)
 data Shape :: [k] -> * where
   ShapeNil  :: Shape '[]
-  ShapeCons :: SingI xs => Shape xs -> Shape (x ': xs)
+  ShapeCons :: (SingI x, SingI xs) => Shape xs -> Shape (x ': xs)
 
 deriving instance Show (Shape xs)
 deriving instance Eq   (Shape xs)
