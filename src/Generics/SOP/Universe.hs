@@ -6,6 +6,7 @@ import Data.Proxy
 import qualified GHC.Generics as GHC
 
 import Generics.SOP.BasicFunctors
+import Generics.SOP.Constraint
 import Generics.SOP.NS
 import Generics.SOP.Sing
 import Generics.SOP.GGP
@@ -89,7 +90,7 @@ type Rep a = SOP I (Code a)
 --
 -- still holds.
 --
-class SingI (Code a) => Generic (a :: *) where
+class (SingI (Code a), All SingI (Code a)) => Generic (a :: *) where
   -- | The code of a datatype.
   --
   -- This is a list of lists of its components. The outer list contains
