@@ -69,9 +69,9 @@
 -- For example,
 --
 -- >>> from (D (C True) 3) :: Rep A
--- > SOP (S (Z (I (C True) :* I 3 :* Nil)))
+-- SOP (S (Z (I (C True) :* I 3 :* Nil)))
 -- >>> to it :: A
--- > D (C True) 3
+-- D (C True) 3
 --
 -- Note that the transformation is shallow: In @D (C True) 3@, the
 -- inner value @C True@ of type @A@ is not affected by the
@@ -153,13 +153,13 @@
 --
 -- >>> let x = G 2.5 'A' False :: B Double
 -- >>> from x
--- > SOP (S (Z (I 2.5 :* I 'A' :* I False :* Nil)))
+-- SOP (S (Z (I 2.5 :* I 'A' :* I False :* Nil)))
 -- >>> hcliftA (Proxy :: Proxy NFData) (\ (I x) -> K (rnf x)) it
--- > SOP (S (Z (K () :* K () :* K () :* Nil)))
+-- SOP (S (Z (K () :* K () :* K () :* Nil)))
 -- >>> hcollapse it
--- > [(),(),()]
+-- [(),(),()]
 -- >>> rnf it
--- > ()
+-- ()
 --
 -- The 'from' call converts into the structural representation.
 -- Via 'hcliftA', we apply 'rnf' to all the components. The result
@@ -176,9 +176,9 @@
 -- class 'Generic'.
 --
 -- >>> grnf (G 2.5 'A' False)
--- > ()
+-- ()
 -- >>> grnf (G 2.5 undefined False)
--- > *** Exception: Prelude.undefined
+-- *** Exception: Prelude.undefined
 --
 -- Note that the type of 'grnf' requires that all components of the
 -- type are in the 'Control.DeepSeq.NFData' class. For a recursive

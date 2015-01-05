@@ -152,7 +152,7 @@ shift (Fn f) = Fn $ K . S . unK . f
 -- /Example:/
 --
 -- >>> apInjs_NP (I 'x' :* I True :* I 2 :* Nil)
--- > [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
+-- [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
 --
 apInjs_NP  :: SingI xs  => NP  f xs  -> [NS  f xs]
 apInjs_NP  = hcollapse . hap injections
@@ -167,7 +167,7 @@ apInjs_NP  = hcollapse . hap injections
 -- /Example:/
 --
 -- >>> apInjs_POP (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil))
--- > [SOP (Z (I 'x' :* Nil)),SOP (S (Z (I True :* (I 2 :* Nil))))]
+-- [SOP (Z (I 'x' :* Nil)),SOP (S (Z (I True :* (I 2 :* Nil))))]
 --
 apInjs_POP :: SingI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP

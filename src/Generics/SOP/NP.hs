@@ -122,9 +122,9 @@ type instance AllMap POP c xs = All2 c xs
 -- /Example:/
 --
 -- >>> pure_NP [] :: NP [] '[Char, Bool]
--- > "" :* [] :* Nil
+-- "" :* [] :* Nil
 -- >>> pure_NP (K 0) :: NP (K Int) '[Double, Int, String]
--- > K 0 :* K 0 :* K 0 :* Nil
+-- K 0 :* K 0 :* K 0 :* Nil
 --
 pure_NP :: forall f xs. SingI xs => (forall a. f a) -> NP f xs
 pure_NP f = case sing :: Sing xs of
@@ -311,7 +311,7 @@ cliftA2'_NP = hcliftA2'
 -- /Example:/
 --
 -- >>> collapse_NP (K 1 :* K 2 :* K 3 :* Nil)
--- > [1,2,3]
+-- [1,2,3]
 --
 collapse_NP  ::              NP  (K a) xs  ->  [a]
 
@@ -320,7 +320,7 @@ collapse_NP  ::              NP  (K a) xs  ->  [a]
 -- /Example:/
 --
 -- >>> collapse_POP (POP ((K 'a' :* Nil) :* (K 'b' :* K 'c' :* Nil) :* Nil) :: POP (K Char) '[ '[(a :: *)], '[b, c] ])
--- > ["a", "bc"]
+-- ["a", "bc"]
 --
 -- (The type signature is only necessary in this case to fix the kind of the type variables.)
 --
@@ -358,7 +358,7 @@ instance HSequence POP where hsequence' = sequence'_POP
 -- /Example:/
 --
 -- >>> sequence_NP (Just 1 :* Just 2 :* Nil)
--- > Just (I 1 :* I 2 :* Nil)
+-- Just (I 1 :* I 2 :* Nil)
 --
 sequence_NP  :: (SingI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 
@@ -367,7 +367,7 @@ sequence_NP  :: (SingI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 -- /Example:/
 --
 -- >>> sequence_POP (POP ((Just 1 :* Nil) :* (Just 2 :* Just 3 :* Nil) :* Nil))
--- > Just (POP ((I 1 :* Nil) :* ((I 2 :* (I 3 :* Nil)) :* Nil)))
+-- Just (POP ((I 1 :* Nil) :* ((I 2 :* (I 3 :* Nil)) :* Nil)))
 --
 sequence_POP :: (SingI xss, Applicative f) => POP f xss -> f (POP I xss)
 
