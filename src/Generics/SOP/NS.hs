@@ -120,7 +120,7 @@ unSOP (SOP xss) = xss
 --
 -- If you expand the type synonyms and newtypes involved, you get
 --
--- > Injection f xs a = (f -.-> K (NS f xs)) a ~= f a -> K (NS f xs) a ~= f a -> K (NS f xs)
+-- > Injection f xs a = (f -.-> K (NS f xs)) a ~= f a -> K (NS f xs) a ~= f a -> NS f xs
 --
 -- If we pick @a@ to be an element of @xs@, this indeed corresponds to an
 -- injection into the sum.
