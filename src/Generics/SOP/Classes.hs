@@ -31,7 +31,9 @@
 --
 module Generics.SOP.Classes where
 
+#if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative (Applicative)
+#endif
 import Data.Proxy (Proxy)
 
 import Generics.SOP.BasicFunctors

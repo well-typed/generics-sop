@@ -1,5 +1,5 @@
 name:                generics-sop
-version:             0.1.1
+version:             0.1.1.1
 synopsis:            Generic Programming using True Sums of Products
 description:
   A library to support the definition of generic functions.
@@ -57,7 +57,7 @@ library
                        Generics.SOP.Universe
                        Generics.SOP.Sing
   build-depends:       base                 >= 4.6  && < 5,
-                       template-haskell     >= 2.8  && < 2.10,
+                       template-haskell     >= 2.8  && < 2.11,
                        ghc-prim             >= 0.3  && < 0.4
   if impl (ghc < 7.8)
     build-depends:     tagged               >= 0.7  && < 0.8

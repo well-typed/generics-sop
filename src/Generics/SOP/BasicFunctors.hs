@@ -18,10 +18,14 @@ module Generics.SOP.BasicFunctors
   , unComp
   ) where
 
+#if MIN_VERSION_base(4,8,0)
+import Data.Monoid ((<>))
+#else
 import Control.Applicative
 import Data.Foldable (Foldable(..))
 import Data.Monoid (Monoid, mempty, (<>))
 import Data.Traversable (Traversable(..))
+#endif
 import qualified GHC.Generics as GHC
 
 -- | The constant type functor.
