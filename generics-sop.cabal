@@ -32,7 +32,7 @@ description:
 license:             BSD3
 license-file:        LICENSE
 author:              Edsko de Vries <edsko@well-typed.com>, Andres Löh <andres@well-typed.com>
-maintainer:          edsko@well-typed.com
+maintainer:          andres@well-typed.com
 category:            Generics
 build-type:          Simple
 cabal-version:       >=1.10
