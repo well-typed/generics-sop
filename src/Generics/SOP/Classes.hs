@@ -123,7 +123,6 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
   -- a structure containing (lifted) functions and a compatible structure
   -- containing corresponding arguments into a compatible structure
   -- containing results.
-
   --
   -- The same combinator can also be used to combine a product
   -- structure of functions with a sum structure of arguments, which then
