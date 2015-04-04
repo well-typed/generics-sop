@@ -118,10 +118,12 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
 
   -- | Corresponds to 'Control.Applicative.<*>'.
   --
-  -- For products as well as products or products, the correspondence
-  -- is rather direct. We combine a structure containing (lifted)
-  -- functions and a compatible structure containing corresponding arguments
-  -- into a compatible structure containing results.
+  -- For products ('Generics.SOP.NP.NP') as well as products of products
+  -- ('Generics.SOP.NP.POP), the correspondence is rather direct. We combine
+  -- a structure containing (lifted) functions and a compatible structure
+  -- containing corresponding arguments into a compatible structure
+  -- containing results.
+
   --
   -- The same combinator can also be used to combine a product
   -- structure of functions with a sum structure of arguments, which then
