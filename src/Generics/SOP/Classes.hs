@@ -258,7 +258,7 @@ hcliftA2 p f xs ys    = hcpure p (fn_2 f) `hap` xs `hap` ys
 hcliftA3 p f xs ys zs = hcpure p (fn_3 f) `hap` xs `hap` ys `hap` zs
 
 -- | Maps products to lists, and sums to identities.
-type family CollapseTo (h :: (k -> *) -> (l -> *)) :: * -> *
+type family CollapseTo (h :: (k -> *) -> (l -> *)) (x :: *) :: *
 
 -- | A class for collapsing a heterogeneous structure into
 -- a homogeneous one.

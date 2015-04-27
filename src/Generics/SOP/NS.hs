@@ -245,10 +245,10 @@ collapse_NS (S xs)    = collapse_NS xs
 
 collapse_SOP = collapse_NS . hliftA (K . collapse_NP) . unSOP
 
-type instance CollapseTo NS  = I
-type instance CollapseTo SOP = []
+type instance CollapseTo NS  a = a
+type instance CollapseTo SOP a = [a]
 
-instance HCollapse NS  where hcollapse = I . collapse_NS
+instance HCollapse NS  where hcollapse = collapse_NS
 instance HCollapse SOP where hcollapse = collapse_SOP
 
 -- * Sequencing

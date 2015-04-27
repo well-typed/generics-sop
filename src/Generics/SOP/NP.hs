@@ -331,11 +331,11 @@ collapse_NP (K x :* xs) = x : collapse_NP xs
 
 collapse_POP = collapse_NP . hliftA (K . collapse_NP) . unPOP
 
-type instance CollapseTo NP  = []
-type instance CollapseTo POP = ([] :.: [])
+type instance CollapseTo NP  a = [a]
+type instance CollapseTo POP a = [[a]]
 
 instance HCollapse NP  where hcollapse = collapse_NP
-instance HCollapse POP where hcollapse = Comp . collapse_POP
+instance HCollapse POP where hcollapse = collapse_POP
 
 -- * Sequencing
 
