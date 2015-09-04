@@ -67,7 +67,7 @@ deriveGeneric n = do
 deriveGenericOnly :: Name -> Q [Dec]
 deriveGenericOnly n = do
   dec <- reifyDec n
-  withDataDec dec deriveMetadataForDataDec
+  withDataDec dec deriveGenericForDataDec
 
 deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
 deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
