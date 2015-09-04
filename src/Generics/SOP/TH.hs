@@ -3,6 +3,8 @@
 module Generics.SOP.TH
   ( deriveGeneric
   , deriveGenericOnly
+  , deriveGenericFunctions
+  , deriveMetadataValue
   ) where
 
 import Control.Monad (replicateM)
@@ -67,7 +69,66 @@ deriveGeneric n = do
 deriveGenericOnly :: Name -> Q [Dec]
 deriveGenericOnly n = do
   dec <- reifyDec n
-  withDataDec dec deriveMetadataForDataDec
+  withDataDec dec deriveGenericForDataDec
+
+-- | Like 'deriveGenericOnly', but don't derive class instance, only functions.
+--
+-- /Example:/ If you say
+--
+-- > deriveGenericFunctions ''Tree "TreeCode" "fromTree" "toTree"
+--
+-- then you get code that is equivalent to:
+--
+-- > type TreeCode = '[ '[Int], '[Tree, Tree] ]
+-- >
+-- > fromTree :: Tree -> SOP I TreeCode
+-- > fromTree (Leaf x)   = SOP (   Z (I x :* Nil))
+-- > fromTree (Node l r) = SOP (S (Z (I l :* I r :* Nil)))
+-- >
+-- > toTree :: SOP I TreeCode -> Tree
+-- > toTree (SOP    (Z (I x :* Nil)))         = Leaf x
+-- > toTree (SOP (S (Z (I l :* I r :* Nil)))) = Node l r
+-- > toTree _ = error "unreachable" -- to avoid GHC warnings
+--
+deriveGenericFunctions :: Name -> String -> String -> String -> Q [Dec]
+deriveGenericFunctions n codeName fromName toName = do
+  let codeName'  = mkName codeName
+  let fromName' = mkName fromName
+  let toName'   = mkName toName
+  dec <- reifyDec n
+  withDataDec dec $ \_isNewtype _cxt name _bndrs cons _derivs -> do
+    let codeType = codeFor cons                        -- '[ '[Int], '[Tree, Tree] ]
+    let repType = [t| SOP I $(conT codeName') |]       -- SOP I TreeCode
+    sequence
+      [ tySynD codeName' [] codeType                    -- type TreeCode = '[ '[Int], '[Tree, Tree] ]
+      , sigD fromName' [t| $(conT name) -> $repType |]  -- fromTree :: Tree -> SOP I TreeCode
+      , embedding fromName' cons                        -- fromTree ... =
+      , sigD toName' [t| $repType -> $(conT name) |]    -- toTree :: SOP I TreeCode -> Tree
+      , projection toName' cons                         -- toTree ... =
+      ]
+
+-- | Derive @DatatypeInfo@ value for the type.
+--
+-- /Example:/ If you say
+--
+-- > deriveMetadataValue ''Tree "TreeCode" "treeDatatypeInfo"
+--
+-- then you get code that is equivalent to:
+--
+-- > treeDatatypeInfo :: DatatypeInfo TreeCode
+-- > treeDatatypeInfo = ADT "Main" "Tree"
+-- >     (Constructor "Leaf" :* Constructor "Node" :* Nil)
+--
+-- /Note:/ CodeType need to be derived with 'deriveGenericFunctions'.
+deriveMetadataValue :: Name -> String -> String -> Q [Dec]
+deriveMetadataValue n codeName datatypeInfoName = do
+  let codeName'  = mkName codeName
+  let datatypeInfoName' = mkName datatypeInfoName
+  dec <- reifyDec n
+  withDataDec dec $ \isNewtype _cxt name _bndrs cons _derivs -> do
+    sequence [ sigD datatypeInfoName' [t| DatatypeInfo $(conT codeName') |]                    -- treeDatatypeInfo :: DatatypeInfo TreeCode
+             , funD datatypeInfoName' [clause [] (normalB $ metadata' isNewtype name cons) []] -- treeDatatypeInfo = ...
+             ]
 
 deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
 deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
@@ -80,7 +141,7 @@ deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
   inst <- instanceD
             (cxt [])
             [t| Generic $typ |]
-            [codeSyn, embedding cons, projection cons]
+            [codeSyn, embedding 'from cons, projection 'to cons]
   return [inst]
 
 deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
@@ -106,8 +167,8 @@ codeFor = promotedTypeList . map go
   Computing the embedding/projection pair
 -------------------------------------------------------------------------------}
 
-embedding :: [Con] -> Q Dec
-embedding = funD 'from . go (\e -> [| Z $e |])
+embedding :: Name -> [Con] -> Q Dec
+embedding fromName = funD fromName . go (\e -> [| Z $e |])
   where
     go :: (Q Exp -> Q Exp) -> [Con] -> [Q Clause]
     go _  []     = []
@@ -121,8 +182,8 @@ embedding = funD 'from . go (\e -> [| Z $e |])
              (normalB [| SOP $(br . npE . map (appE (conE 'I) . varE) $ vars) |])
              []
 
-projection :: [Con] -> Q Dec
-projection = funD 'to . go (\p -> conP 'Z [p])
+projection :: Name -> [Con] -> Q Dec
+projection toName = funD toName . go (\p -> conP 'Z [p])
   where
     go :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
     go _ [] = [unreachable]
@@ -147,7 +208,10 @@ unreachable = clause [wildP]
 
 metadata :: Bool -> Name -> [Con] -> Q Dec
 metadata isNewtype typeName cs =
-    funD 'datatypeInfo [clause [wildP] (normalB md) []]
+    funD 'datatypeInfo [clause [wildP] (normalB $ metadata' isNewtype typeName cs) []]
+
+metadata' :: Bool -> Name -> [Con] -> Q Exp
+metadata' isNewtype typeName cs = md
   where
     md :: Q Exp
     md | isNewtype = [| Newtype $(stringE (nameModule' typeName))

@@ -91,3 +91,12 @@ library
                        TemplateHaskell
                        DeriveGeneric
                        StandaloneDeriving
+
+test-suite generic-sop-examples
+  type:                exitcode-stdio-1.0
+  main-is:             Example.hs
+  hs-source-dirs:      test
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  build-depends:       base                 >= 4.6  && < 5,
+                       generics-sop
