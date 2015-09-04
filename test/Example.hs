@@ -4,7 +4,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
-module Main (main) where
+module Main (main, toTreeC) where
 
 import qualified GHC.Generics as GHC
 import Generics.SOP
@@ -31,23 +31,39 @@ tree :: Tree
 tree = Node (Leaf 1) (Leaf 2)
 
 instance Generic Tree
+instance HasDatatypeInfo Tree
 
 instance Show Tree where
   show = gshow
 
 -- Template Haskell
-data TreeB = Leaf' Int | Node' TreeB TreeB
+data TreeB = LeafB Int | NodeB TreeB TreeB
 
-tree' :: TreeB
-tree' = Node' (Leaf' 1) (Leaf' 2)
+treeB :: TreeB
+treeB = NodeB (LeafB 1) (LeafB 2)
 
 deriveGenericOnly ''TreeB
 
 instance Show TreeB where
   show = gshow
 
+-- Orphan approach
+data TreeC = LeafC Int | NodeC TreeC TreeC
+
+treeC :: TreeC
+treeC = NodeC (LeafC 1) (LeafC 2)
+
+deriveGenericFunctions ''TreeC "TreeCCode" "fromTreeC" "toTreeC"
+deriveMetadataValue ''TreeC "TreeCCode" "treeDatatypeInfo"
+
+instance Show TreeC where
+  show x = gshowS (fromTreeC x)
+
 -- Tests
 main :: IO ()
 main = do
   print tree
-  print tree'
+  print $ datatypeInfo (Proxy :: Proxy Tree)
+  print treeB
+  print treeC
+  print treeDatatypeInfo
