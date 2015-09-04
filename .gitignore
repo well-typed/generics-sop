@@ -3,3 +3,4 @@
 *.swo
 *.hi
 *.o
+dist/
