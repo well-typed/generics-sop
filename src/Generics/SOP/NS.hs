@@ -35,7 +35,9 @@ module Generics.SOP.NS
   , sequence_SOP
   ) where
 
+#if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
+#endif
 import Data.Proxy (Proxy(..))
 
 import Generics.SOP.BasicFunctors
