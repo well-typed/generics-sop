@@ -92,9 +92,9 @@ data NS :: (k -> *) -> [k] -> * where
   Z :: f x -> NS f (x ': xs)
   S :: NS f xs -> NS f (x ': xs)
 
-deriving instance All Show (Map f xs) => Show (NS f xs)
-deriving instance All Eq   (Map f xs) => Eq   (NS f xs)
-deriving instance (All Eq (Map f xs), All Ord (Map f xs)) => Ord (NS f xs)
+deriving instance All (Show :. f) xs => Show (NS f xs)
+deriving instance All (Eq   :. f) xs => Eq   (NS f xs)
+deriving instance (All (Eq :. f) xs, All (Ord :. f) xs) => Ord (NS f xs)
 
 -- | A sum of products.
 --

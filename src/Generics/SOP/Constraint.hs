@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE PolyKinds, UndecidableInstances #-}
 -- | Constraints for indexed datatypes.
 --
 -- This module contains code that helps to specify that all
@@ -63,10 +63,20 @@ type family All2 (c :: k -> Constraint) (xs :: [[k]]) :: Constraint
 type instance All2 c '[]       = ()
 type instance All2 c (x ': xs) = (All c x, All2 c xs)
 
--- | A type-level 'map'.
-type family Map (f :: k -> l) (xs :: [k]) :: [l]
-type instance Map f '[]       = '[]
-type instance Map f (x ': xs) = f x ': Map f xs
+-- | Composition of constraints.
+--
+-- Note that the result of the composition must be a constraint,
+-- and therefore, in @f ':.' g@, the kind of @f@ is @k -> 'Constraint'@.
+-- The kind of @g@, however, is @l -> k@ and can thus be an normal
+-- type constructor.
+--
+-- A typical use case is in connection with 'All' on an 'NP' or an
+-- 'NS'. For example, in order to denote that all elements on an
+-- @'NP' f xs@ satisfy 'Show', we can say @'All' ('Show' :. f) xs@.
+--
+class (f (g x)) => (f :. g) x
+instance (f (g x)) => (f :. g) x
+infixr 9 :.
 
 -- | A generalization of 'All' and 'All2'.
 --

@@ -86,9 +86,9 @@ data NP :: (k -> *) -> [k] -> * where
 
 infixr 5 :*
 
-deriving instance All Show (Map f xs) => Show (NP f xs)
-deriving instance All Eq   (Map f xs) => Eq   (NP f xs)
-deriving instance (All Eq (Map f xs), All Ord (Map f xs)) => Ord (NP f xs)
+deriving instance All (Show :. f) xs => Show (NP f xs)
+deriving instance All (Eq   :. f) xs => Eq   (NP f xs)
+deriving instance (All (Eq :. f) xs, All (Ord :. f) xs) => Ord (NP f xs)
 
 -- | A product of products.
 --

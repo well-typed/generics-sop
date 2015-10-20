@@ -286,7 +286,7 @@ module Generics.SOP (
     -- ** Mapping constraints
   , All
   , All2
-  , Map
+  , (:.)
   , AllMap
     -- ** Singletons
   , Sing(..)
