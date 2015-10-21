@@ -254,6 +254,12 @@ module Generics.SOP (
   , hcliftA
   , hcliftA2
   , hcliftA3
+  , hmap
+  , hzipWith
+  , hzipWith3
+  , hcmap
+  , hczipWith
+  , hczipWith3
     -- ** Constructing sums
   , Injection
   , injections
