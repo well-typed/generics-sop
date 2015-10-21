@@ -365,22 +365,23 @@ czipWith3_POP = hczipWith3
 -- @
 --
 {-# DEPRECATED hcliftA' "Use 'hclift' or 'hcmap' instead." #-}
-hcliftA'  :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs)                                                       -> h f   xss -> h f'   xss
+hcliftA'  :: (All2 c xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. All c xs => f xs -> f' xs)                                                       -> h f   xss -> h f'   xss
 
 -- | Like 'hcliftA'', but for binary functions.
 {-# DEPRECATED hcliftA2' "Use 'hcliftA2' or 'hczipWith' instead." #-}
-hcliftA2' :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs -> f'' xs)            -> Prod h f xss                  -> h f'  xss -> h f''  xss
+hcliftA2' :: (All2 c xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. All c xs => f xs -> f' xs -> f'' xs)            -> Prod h f xss                  -> h f'  xss -> h f''  xss
 
 -- | Like 'hcliftA'', but for ternay functions.
 {-# DEPRECATED hcliftA3' "Use 'hcliftA3' or 'hczipWith3' instead." #-}
-hcliftA3' :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs -> f'' xs -> f''' xs) -> Prod h f xss -> Prod h f' xss -> h f'' xss -> h f''' xss
+hcliftA3' :: (All2 c xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. All c xs => f xs -> f' xs -> f'' xs -> f''' xs) -> Prod h f xss -> Prod h f' xss -> h f'' xss -> h f''' xss
 
 hcliftA'  p = hcliftA  (allP p)
 hcliftA2' p = hcliftA2 (allP p)
 hcliftA3' p = hcliftA3 (allP p)
 
 -- | Specialization of 'hcliftA2''.
-cliftA2'_NP :: (All2 c xss, SListI xss) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> g xs -> h xs) -> NP f xss -> NP g xss -> NP h xss
+{-# DEPRECATED cliftA2'_NP "Use 'cliftA2_NP'  instead." #-}
+cliftA2'_NP :: All2 c xss => Proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NP g xss -> NP h xss
 
 cliftA2'_NP = hcliftA2'
 

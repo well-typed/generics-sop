@@ -267,7 +267,8 @@ cmap_SOP = hcmap
 -- * Dealing with @'All' c@
 
 -- | Specialization of 'hcliftA2''.
-cliftA2'_NS :: (All2 c xss, SListI xss) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
+{-# DEPRECATED cliftA2'_NS "Use 'cliftA2_NS' instead." #-}
+cliftA2'_NS :: All2 c xss => Proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
 
 cliftA2'_NS = hcliftA2'
 
