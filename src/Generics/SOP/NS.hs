@@ -1,4 +1,5 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
 -- | n-ary sums (and sums of products)
 module Generics.SOP.NS
   ( -- * Datatypes

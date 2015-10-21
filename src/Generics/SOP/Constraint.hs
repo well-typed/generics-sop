@@ -1,5 +1,8 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ < 710
+{-# LANGUAGE OverlappingInstances #-}
+#endif
+{-# OPTIONS_GHC -fno-warn-orphans -fno-warn-deprecations #-}
 -- | Constraints for indexed datatypes.
 --
 -- This module contains code that helps to specify that all
@@ -99,8 +102,16 @@ type family AllN (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) :: l -> Cons
 --
 type family SListIN (h :: (k -> *) -> (l -> *)) :: l -> Constraint
 
-instance {-# OVERLAPPABLE #-} SListI xs => SingI (xs :: [k]) where
+instance
+#if __GLASGOW_HASKELL__ >= 710
+  {-# OVERLAPPABLE #-}
+#endif
+  SListI xs => SingI (xs :: [k]) where
   sing = sList
 
-instance {-# OVERLAPPING #-} All SListI xss => SingI (xss :: [[k]]) where
+instance
+#if __GLASGOW_HASKELL__ >= 710
+  {-# OVERLAPPING #-}
+#endif
+  All SListI xss => SingI (xss :: [[k]]) where
   sing = sList
