@@ -91,6 +91,8 @@ library
                        TemplateHaskell
                        DeriveGeneric
                        StandaloneDeriving
+  if impl (ghc < 7.10)
+    other-extensions:    OverlappingInstances
 
 test-suite generic-sop-examples
   type:                exitcode-stdio-1.0
