@@ -1,4 +1,5 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | Constraints for indexed datatypes.
 --
 -- This module contains code that helps to specify that all
@@ -97,3 +98,9 @@ type family AllN (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) :: l -> Cons
 -- on whether the argument is indexed by a list or a list of lists.
 --
 type family SListIN (h :: (k -> *) -> (l -> *)) :: l -> Constraint
+
+instance {-# OVERLAPPABLE #-} SListI xs => SingI (xs :: [k]) where
+  sing = sList
+
+instance {-# OVERLAPPING #-} All SListI xss => SingI (xss :: [[k]]) where
+  sing = sList

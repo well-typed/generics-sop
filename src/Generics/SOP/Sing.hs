@@ -13,6 +13,8 @@ module Generics.SOP.Sing
   ( -- * Singletons
     SList(..)
   , SListI(..)
+  , Sing
+  , SingI(..)
     -- ** Shape of type-level lists
   , Shape(..)
   , shape
@@ -61,6 +63,21 @@ instance SListI '[] where
 
 instance SListI xs => SListI (x ': xs) where
   sList = SCons
+
+-- | General class for implicit singletons.
+--
+-- Just provided for limited backward compatibility.
+--
+{-# DEPRECATED SingI "Use 'SListI' instead." #-}
+{-# DEPRECATED sing "Use 'sList' instead." #-}
+class SListI xs => SingI (xs :: [k]) where
+  sing :: Sing xs
+
+-- | Explicit singleton type.
+--
+-- Just provided for limited backward compatibility.
+{-# DEPRECATED Sing "Use 'SList' instead." #-}
+type Sing = SList
 
 -- * Shape of type-level lists
 

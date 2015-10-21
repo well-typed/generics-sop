@@ -364,12 +364,15 @@ czipWith3_POP = hczipWith3
 -- 'hcliftA'' :: ('All2' c xss, 'SListI' xss) => 'Proxy' c -> (forall xs. ('SListI' xs, 'All' c xs) => f xs -> f' xs) -> 'Generics.SOP.NS.NS' f xss -> 'Generics.SOP.NS.NS' f' xss
 -- @
 --
+{-# DEPRECATED hcliftA' "Use 'hclift' or 'hcmap' instead." #-}
 hcliftA'  :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs)                                                       -> h f   xss -> h f'   xss
 
 -- | Like 'hcliftA'', but for binary functions.
+{-# DEPRECATED hcliftA2' "Use 'hcliftA2' or 'hczipWith' instead." #-}
 hcliftA2' :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs -> f'' xs)            -> Prod h f xss                  -> h f'  xss -> h f''  xss
 
 -- | Like 'hcliftA'', but for ternay functions.
+{-# DEPRECATED hcliftA3' "Use 'hcliftA3' or 'hczipWith3' instead." #-}
 hcliftA3' :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs -> f'' xs -> f''' xs) -> Prod h f xss -> Prod h f' xss -> h f'' xss -> h f''' xss
 
 hcliftA'  p = hcliftA  (allP p)
