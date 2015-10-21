@@ -71,7 +71,18 @@ type SListI2 = All SListI
 -- means that 'f' can assume that all elements of the sum
 -- of product satisfy 'Eq'.
 --
-type All2 f = All (All f)
+class (AllF (All f) xss, SListI xss) => All2 f xss
+instance (AllF (All f) xss, SListI xss) => All2 f xss
+--
+-- NOTE:
+--
+-- The definition
+--
+-- type All2 f = All (All f)
+--
+-- is more direct, but has the unfortunate disadvantage the
+-- it triggers GHC's superclass cycle check when used in a
+-- class context.
 
 -- | Composition of constraints.
 --
