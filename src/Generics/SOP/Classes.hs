@@ -34,7 +34,6 @@ module Generics.SOP.Classes where
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative (Applicative)
 #endif
-import Data.Proxy (Proxy)
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
@@ -47,8 +46,8 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   -- /Instances:/
   --
   -- @
-  -- 'hpure', 'Generics.SOP.NP.pure_NP'  :: 'SingI' xs  => (forall a. f a) -> 'Generics.SOP.NP.NP'  f xs
-  -- 'hpure', 'Generics.SOP.NP.pure_POP' :: 'SingI' xss => (forall a. f a) -> 'Generics.SOP.NP.POP' f xss
+  -- 'hpure', 'Generics.SOP.NP.pure_NP'  :: 'SListI'  xs  => (forall a. f a) -> 'Generics.SOP.NP.NP'  f xs
+  -- 'hpure', 'Generics.SOP.NP.pure_POP' :: 'SListI2' xss => (forall a. f a) -> 'Generics.SOP.NP.POP' f xss
   -- @
   --
   hpure  ::  SListIN h xs => (forall a. f a) -> h f xs
@@ -71,11 +70,11 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   -- /Instances:/
   --
   -- @
-  -- 'hcpure', 'Generics.SOP.NP.cpure_NP'  :: ('SingI' xs,  'All'  c xs ) => 'Proxy' c -> (forall a. c a => f a) -> 'Generics.SOP.NP.NP'  f xs
-  -- 'hcpure', 'Generics.SOP.NP.cpure_POP' :: ('SingI' xss, 'All2' c xss) => 'Proxy' c -> (forall a. c a => f a) -> 'Generics.SOP.NP.POP' f xss
+  -- 'hcpure', 'Generics.SOP.NP.cpure_NP'  :: ('All'  c xs ) => proxy c -> (forall a. c a => f a) -> 'Generics.SOP.NP.NP'  f xs
+  -- 'hcpure', 'Generics.SOP.NP.cpure_POP' :: ('All2' c xss) => proxy c -> (forall a. c a => f a) -> 'Generics.SOP.NP.POP' f xss
   -- @
   --
-  hcpure :: (AllN h c xs) => Proxy c -> (forall a. c a => f a) -> h f xs
+  hcpure :: (AllN h c xs) => proxy c -> (forall a. c a => f a) -> h f xs
 
 {-------------------------------------------------------------------------------
   Application
@@ -158,10 +157,10 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
 -- /Instances:/
 --
 -- @
--- 'hliftA', 'Generics.SOP.NP.liftA_NP'  :: 'SingI' xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs
--- 'hliftA', 'Generics.SOP.NS.liftA_NS'  :: 'SingI' xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NS.NS'  f xs  -> 'Generics.SOP.NS.NS'  f' xs
--- 'hliftA', 'Generics.SOP.NP.liftA_POP' :: 'SingI' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss
--- 'hliftA', 'Generics.SOP.NS.liftA_SOP' :: 'SingI' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NS.SOP' f' xss
+-- 'hliftA', 'Generics.SOP.NP.liftA_NP'  :: 'SListI'  xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs
+-- 'hliftA', 'Generics.SOP.NS.liftA_NS'  :: 'SListI'  xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NS.NS'  f xs  -> 'Generics.SOP.NS.NS'  f' xs
+-- 'hliftA', 'Generics.SOP.NP.liftA_POP' :: 'SListI2' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss
+-- 'hliftA', 'Generics.SOP.NS.liftA_SOP' :: 'SListI2' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NS.SOP' f' xss
 -- @
 --
 hliftA  :: (SListIN (Prod h) xs, HAp h)               => (forall a. f a -> f' a)                                                   -> h f   xs -> h f'   xs
@@ -184,10 +183,10 @@ hliftA  :: (SListIN (Prod h) xs, HAp h)               => (forall a. f a -> f' a)
 -- /Instances:/
 --
 -- @
--- 'hliftA2', 'Generics.SOP.NP.liftA2_NP'  :: 'SingI' xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs
--- 'hliftA2', 'Generics.SOP.NS.liftA2_NS'  :: 'SingI' xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NS.NS'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs
--- 'hliftA2', 'Generics.SOP.NP.liftA2_POP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NP.POP' f'' xss
--- 'hliftA2', 'Generics.SOP.NS.liftA2_SOP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NS.SOP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss
+-- 'hliftA2', 'Generics.SOP.NP.liftA2_NP'  :: 'SListI'  xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs
+-- 'hliftA2', 'Generics.SOP.NS.liftA2_NS'  :: 'SListI'  xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NS.NS'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs
+-- 'hliftA2', 'Generics.SOP.NP.liftA2_POP' :: 'SListI2' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NP.POP' f'' xss
+-- 'hliftA2', 'Generics.SOP.NS.liftA2_SOP' :: 'SListI2' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NS.SOP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss
 -- @
 --
 hliftA2 :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
@@ -210,10 +209,10 @@ hliftA2 :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a 
 -- /Instances:/
 --
 -- @
--- 'hliftA3', 'Generics.SOP.NP.liftA3_NP'  :: 'SingI' xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs  -> 'Generics.SOP.NP.NP'  f''' xs
--- 'hliftA3', 'Generics.SOP.NS.liftA3_NS'  :: 'SingI' xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs  -> 'Generics.SOP.NS.NS'  f''' xs
--- 'hliftA3', 'Generics.SOP.NP.liftA3_POP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NP.POP' f'' xss -> 'Generics.SOP.NP.POP' f''' xs
--- 'hliftA3', 'Generics.SOP.NS.liftA3_SOP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss -> 'Generics.SOP.NP.SOP' f''' xs
+-- 'hliftA3', 'Generics.SOP.NP.liftA3_NP'  :: 'SListI'  xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs  -> 'Generics.SOP.NP.NP'  f''' xs
+-- 'hliftA3', 'Generics.SOP.NS.liftA3_NS'  :: 'SListI'  xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs  -> 'Generics.SOP.NS.NS'  f''' xs
+-- 'hliftA3', 'Generics.SOP.NP.liftA3_POP' :: 'SListI2' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NP.POP' f'' xss -> 'Generics.SOP.NP.POP' f''' xs
+-- 'hliftA3', 'Generics.SOP.NS.liftA3_SOP' :: 'SListI2' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss -> 'Generics.SOP.NP.SOP' f''' xs
 -- @
 --
 hliftA3 :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
@@ -241,7 +240,7 @@ hzipWith3 = hliftA3
 -- 'hcliftA' p f xs = 'hcpure' p ('fn' f) \` 'hap' \` xs
 -- @
 --
-hcliftA  :: (AllN (Prod h) c xs, HAp h)               => Proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+hcliftA  :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
 
 -- | Variant of 'hcliftA2' that takes a constrained function.
 --
@@ -251,7 +250,7 @@ hcliftA  :: (AllN (Prod h) c xs, HAp h)               => Proxy c -> (forall a. c
 -- 'hcliftA2' p f xs ys = 'hcpure' p ('fn_2' f) \` 'hap' \` xs \` 'hap' \` ys
 -- @
 --
-hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 
 -- | Variant of 'hcliftA3' that takes a constrained function.
 --
@@ -261,18 +260,18 @@ hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c
 -- 'hcliftA3' p f xs ys zs = 'hcpure' p ('fn_3' f) \` 'hap' \` xs \` 'hap' \` ys \` 'hap' \` zs
 -- @
 --
-hcliftA3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+hcliftA3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcliftA  p f xs       = hcpure p (fn   f) `hap` xs
 hcliftA2 p f xs ys    = hcpure p (fn_2 f) `hap` xs `hap` ys
 hcliftA3 p f xs ys zs = hcpure p (fn_3 f) `hap` xs `hap` ys `hap` zs
 
 -- | Another name for 'hcliftA'.
-hcmap      :: (AllN (Prod h) c xs, HAp h)               => Proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+hcmap      :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
 -- | Another name for 'hcliftA2'.
-hczipWith  :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+hczipWith  :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 -- | Another name for 'hcliftA3'.
-hczipWith3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+hczipWith3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcmap      = hcliftA
 hczipWith  = hcliftA2
@@ -315,10 +314,10 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   -- /Instances:/
   --
   -- @
-  -- 'hsequence'', 'Generics.SOP.NP.sequence'_NP'  :: ('SingI' xs , 'Applicative' f) => 'Generics.SOP.NP.NP'  (f ':.:' g) xs  -> f ('Generics.SOP.NP.NP'  g xs )
-  -- 'hsequence'', 'Generics.SOP.NS.sequence'_NS'  :: ('SingI' xs , 'Applicative' f) => 'Generics.SOP.NS.NS'  (f ':.:' g) xs  -> f ('Generics.SOP.NS.NS'  g xs )
-  -- 'hsequence'', 'Generics.SOP.NP.sequence'_POP' :: ('SingI' xss, 'Applicative' f) => 'Generics.SOP.NP.POP' (f ':.:' g) xss -> f ('Generics.SOP.NP.POP' g xss)
-  -- 'hsequence'', 'Generics.SOP.NS.sequence'_SOP' :: ('SingI' xss, 'Applicative' f) => 'Generics.SOP.NS.SOP' (f ':.:' g) xss -> f ('Generics.SOP.NS.SOP' g xss)
+  -- 'hsequence'', 'Generics.SOP.NP.sequence'_NP'  :: ('SListI'  xs , 'Applicative' f) => 'Generics.SOP.NP.NP'  (f ':.:' g) xs  -> f ('Generics.SOP.NP.NP'  g xs )
+  -- 'hsequence'', 'Generics.SOP.NS.sequence'_NS'  :: ('SListI'  xs , 'Applicative' f) => 'Generics.SOP.NS.NS'  (f ':.:' g) xs  -> f ('Generics.SOP.NS.NS'  g xs )
+  -- 'hsequence'', 'Generics.SOP.NP.sequence'_POP' :: ('SListI2' xss, 'Applicative' f) => 'Generics.SOP.NP.POP' (f ':.:' g) xss -> f ('Generics.SOP.NP.POP' g xss)
+  -- 'hsequence'', 'Generics.SOP.NS.sequence'_SOP' :: ('SListI2' xss, 'Applicative' f) => 'Generics.SOP.NS.SOP' (f ':.:' g) xss -> f ('Generics.SOP.NS.SOP' g xss)
   -- @
   --
   hsequence' :: (SListIN h xs, Applicative f) => h (f :.: g) xs -> f (h g xs)

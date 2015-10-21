@@ -18,10 +18,9 @@ module Generics.SOP.Sing
     -- ** Shape of type-level lists
   , Shape(..)
   , shape
+  , lengthSList
   , lengthSing
   ) where
-
-import Data.Proxy (Proxy(..))
 
 -- * Singletons
 
@@ -98,9 +97,14 @@ shape = case sList :: SList xs of
           SCons -> ShapeCons shape
 
 -- | The length of a type-level list.
-lengthSing :: forall (xs :: [k]). SListI xs => Proxy xs -> Int
-lengthSing _ = lengthShape (shape :: Shape xs)
+lengthSList :: forall (xs :: [k]) proxy. SListI xs => proxy xs -> Int
+lengthSList _ = lengthShape (shape :: Shape xs)
   where
     lengthShape :: forall xs'. Shape xs' -> Int
     lengthShape ShapeNil      = 0
     lengthShape (ShapeCons s) = 1 + lengthShape s
+
+-- | Old name for 'lengthSList'.
+{-# DEPRECATED lengthSing "Use 'lengthSList' instead." #-}
+lengthSing :: SListI xs => proxy xs -> Int
+lengthSing = lengthSList

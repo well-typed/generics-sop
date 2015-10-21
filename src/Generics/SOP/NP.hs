@@ -168,8 +168,8 @@ sListP = Proxy
 -- The call @'cpure_NP' p x@ generates a product that contains 'x' in every
 -- element position.
 --
-cpure_NP :: forall c xs f. All c xs
-         => Proxy c -> (forall a. c a => f a) -> NP f xs
+cpure_NP :: forall c xs proxy f. All c xs
+         => proxy c -> (forall a. c a => f a) -> NP f xs
 cpure_NP p f = case sList :: SList xs of
   SNil   -> Nil
   SCons  -> f :* cpure_NP p f
@@ -179,8 +179,8 @@ cpure_NP p f = case sList :: SList xs of
 -- The call @'cpure_NP' p x@ generates a product of products that contains 'x'
 -- in every element position.
 --
-cpure_POP :: forall c f xss. All2 c xss
-          => Proxy c -> (forall a. c a => f a) -> POP f xss
+cpure_POP :: forall c xss proxy f. All2 c xss
+          => proxy c -> (forall a. c a => f a) -> POP f xss
 cpure_POP p f = POP (cpure_NP (allP p) (cpure_NP p f))
 
 allP :: proxy c -> Proxy (All c)
@@ -297,49 +297,49 @@ zipWith3_NP  = hzipWith3
 zipWith3_POP = hzipWith3
 
 -- | Specialization of 'hcliftA'.
-cliftA_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a) -> NP   f xs  -> NP  g xs
+cliftA_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NP   f xs  -> NP  g xs
 -- | Specialization of 'hcliftA'.
-cliftA_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
+cliftA_POP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
 
 cliftA_NP  = hcliftA
 cliftA_POP = hcliftA
 
 -- | Specialization of 'hcliftA2'.
-cliftA2_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
+cliftA2_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
 -- | Specialization of 'hcliftA2'.
-cliftA2_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
+cliftA2_POP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
 
 cliftA2_NP  = hcliftA2
 cliftA2_POP = hcliftA2
 
 -- | Specialization of 'hcliftA3'.
-cliftA3_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
+cliftA3_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
 -- | Specialization of 'hcliftA3'.
-cliftA3_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
+cliftA3_POP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
 
 cliftA3_NP  = hcliftA3
 cliftA3_POP = hcliftA3
 
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
-cmap_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a) -> NP   f xs  -> NP  g xs
+cmap_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NP   f xs  -> NP  g xs
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
-cmap_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
+cmap_POP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
 
 cmap_NP  = hcmap
 cmap_POP = hcmap
 
 -- | Specialization of 'hczipWith', which is equivalent to 'hcliftA2'.
-czipWith_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
+czipWith_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
 -- | Specialization of 'hczipWith', which is equivalent to 'hcliftA2'.
-czipWith_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
+czipWith_POP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
 
 czipWith_NP  = hczipWith
 czipWith_POP = hczipWith
 
 -- | Specialization of 'hczipWith3', which is equivalent to 'hcliftA3'.
-czipWith3_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
+czipWith3_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
 -- | Specialization of 'hczipWith3', which is equivalent to 'hcliftA3'.
-czipWith3_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
+czipWith3_POP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
 
 czipWith3_NP  = hczipWith3
 czipWith3_POP = hczipWith3
@@ -360,20 +360,20 @@ czipWith3_POP = hczipWith3
 -- /Instances:/
 --
 -- @
--- 'hcliftA'' :: ('All2' c xss, 'SListI' xss) => 'Proxy' c -> (forall xs. ('SListI' xs, 'All' c xs) => f xs -> f' xs) -> 'NP' f xss -> 'NP' f' xss
--- 'hcliftA'' :: ('All2' c xss, 'SListI' xss) => 'Proxy' c -> (forall xs. ('SListI' xs, 'All' c xs) => f xs -> f' xs) -> 'Generics.SOP.NS.NS' f xss -> 'Generics.SOP.NS.NS' f' xss
+-- 'hcliftA'' :: 'All2' c xss => proxy c -> (forall xs. 'All' c xs => f xs -> f' xs) -> 'NP' f xss -> 'NP' f' xss
+-- 'hcliftA'' :: 'All2' c xss => proxy c -> (forall xs. 'All' c xs => f xs -> f' xs) -> 'Generics.SOP.NS.NS' f xss -> 'Generics.SOP.NS.NS' f' xss
 -- @
 --
 {-# DEPRECATED hcliftA' "Use 'hclift' or 'hcmap' instead." #-}
-hcliftA'  :: (All2 c xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. All c xs => f xs -> f' xs)                                                       -> h f   xss -> h f'   xss
+hcliftA'  :: (All2 c xss, Prod h ~ NP, HAp h) => proxy c -> (forall xs. All c xs => f xs -> f' xs)                                                       -> h f   xss -> h f'   xss
 
 -- | Like 'hcliftA'', but for binary functions.
 {-# DEPRECATED hcliftA2' "Use 'hcliftA2' or 'hczipWith' instead." #-}
-hcliftA2' :: (All2 c xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. All c xs => f xs -> f' xs -> f'' xs)            -> Prod h f xss                  -> h f'  xss -> h f''  xss
+hcliftA2' :: (All2 c xss, Prod h ~ NP, HAp h) => proxy c -> (forall xs. All c xs => f xs -> f' xs -> f'' xs)            -> Prod h f xss                  -> h f'  xss -> h f''  xss
 
 -- | Like 'hcliftA'', but for ternay functions.
 {-# DEPRECATED hcliftA3' "Use 'hcliftA3' or 'hczipWith3' instead." #-}
-hcliftA3' :: (All2 c xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. All c xs => f xs -> f' xs -> f'' xs -> f''' xs) -> Prod h f xss -> Prod h f' xss -> h f'' xss -> h f''' xss
+hcliftA3' :: (All2 c xss, Prod h ~ NP, HAp h) => proxy c -> (forall xs. All c xs => f xs -> f' xs -> f'' xs -> f''' xs) -> Prod h f xss -> Prod h f' xss -> h f'' xss -> h f''' xss
 
 hcliftA'  p = hcliftA  (allP p)
 hcliftA2' p = hcliftA2 (allP p)
@@ -381,7 +381,7 @@ hcliftA3' p = hcliftA3 (allP p)
 
 -- | Specialization of 'hcliftA2''.
 {-# DEPRECATED cliftA2'_NP "Use 'cliftA2_NP'  instead." #-}
-cliftA2'_NP :: All2 c xss => Proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NP g xss -> NP h xss
+cliftA2'_NP :: All2 c xss => proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NP g xss -> NP h xss
 
 cliftA2'_NP = hcliftA2'
 

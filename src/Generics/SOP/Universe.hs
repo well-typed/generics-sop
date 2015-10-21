@@ -2,7 +2,6 @@
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
-import Data.Proxy
 import qualified GHC.Generics as GHC
 
 import Generics.SOP.BasicFunctors
@@ -133,6 +132,6 @@ class (All SListI (Code a)) => Generic (a :: *) where
 -- of 'Generic' for the options.
 --
 class HasDatatypeInfo a where
-  datatypeInfo         :: Proxy a -> DatatypeInfo (Code a)
-  default datatypeInfo :: (GDatatypeInfo a) => Proxy a -> DatatypeInfo (GCode a)
+  datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
+  default datatypeInfo :: GDatatypeInfo a => proxy a -> DatatypeInfo (GCode a)
   datatypeInfo = gdatatypeInfo

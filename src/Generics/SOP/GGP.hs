@@ -43,7 +43,7 @@ type instance ToSumCode (M1 C c a) xs = ToProductCode a '[] ': xs
 data InfoProxy (c :: *) (f :: * -> *) (x :: *) = InfoProxy
 
 class GDatatypeInfo' (a :: * -> *) where
-  gDatatypeInfo' :: Proxy a -> DatatypeInfo (ToSumCode a '[])
+  gDatatypeInfo' :: proxy a -> DatatypeInfo (ToSumCode a '[])
 
 #if !(MIN_VERSION_base(4,7,0))
 
@@ -82,7 +82,7 @@ isNewtypeShape (x :* Nil) = go shape x
 isNewtypeShape _          = NewNo
 
 class GConstructorInfos (a :: * -> *) where
-  gConstructorInfos :: Proxy a -> NP ConstructorInfo xss -> NP ConstructorInfo (ToSumCode a xss)
+  gConstructorInfos :: proxy a -> NP ConstructorInfo xss -> NP ConstructorInfo (ToSumCode a xss)
 
 instance (GConstructorInfos a, GConstructorInfos b) => GConstructorInfos (a :+: b) where
   gConstructorInfos _ xss = gConstructorInfos (Proxy :: Proxy a) (gConstructorInfos (Proxy :: Proxy b) xss)
@@ -103,7 +103,7 @@ instance (Constructor c, GFieldInfos a, SListI (ToProductCode a '[])) => GConstr
       p = InfoProxy
 
 class GFieldInfos (a :: * -> *) where
-  gFieldInfos :: Proxy a -> NP FieldInfo xs -> NP FieldInfo (ToProductCode a xs)
+  gFieldInfos :: proxy a -> NP FieldInfo xs -> NP FieldInfo (ToProductCode a xs)
 
 instance (GFieldInfos a, GFieldInfos b) => GFieldInfos (a :*: b) where
   gFieldInfos _ xs = gFieldInfos (Proxy :: Proxy a) (gFieldInfos (Proxy :: Proxy b) xs)
@@ -157,7 +157,7 @@ instance GProductTo U1 where
 -- This can most certainly be simplified
 class GSumFrom (a :: * -> *) where
   gSumFrom :: a x -> SOP I xss -> SOP I (ToSumCode a xss)
-  gSumSkip :: Proxy a -> SOP I xss -> SOP I (ToSumCode a xss)
+  gSumSkip :: proxy a -> SOP I xss -> SOP I (ToSumCode a xss)
 
 instance (GSumFrom a, GSumFrom b) => GSumFrom (a :+: b) where
   gSumFrom (L1 a) xss = gSumFrom a (gSumSkip (Proxy :: Proxy b) xss)
@@ -235,6 +235,6 @@ gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.
 -- This is the default definition for 'Generics.SOP.datatypeInfo'.
 -- For more info, see 'Generics.SOP.HasDatatypeInfo'.
 --
-gdatatypeInfo :: forall a. (GDatatypeInfo a) => Proxy a -> DatatypeInfo (GCode a)
+gdatatypeInfo :: forall proxy a. (GDatatypeInfo a) => proxy a -> DatatypeInfo (GCode a)
 gdatatypeInfo _ = gDatatypeInfo' (Proxy :: Proxy (GHC.Rep a))
 

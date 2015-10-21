@@ -43,7 +43,6 @@ module Generics.SOP.NS
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 #endif
-import Data.Proxy (Proxy(..))
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
@@ -241,25 +240,25 @@ map_NS  = hmap
 map_SOP = hmap
 
 -- | Specialization of 'hcliftA'.
-cliftA_NS  :: (All  c xs,  SListI xs)  => Proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
+cliftA_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
 -- | Specialization of 'hcliftA'.
-cliftA_SOP :: (All2 c xss, SListI xss) => Proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
+cliftA_SOP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
 
 cliftA_NS  = hcliftA
 cliftA_SOP = hcliftA
 
 -- | Specialization of 'hcliftA2'.
-cliftA2_NS  :: (All  c xs,  SListI xs)  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS  h xs
+cliftA2_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS  h xs
 -- | Specialization of 'hcliftA2'.
-cliftA2_SOP :: (All2 c xss, SListI xss) => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP h xss
+cliftA2_SOP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP h xss
 
 cliftA2_NS  = hcliftA2
 cliftA2_SOP = hcliftA2
 
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
-cmap_NS  :: (All  c xs,  SListI xs)  => Proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
+cmap_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
-cmap_SOP :: (All2 c xss, SListI xss) => Proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
+cmap_SOP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
 
 cmap_NS  = hcmap
 cmap_SOP = hcmap
@@ -268,7 +267,7 @@ cmap_SOP = hcmap
 
 -- | Specialization of 'hcliftA2''.
 {-# DEPRECATED cliftA2'_NS "Use 'cliftA2_NS' instead." #-}
-cliftA2'_NS :: All2 c xss => Proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
+cliftA2'_NS :: All2 c xss => proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
 
 cliftA2'_NS = hcliftA2'
 
