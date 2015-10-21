@@ -300,6 +300,7 @@ module Generics.SOP (
     -- *** Shape of type-level lists
   , Shape(..)
   , shape
+  , lengthSList
   , lengthSing
     -- ** Re-exports
 
