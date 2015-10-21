@@ -261,8 +261,6 @@ module Generics.SOP (
   , apInjs_NP
   , apInjs_POP
     -- ** Dealing with @'All' c@
-  , AllDict(..)
-  , allDict_NP
   , hcliftA'
   , hcliftA2'
   , hcliftA3'
@@ -287,10 +285,10 @@ module Generics.SOP (
   , All
   , All2
   , (:.)
-  , AllMap
+  , AllN
     -- ** Singletons
-  , Sing(..)
-  , SingI(..)
+  , SList(..)
+  , SListI(..)
     -- *** Shape of type-level lists
   , Shape(..)
   , shape

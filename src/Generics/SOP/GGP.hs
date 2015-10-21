@@ -22,6 +22,7 @@ import GHC.Generics as GHC
 import Generics.SOP.NP as SOP
 import Generics.SOP.NS as SOP
 import Generics.SOP.BasicFunctors as SOP
+import Generics.SOP.Constraint as SOP
 import Generics.SOP.Metadata as SOP
 import Generics.SOP.Sing
 
@@ -55,12 +56,12 @@ isNewtype _ = False
 
 #endif
 
-instance (SingI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatypeInfo' (M1 D c a) where
+instance (All SListI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatypeInfo' (M1 D c a) where
   gDatatypeInfo' _ =
     let adt = ADT     (moduleName p) (datatypeName p)
         ci  = gConstructorInfos (Proxy :: Proxy a) Nil
     in if isNewtype p
-       then case isNewtypeShape sing ci of
+       then case isNewtypeShape ci of
               NewYes c -> Newtype (moduleName p) (datatypeName p) c
               NewNo    -> adt ci -- should not happen
        else adt ci
@@ -72,13 +73,13 @@ data IsNewtypeShape (xss :: [[*]]) where
   NewYes :: ConstructorInfo '[x] -> IsNewtypeShape '[ '[x] ]
   NewNo  :: IsNewtypeShape xss
 
-isNewtypeShape :: Sing xss -> NP ConstructorInfo xss -> IsNewtypeShape xss
-isNewtypeShape SCons (x :* Nil) = go shape x
+isNewtypeShape :: All SListI xss => NP ConstructorInfo xss -> IsNewtypeShape xss
+isNewtypeShape (x :* Nil) = go shape x
   where
     go :: Shape xs -> ConstructorInfo xs -> IsNewtypeShape '[ xs ]
     go (ShapeCons ShapeNil) c   = NewYes c
     go _                    _   = NewNo
-isNewtypeShape _     _          = NewNo
+isNewtypeShape _          = NewNo
 
 class GConstructorInfos (a :: * -> *) where
   gConstructorInfos :: Proxy a -> NP ConstructorInfo xss -> NP ConstructorInfo (ToSumCode a xss)
@@ -89,7 +90,7 @@ instance (GConstructorInfos a, GConstructorInfos b) => GConstructorInfos (a :+: 
 instance GConstructorInfos GHC.V1 where
   gConstructorInfos _ xss = xss
 
-instance (Constructor c, GFieldInfos a, SingI (ToProductCode a '[])) => GConstructorInfos (M1 C c a) where
+instance (Constructor c, GFieldInfos a, SListI (ToProductCode a '[])) => GConstructorInfos (M1 C c a) where
   gConstructorInfos _ xss
     | conIsRecord p = Record (conName p) (gFieldInfos (Proxy :: Proxy a) Nil) :* xss
     | otherwise     = case conFixity p of

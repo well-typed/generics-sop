@@ -11,8 +11,8 @@
 --
 module Generics.SOP.Sing
   ( -- * Singletons
-    Sing(..)
-  , SingI(..)
+    SList(..)
+  , SListI(..)
     -- ** Shape of type-level lists
   , Shape(..)
   , shape
@@ -23,59 +23,44 @@ import Data.Proxy (Proxy(..))
 
 -- * Singletons
 
--- | Explicit singleton.
+-- | Explicit singleton list.
 --
--- A singleton can be used to reveal the structure of a type
--- argument that the function is quantified over.
+-- A singleton list can be used to reveal the structure of
+-- a type-level list argument that the function is quantified
+-- over. For every type-level list @xs@, there is one non-bottom
+-- value of type @'SList' xs@.
 --
--- The family 'Sing' should have at most one instance per kind,
--- and there should be a matching instance for 'SingI'.
+-- Note that these singleton lists are polymorphic in the
+-- list elements; we do not require a singleton representation
+-- for them.
 --
-data family Sing (a :: k)
+data SList :: [k] -> * where
+  SNil  :: SList '[]
+  SCons :: SListI xs => SList (x ': xs)
 
--- | Singleton for type-level lists.
-data instance Sing (xs :: [k]) where
-  SNil  :: Sing '[]
-  SCons :: (SingI x, SingI xs) => Sing (x ': xs)
+deriving instance Show (SList (xs :: [k]))
+deriving instance Eq   (SList (xs :: [k]))
+deriving instance Ord  (SList (xs :: [k]))
 
-deriving instance Show (Sing (xs :: [k]))
-deriving instance Eq   (Sing (xs :: [k]))
-deriving instance Ord  (Sing (xs :: [k]))
-
--- | Singleton for types of kind '*'.
+-- | Implicit singleton list.
 --
--- For types of kind '*', we explicitly /don't/ want to reveal
--- more type analysis. Even functions that have a 'Sing' constraint
--- should still be parametric in everything that is of kind '*'.
+-- A singleton list can be used to reveal the structure of
+-- a type-level list argument that the function is quantified
+-- over.
 --
-data instance Sing (x :: *) where
-  SStar :: Sing (x :: *)
-
-deriving instance Show (Sing (x :: *))
-deriving instance Eq   (Sing (x :: *))
-deriving instance Ord  (Sing (x :: *))
-
--- | Implicit singleton.
+-- The class 'SListI' should have instances that match the
+-- constructors of 'SList'.
 --
--- A singleton can be used to reveal the structure of a type
--- argument that the function is quantified over.
---
--- The class 'SingI' should have instances that match the
--- family instances for 'Sing'.
---
-class SingI (a :: k) where
+class SListI (xs :: [k]) where
   -- | Get hold of the explicit singleton (that one can then
   -- pattern match on).
-  sing :: Sing a
+  sList :: SList xs
 
-instance SingI (x :: *) where
-  sing = SStar
+instance SListI '[] where
+  sList = SNil
 
-instance SingI '[] where
-  sing = SNil
-
-instance (SingI x, SingI xs) => SingI (x ': xs) where
-  sing = SCons
+instance SListI xs => SListI (x ': xs) where
+  sList = SCons
 
 -- * Shape of type-level lists
 
@@ -83,20 +68,20 @@ instance (SingI x, SingI xs) => SingI (x ': xs) where
 -- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108)
 data Shape :: [k] -> * where
   ShapeNil  :: Shape '[]
-  ShapeCons :: (SingI x, SingI xs) => Shape xs -> Shape (x ': xs)
+  ShapeCons :: SListI xs => Shape xs -> Shape (x ': xs)
 
 deriving instance Show (Shape xs)
 deriving instance Eq   (Shape xs)
 deriving instance Ord  (Shape xs)
 
 -- | The shape of a type-level list.
-shape :: forall (xs :: [k]). SingI xs => Shape xs
-shape = case sing :: Sing xs of
+shape :: forall (xs :: [k]). SListI xs => Shape xs
+shape = case sList :: SList xs of
           SNil  -> ShapeNil
           SCons -> ShapeCons shape
 
 -- | The length of a type-level list.
-lengthSing :: forall (xs :: [k]). SingI xs => Proxy xs -> Int
+lengthSing :: forall (xs :: [k]). SListI xs => Proxy xs -> Int
 lengthSing _ = lengthShape (shape :: Shape xs)
   where
     lengthShape :: forall xs'. Shape xs' -> Int

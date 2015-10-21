@@ -49,11 +49,11 @@ deriving instance (All (Eq :. ConstructorInfo) xs, All (Ord :. ConstructorInfo) 
 --
 data ConstructorInfo :: [*] -> * where
   -- Normal constructor
-  Constructor :: SingI xs => ConstructorName -> ConstructorInfo xs
+  Constructor :: SListI xs => ConstructorName -> ConstructorInfo xs
   -- Infix constructor
   Infix :: ConstructorName -> Associativity -> Fixity -> ConstructorInfo '[ x, y ]
   -- Record constructor
-  Record :: SingI xs => ConstructorName -> NP FieldInfo xs -> ConstructorInfo xs
+  Record :: SListI xs => ConstructorName -> NP FieldInfo xs -> ConstructorInfo xs
 
 deriving instance All (Show :. FieldInfo) xs => Show (ConstructorInfo xs)
 deriving instance All (Eq   :. FieldInfo) xs => Eq   (ConstructorInfo xs)

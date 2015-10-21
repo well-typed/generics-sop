@@ -34,9 +34,17 @@ import Generics.SOP.Sing
 -- means that 'f' can assume that all elements of the n-ary
 -- product satisfy 'Eq'.
 --
-type family All (c :: k -> Constraint) (xs :: [k]) :: Constraint
-type instance All c '[]       = ()
-type instance All c (x ': xs) = (c x, All c xs)
+class (AllF f xs, SListI xs) => All (f :: k -> Constraint) (xs :: [k])
+instance (AllF f xs, SListI xs) => All f xs
+
+-- | Type family used to implement 'All'.
+--
+type family AllF (c :: k -> Constraint) (xs :: [k]) :: Constraint
+type instance AllF c '[]       = ()
+type instance AllF c (x ': xs) = (c x, All c xs)
+
+-- | Require a singleton for every inner list in a list of lists.
+type SListI2 = All SListI
 
 -- | Require a constraint for every element of a list of lists.
 --
@@ -59,9 +67,7 @@ type instance All c (x ': xs) = (c x, All c xs)
 -- means that 'f' can assume that all elements of the sum
 -- of product satisfy 'Eq'.
 --
-type family All2 (c :: k -> Constraint) (xs :: [[k]]) :: Constraint
-type instance All2 c '[]       = ()
-type instance All2 c (x ': xs) = (All c x, All2 c xs)
+type All2 f = All (All f)
 
 -- | Composition of constraints.
 --
@@ -80,14 +86,14 @@ infixr 9 :.
 
 -- | A generalization of 'All' and 'All2'.
 --
--- The family 'AllMap' expands to 'All' or 'All2' depending on whether
+-- The family 'AllN' expands to 'All' or 'All2' depending on whether
 -- the argument is indexed by a list or a list of lists.
 --
-type family AllMap (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) (xs :: l) :: Constraint
+type family AllN (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) :: l -> Constraint
 
--- | Dictionary for a constraint for all elements of a type-level list.
+-- | A generalization of 'SListI'.
 --
--- A value of type @'AllDict' c xs@ captures the constraint @'All' c xs@.
+-- The family 'SListIN' expands to 'SListI' or 'SListI2' depending
+-- on whether the argument is indexed by a list or a list of lists.
 --
-data AllDict (c :: k -> Constraint) (xs :: [k]) where
-  AllDictC :: (SingI xs, All c xs) => AllDict c xs
+type family SListIN (h :: (k -> *) -> (l -> *)) :: l -> Constraint

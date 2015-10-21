@@ -38,7 +38,6 @@ import Data.Proxy (Proxy)
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
-import Generics.SOP.Sing
 
 -- | A generalization of 'Control.Applicative.pure' or
 -- 'Control.Monad.return' to higher kinds.
@@ -52,7 +51,7 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   -- 'hpure', 'Generics.SOP.NP.pure_POP' :: 'SingI' xss => (forall a. f a) -> 'Generics.SOP.NP.POP' f xss
   -- @
   --
-  hpure  ::  SingI xs => (forall a. f a) -> h f xs
+  hpure  ::  SListIN h xs => (forall a. f a) -> h f xs
 
   -- | A variant of 'hpure' that allows passing in a constrained
   -- argument.
@@ -76,7 +75,7 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   -- 'hcpure', 'Generics.SOP.NP.cpure_POP' :: ('SingI' xss, 'All2' c xss) => 'Proxy' c -> (forall a. c a => f a) -> 'Generics.SOP.NP.POP' f xss
   -- @
   --
-  hcpure :: (SingI xs, AllMap h c xs) => Proxy c -> (forall a. c a => f a) -> h f xs
+  hcpure :: (AllN h c xs) => Proxy c -> (forall a. c a => f a) -> h f xs
 
 {-------------------------------------------------------------------------------
   Application
@@ -165,7 +164,7 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
 -- 'hliftA', 'Generics.SOP.NS.liftA_SOP' :: 'SingI' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NS.SOP' f' xss
 -- @
 --
-hliftA  :: (SingI xs, HAp h)               => (forall a. f a -> f' a)                                                   -> h f   xs -> h f'   xs
+hliftA  :: (SListIN (Prod h) xs, HAp h)               => (forall a. f a -> f' a)                                                   -> h f   xs -> h f'   xs
 
 -- | A generalized form of 'Control.Applicative.liftA2',
 -- which in turn is a generalized 'zipWith'.
@@ -191,7 +190,7 @@ hliftA  :: (SingI xs, HAp h)               => (forall a. f a -> f' a)           
 -- 'hliftA2', 'Generics.SOP.NS.liftA2_SOP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NS.SOP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss
 -- @
 --
-hliftA2 :: (SingI xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+hliftA2 :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 
 -- | A generalized form of 'Control.Applicative.liftA3',
 -- which in turn is a generalized 'zipWith3'.
@@ -217,11 +216,22 @@ hliftA2 :: (SingI xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a)  
 -- 'hliftA3', 'Generics.SOP.NS.liftA3_SOP' :: 'SingI' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss -> 'Generics.SOP.NP.SOP' f''' xs
 -- @
 --
-hliftA3 :: (SingI xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+hliftA3 :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hliftA  f xs       = hpure (fn   f) `hap` xs
 hliftA2 f xs ys    = hpure (fn_2 f) `hap` xs `hap` ys
 hliftA3 f xs ys zs = hpure (fn_3 f) `hap` xs `hap` ys `hap` zs
+
+-- | Another name for 'hliftA'.
+hmap      :: (SListIN (Prod h) xs, HAp h)               => (forall a. f a -> f' a)                                                   -> h f   xs -> h f'   xs
+-- | Another name for 'hliftA2'.
+hzipWith  :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+-- | Another name for 'hliftA3'.
+hzipWith3 :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+
+hmap      = hliftA
+hzipWith  = hliftA2
+hzipWith3 = hliftA3
 
 -- | Variant of 'hliftA' that takes a constrained function.
 --
@@ -231,7 +241,7 @@ hliftA3 f xs ys zs = hpure (fn_3 f) `hap` xs `hap` ys `hap` zs
 -- 'hcliftA' p f xs = 'hcpure' p ('fn' f) \` 'hap' \` xs
 -- @
 --
-hcliftA  :: (AllMap (Prod h) c xs, SingI xs, HAp h)               => Proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+hcliftA  :: (AllN (Prod h) c xs, HAp h)               => Proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
 
 -- | Variant of 'hcliftA2' that takes a constrained function.
 --
@@ -241,7 +251,7 @@ hcliftA  :: (AllMap (Prod h) c xs, SingI xs, HAp h)               => Proxy c -> 
 -- 'hcliftA2' p f xs ys = 'hcpure' p ('fn_2' f) \` 'hap' \` xs \` 'hap' \` ys
 -- @
 --
-hcliftA2 :: (AllMap (Prod h) c xs, SingI xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 
 -- | Variant of 'hcliftA3' that takes a constrained function.
 --
@@ -251,11 +261,22 @@ hcliftA2 :: (AllMap (Prod h) c xs, SingI xs, HAp h, HAp (Prod h)) => Proxy c -> 
 -- 'hcliftA3' p f xs ys zs = 'hcpure' p ('fn_3' f) \` 'hap' \` xs \` 'hap' \` ys \` 'hap' \` zs
 -- @
 --
-hcliftA3 :: (AllMap (Prod h) c xs, SingI xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+hcliftA3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcliftA  p f xs       = hcpure p (fn   f) `hap` xs
 hcliftA2 p f xs ys    = hcpure p (fn_2 f) `hap` xs `hap` ys
 hcliftA3 p f xs ys zs = hcpure p (fn_3 f) `hap` xs `hap` ys `hap` zs
+
+-- | Another name for 'hcliftA'.
+hcmap      :: (AllN (Prod h) c xs, HAp h)               => Proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+-- | Another name for 'hcliftA2'.
+hczipWith  :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+-- | Another name for 'hcliftA3'.
+hczipWith3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => Proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+
+hcmap      = hcliftA
+hczipWith  = hcliftA2
+hczipWith3 = hcliftA3
 
 -- | Maps products to lists, and sums to identities.
 type family CollapseTo (h :: (k -> *) -> (l -> *)) (x :: *) :: *
@@ -282,7 +303,7 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
   -- 'hcollapse', 'Generics.SOP.NS.collapse_SOP' :: 'Generics.SOP.NP.SOP' ('K' a) xss ->  [a]
   -- @
   --
-  hcollapse :: SingI xs => h (K a) xs -> CollapseTo h a
+  hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
 
 -- | A generalization of 'Data.Traversable.sequenceA'.
 class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
@@ -300,12 +321,12 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   -- 'hsequence'', 'Generics.SOP.NS.sequence'_SOP' :: ('SingI' xss, 'Applicative' f) => 'Generics.SOP.NS.SOP' (f ':.:' g) xss -> f ('Generics.SOP.NS.SOP' g xss)
   -- @
   --
-  hsequence' :: (SingI xs, Applicative f) => h (f :.: g) xs -> f (h g xs)
+  hsequence' :: (SListIN h xs, Applicative f) => h (f :.: g) xs -> f (h g xs)
 
 -- | Special case of 'hsequence'' where @g = 'I'@.
-hsequence :: (SingI xs, HSequence h) => Applicative f => h f xs -> f (h I xs)
+hsequence :: (SListIN h xs, SListIN (Prod h) xs, HSequence h) => Applicative f => h f xs -> f (h I xs)
 hsequence = hsequence' . hliftA (Comp . fmap I)
 
 -- | Special case of 'hsequence'' where @g = 'K' a@.
-hsequenceK ::  (SingI xs, Applicative f, HSequence h) => h (K (f a)) xs -> f (h (K a) xs)
+hsequenceK ::  (SListIN h xs, SListIN (Prod h) xs, Applicative f, HSequence h) => h (K (f a)) xs -> f (h (K a) xs)
 hsequenceK = hsequence' . hliftA (Comp . fmap K . unK)

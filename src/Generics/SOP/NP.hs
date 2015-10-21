@@ -22,12 +22,25 @@ module Generics.SOP.NP
   , liftA2_POP
   , liftA3_NP
   , liftA3_POP
+  , map_NP
+  , map_POP
+  , zipWith_NP
+  , zipWith_POP
+  , zipWith3_NP
+  , zipWith3_POP
   , cliftA_NP
   , cliftA_POP
   , cliftA2_NP
   , cliftA2_POP
+  , cliftA3_NP
+  , cliftA3_POP
+  , cmap_NP
+  , cmap_POP
+  , czipWith_NP
+  , czipWith_POP
+  , czipWith3_NP
+  , czipWith3_POP
     -- * Dealing with @'All' c@
-  , allDict_NP
   , hcliftA'
   , hcliftA2'
   , hcliftA3'
@@ -105,14 +118,20 @@ deriving instance (All (Eq :. f) xs, All (Ord :. f) xs) => Ord (NP f xs)
 -- of a datatype.
 --
 newtype POP (f :: (k -> *)) (xss :: [[k]]) = POP (NP (NP f) xss)
-  deriving (Show, Eq, Ord)
+
+deriving instance (Show (NP (NP f) xss)) => Show (POP f xss)
+deriving instance (Eq   (NP (NP f) xss)) => Eq   (POP f xss)
+deriving instance (Ord  (NP (NP f) xss)) => Ord  (POP f xss)
 
 -- | Unwrap a product of products.
 unPOP :: POP f xss -> NP (NP f) xss
 unPOP (POP xss) = xss
 
-type instance AllMap NP  c xs = All  c xs
-type instance AllMap POP c xs = All2 c xs
+type instance AllN NP  c = All  c
+type instance AllN POP c = All2 c
+
+type instance SListIN NP  = SListI
+type instance SListIN POP = SListI2
 
 -- * Constructing products
 
@@ -128,8 +147,8 @@ type instance AllMap POP c xs = All2 c xs
 -- >>> pure_NP (K 0) :: NP (K Int) '[Double, Int, String]
 -- K 0 :* K 0 :* K 0 :* Nil
 --
-pure_NP :: forall f xs. SingI xs => (forall a. f a) -> NP f xs
-pure_NP f = case sing :: Sing xs of
+pure_NP :: forall f xs. SListI xs => (forall a. f a) -> NP f xs
+pure_NP f = case sList :: SList xs of
   SNil   -> Nil
   SCons  -> f :* pure_NP f
 
@@ -138,19 +157,20 @@ pure_NP f = case sing :: Sing xs of
 -- The call @'pure_POP' x@ generates a product of products that contains 'x'
 -- in every element position.
 --
-pure_POP :: forall f xss. SingI xss => (forall a. f a) -> POP f xss
-pure_POP f = case sing :: Sing xss of
-  SNil   -> POP Nil
-  SCons  -> POP (pure_NP f :* unPOP (pure_POP f))
+pure_POP :: All SListI xss => (forall a. f a) -> POP f xss
+pure_POP f = POP (cpure_NP sListP (pure_NP f))
+
+sListP :: Proxy SListI
+sListP = Proxy
 
 -- | Specialization of 'hcpure'.
 --
 -- The call @'cpure_NP' p x@ generates a product that contains 'x' in every
 -- element position.
 --
-cpure_NP :: forall c xs f. (All c xs, SingI xs)
+cpure_NP :: forall c xs f. All c xs
          => Proxy c -> (forall a. c a => f a) -> NP f xs
-cpure_NP p f = case sing :: Sing xs of
+cpure_NP p f = case sList :: SList xs of
   SNil   -> Nil
   SCons  -> f :* cpure_NP p f
 
@@ -159,11 +179,12 @@ cpure_NP p f = case sing :: Sing xs of
 -- The call @'cpure_NP' p x@ generates a product of products that contains 'x'
 -- in every element position.
 --
-cpure_POP :: forall c f xss. (All2 c xss, SingI xss)
+cpure_POP :: forall c f xss. All2 c xss
           => Proxy c -> (forall a. c a => f a) -> POP f xss
-cpure_POP p f = case sing :: Sing xss of
-  SNil   -> POP Nil
-  SCons  -> POP (cpure_NP p f :* unPOP (cpure_POP p f))
+cpure_POP p f = POP (cpure_NP (allP p) (cpure_NP p f))
+
+allP :: proxy c -> Proxy (All c)
+allP _ = Proxy
 
 instance HPure NP where
   hpure  = pure_NP
@@ -180,12 +201,12 @@ instance HPure POP where
 -- Returns 'Nothing' if the length of the list does not exactly match the
 -- expected size of the product.
 --
-fromList :: (SingI xs) => [a] -> Maybe (NP (K a) xs)
-fromList = go sing
+fromList :: SListI xs => [a] -> Maybe (NP (K a) xs)
+fromList = go sList
   where
-    go :: Sing xs -> [a] -> Maybe (NP (K a) xs)
+    go :: SList xs -> [a] -> Maybe (NP (K a) xs)
     go SNil  []     = return Nil
-    go SCons (x:xs) = do ys <- go sing xs ; return (K x :* ys)
+    go SCons (x:xs) = do ys <- go sList xs ; return (K x :* ys)
     go _     _      = Nothing
 
 -- * Application
@@ -205,10 +226,19 @@ ap_NP _ _ = error "inaccessible"
 -- Applies a product of (lifted) functions pointwise to a product of
 -- suitable arguments.
 --
-ap_POP  :: POP (f -.-> g) xs -> POP  f xs -> POP  g xs
-ap_POP (POP Nil        ) (POP Nil        ) = POP Nil
-ap_POP (POP (fs :* fss)) (POP (xs :* xss)) = POP (ap_NP fs xs :* unPOP (ap_POP (POP fss) (POP xss)))
-ap_POP _ _ = error "inaccessible"
+ap_POP :: POP (f -.-> g) xss -> POP f xss -> POP g xss
+ap_POP (POP fss') (POP xss') = POP (go fss' xss')
+  where
+    go :: NP (NP (f -.-> g)) xss -> NP (NP f) xss -> NP (NP g) xss
+    go Nil         Nil         = Nil
+    go (fs :* fss) (xs :* xss) = ap_NP fs xs :* go fss xss
+    go _           _           = error "inaccessible"
+
+-- The definition of 'ap_POP' is a more direct variant of
+-- '_ap_POP_spec'. The direct definition has the advantage
+-- that it avoids the 'SListI' constraint.
+_ap_POP_spec :: SListI xss => POP (f -.-> g) xss -> POP  f xss -> POP  g xss
+_ap_POP_spec (POP fs) (POP xs) = POP (liftA2_NP ap_NP fs xs)
 
 type instance Prod NP  = NP
 type instance Prod POP = POP
@@ -219,57 +249,102 @@ instance HAp POP where hap = ap_POP
 -- * Lifting / mapping
 
 -- | Specialization of 'hliftA'.
-liftA_NP  :: SingI xs  => (forall a. f a -> g a) -> NP  f xs  -> NP  g xs
+liftA_NP  :: SListI     xs  => (forall a. f a -> g a) -> NP  f xs  -> NP  g xs
 -- | Specialization of 'hliftA'.
-liftA_POP :: SingI xss => (forall a. f a -> g a) -> POP f xss -> POP g xss
+liftA_POP :: All SListI xss => (forall a. f a -> g a) -> POP f xss -> POP g xss
 
 liftA_NP  = hliftA
 liftA_POP = hliftA
 
 -- | Specialization of 'hliftA2'.
-liftA2_NP  :: SingI xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP   h xs
+liftA2_NP  :: SListI     xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP   h xs
 -- | Specialization of 'hliftA2'.
-liftA2_POP :: SingI xss => (forall a. f a -> g a -> h a) -> POP f xss -> POP g xss -> POP  h xss
+liftA2_POP :: All SListI xss => (forall a. f a -> g a -> h a) -> POP f xss -> POP g xss -> POP  h xss
 
 liftA2_NP  = hliftA2
 liftA2_POP = hliftA2
 
 -- | Specialization of 'hliftA3'.
-liftA3_NP  :: SingI xs  => (forall a. f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
+liftA3_NP  :: SListI     xs  => (forall a. f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
 -- | Specialization of 'hliftA3'.
-liftA3_POP :: SingI xss => (forall a. f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
+liftA3_POP :: All SListI xss => (forall a. f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
 
 liftA3_NP  = hliftA3
 liftA3_POP = hliftA3
 
+-- | Specialization of 'hmap', which is equivalent to 'hliftA'.
+map_NP  :: SListI     xs  => (forall a. f a -> g a) -> NP  f xs  -> NP  g xs
+-- | Specialization of 'hmap', which is equivalent to 'hliftA'.
+map_POP :: All SListI xss => (forall a. f a -> g a) -> POP f xss -> POP g xss
+
+map_NP  = hmap
+map_POP = hmap
+
+-- | Specialization of 'hzipWith', which is equivalent to 'hliftA2'.
+zipWith_NP  :: SListI     xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP   h xs
+-- | Specialization of 'hzipWith', which is equivalent to 'hliftA2'.
+zipWith_POP :: All SListI xss => (forall a. f a -> g a -> h a) -> POP f xss -> POP g xss -> POP  h xss
+
+zipWith_NP  = hzipWith
+zipWith_POP = hzipWith
+
+-- | Specialization of 'hzipWith3', which is equivalent to 'hliftA3'.
+zipWith3_NP  :: SListI     xs  => (forall a. f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
+-- | Specialization of 'hzipWith3', which is equivalent to 'hliftA3'.
+zipWith3_POP :: All SListI xss => (forall a. f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
+
+zipWith3_NP  = hzipWith3
+zipWith3_POP = hzipWith3
+
 -- | Specialization of 'hcliftA'.
-cliftA_NP  :: (All  c xs,  SingI xs)  => Proxy c -> (forall a. c a => f a -> g a) -> NP   f xs  -> NP  g xs
+cliftA_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a) -> NP   f xs  -> NP  g xs
 -- | Specialization of 'hcliftA'.
-cliftA_POP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
+cliftA_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
 
 cliftA_NP  = hcliftA
 cliftA_POP = hcliftA
 
 -- | Specialization of 'hcliftA2'.
-cliftA2_NP  :: (All  c xs,  SingI xs)  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
+cliftA2_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
 -- | Specialization of 'hcliftA2'.
-cliftA2_POP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
+cliftA2_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
 
 cliftA2_NP  = hcliftA2
 cliftA2_POP = hcliftA2
 
--- * Dealing with @'All' c@
+-- | Specialization of 'hcliftA3'.
+cliftA3_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
+-- | Specialization of 'hcliftA3'.
+cliftA3_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
 
--- | Construct a product of dictionaries for a type-level list of lists.
---
--- The structure of the product matches the outer list, the dictionaries
--- contained are 'AllDict'-dictionaries for the inner list.
---
-allDict_NP :: forall (c :: k -> Constraint) (xss :: [[k]]). (All2 c xss, SingI xss)
-           => Proxy c -> NP (AllDict c) xss
-allDict_NP p = case sing :: Sing xss of
-  SNil  -> Nil
-  SCons -> AllDictC :* allDict_NP p
+cliftA3_NP  = hcliftA3
+cliftA3_POP = hcliftA3
+
+-- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
+cmap_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a) -> NP   f xs  -> NP  g xs
+-- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
+cmap_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
+
+cmap_NP  = hcmap
+cmap_POP = hcmap
+
+-- | Specialization of 'hczipWith', which is equivalent to 'hcliftA2'.
+czipWith_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
+-- | Specialization of 'hczipWith', which is equivalent to 'hcliftA2'.
+czipWith_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
+
+czipWith_NP  = hczipWith
+czipWith_POP = hczipWith
+
+-- | Specialization of 'hczipWith3', which is equivalent to 'hcliftA3'.
+czipWith3_NP  :: All  c xs  => Proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
+-- | Specialization of 'hczipWith3', which is equivalent to 'hcliftA3'.
+czipWith3_POP :: All2 c xss => Proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> POP f xss -> POP g xss -> POP h xss -> POP i xss
+
+czipWith3_NP  = hczipWith3
+czipWith3_POP = hczipWith3
+
+-- * Dealing with @'All' c@
 
 -- | Lift a constrained function operating on a list-indexed structure
 -- to a function on a list-of-list-indexed structure.
@@ -285,24 +360,24 @@ allDict_NP p = case sing :: Sing xss of
 -- /Instances:/
 --
 -- @
--- 'hcliftA'' :: ('All2' c xss, 'SingI' xss) => 'Proxy' c -> (forall xs. ('SingI' xs, 'All' c xs) => f xs -> f' xs) -> 'NP' f xss -> 'NP' f' xss
--- 'hcliftA'' :: ('All2' c xss, 'SingI' xss) => 'Proxy' c -> (forall xs. ('SingI' xs, 'All' c xs) => f xs -> f' xs) -> 'Generics.SOP.NS.NS' f xss -> 'Generics.SOP.NS.NS' f' xss
+-- 'hcliftA'' :: ('All2' c xss, 'SListI' xss) => 'Proxy' c -> (forall xs. ('SListI' xs, 'All' c xs) => f xs -> f' xs) -> 'NP' f xss -> 'NP' f' xss
+-- 'hcliftA'' :: ('All2' c xss, 'SListI' xss) => 'Proxy' c -> (forall xs. ('SListI' xs, 'All' c xs) => f xs -> f' xs) -> 'Generics.SOP.NS.NS' f xss -> 'Generics.SOP.NS.NS' f' xss
 -- @
 --
-hcliftA'  :: (All2 c xss, SingI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SingI xs, All c xs) => f xs -> f' xs)                                                       -> h f   xss -> h f'   xss
+hcliftA'  :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs)                                                       -> h f   xss -> h f'   xss
 
 -- | Like 'hcliftA'', but for binary functions.
-hcliftA2' :: (All2 c xss, SingI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SingI xs, All c xs) => f xs -> f' xs -> f'' xs)            -> Prod h f xss                  -> h f'  xss -> h f''  xss
+hcliftA2' :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs -> f'' xs)            -> Prod h f xss                  -> h f'  xss -> h f''  xss
 
 -- | Like 'hcliftA'', but for ternay functions.
-hcliftA3' :: (All2 c xss, SingI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SingI xs, All c xs) => f xs -> f' xs -> f'' xs -> f''' xs) -> Prod h f xss -> Prod h f' xss -> h f'' xss -> h f''' xss
+hcliftA3' :: (All2 c xss, SListI xss, Prod h ~ NP, HAp h) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> f' xs -> f'' xs -> f''' xs) -> Prod h f xss -> Prod h f' xss -> h f'' xss -> h f''' xss
 
-hcliftA'  p f xs       = hpure (fn_2 $ \AllDictC -> f) `hap` allDict_NP p `hap` xs
-hcliftA2' p f xs ys    = hpure (fn_3 $ \AllDictC -> f) `hap` allDict_NP p `hap` xs `hap` ys
-hcliftA3' p f xs ys zs = hpure (fn_4 $ \AllDictC -> f) `hap` allDict_NP p `hap` xs `hap` ys `hap` zs
+hcliftA'  p = hcliftA  (allP p)
+hcliftA2' p = hcliftA2 (allP p)
+hcliftA3' p = hcliftA3 (allP p)
 
 -- | Specialization of 'hcliftA2''.
-cliftA2'_NP :: (All2 c xss, SingI xss) => Proxy c -> (forall xs. (SingI xs, All c xs) => f xs -> g xs -> h xs) -> NP f xss -> NP g xss -> NP h xss
+cliftA2'_NP :: (All2 c xss, SListI xss) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> g xs -> h xs) -> NP f xss -> NP g xss -> NP h xss
 
 cliftA2'_NP = hcliftA2'
 
@@ -326,7 +401,7 @@ collapse_NP  ::              NP  (K a) xs  ->  [a]
 --
 -- (The type signature is only necessary in this case to fix the kind of the type variables.)
 --
-collapse_POP :: SingI xss => POP (K a) xss -> [[a]]
+collapse_POP :: SListI xss => POP (K a) xss -> [[a]]
 
 collapse_NP Nil         = []
 collapse_NP (K x :* xs) = x : collapse_NP xs
@@ -345,7 +420,7 @@ instance HCollapse POP where hcollapse = collapse_POP
 sequence'_NP  ::             Applicative f  => NP  (f :.: g) xs  -> f (NP  g xs)
 
 -- | Specialization of 'hsequence''.
-sequence'_POP :: (SingI xss, Applicative f) => POP (f :.: g) xss -> f (POP g xss)
+sequence'_POP :: (SListI xss, Applicative f) => POP (f :.: g) xss -> f (POP g xss)
 
 sequence'_NP Nil         = pure Nil
 sequence'_NP (mx :* mxs) = (:*) <$> unComp mx <*> sequence'_NP mxs
@@ -362,7 +437,7 @@ instance HSequence POP where hsequence' = sequence'_POP
 -- >>> sequence_NP (Just 1 :* Just 2 :* Nil)
 -- Just (I 1 :* I 2 :* Nil)
 --
-sequence_NP  :: (SingI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
+sequence_NP  :: (SListI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 
 -- | Specialization of 'hsequence'.
 --
@@ -371,7 +446,7 @@ sequence_NP  :: (SingI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 -- >>> sequence_POP (POP ((Just 1 :* Nil) :* (Just 2 :* Just 3 :* Nil) :* Nil))
 -- Just (POP ((I 1 :* Nil) :* ((I 2 :* (I 3 :* Nil)) :* Nil)))
 --
-sequence_POP :: (SingI xss, Applicative f) => POP f xss -> f (POP I xss)
+sequence_POP :: (All SListI xss, Applicative f) => POP f xss -> f (POP I xss)
 
 sequence_NP   = hsequence
 sequence_POP  = hsequence

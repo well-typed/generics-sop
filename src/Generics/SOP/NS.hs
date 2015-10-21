@@ -23,6 +23,10 @@ module Generics.SOP.NS
   , cliftA_SOP
   , cliftA2_NS
   , cliftA2_SOP
+  , map_NS
+  , map_SOP
+  , cmap_NS
+  , cmap_SOP
     -- * Dealing with @'All' c@
   , cliftA2'_NS
     -- * Collapsing
@@ -110,7 +114,10 @@ deriving instance (All (Eq :. f) xs, All (Ord :. f) xs) => Ord (NS f xs)
 -- each constructor.
 --
 newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
-  deriving (Show, Eq, Ord)
+
+deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
+deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
+deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss) 
 
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
@@ -133,8 +140,8 @@ type Injection (f :: k -> *) (xs :: [k]) = f -.-> K (NS f xs)
 --
 -- Each element of the resulting product contains one of the injections.
 --
-injections :: forall xs f. SingI xs => NP (Injection f xs) xs
-injections = case sing :: Sing xs of
+injections :: forall xs f. SListI xs => NP (Injection f xs) xs
+injections = case sList :: SList xs of
   SNil   -> Nil
   SCons  -> fn (K . Z) :* liftA_NP shift injections
 
@@ -156,7 +163,7 @@ shift (Fn f) = Fn $ K . S . unK . f
 -- >>> apInjs_NP (I 'x' :* I True :* I 2 :* Nil)
 -- [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
 --
-apInjs_NP  :: SingI xs  => NP  f xs  -> [NS  f xs]
+apInjs_NP  :: SListI xs  => NP  f xs  -> [NS  f xs]
 apInjs_NP  = hcollapse . hap injections
 
 -- | Apply injections to a product of product.
@@ -171,7 +178,7 @@ apInjs_NP  = hcollapse . hap injections
 -- >>> apInjs_POP (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil))
 -- [SOP (Z (I 'x' :* Nil)),SOP (S (Z (I True :* (I 2 :* Nil))))]
 --
-apInjs_POP :: SingI xss => POP f xss -> [SOP f xss]
+apInjs_POP :: SListI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
 
 -- * Application
@@ -183,13 +190,25 @@ ap_NS (_     :* fs)  (S xs)  = S (ap_NS fs xs)
 ap_NS _ _ = error "inaccessible"
 
 -- | Specialization of 'hap'.
-ap_SOP  :: POP (f -.-> g) xs -> SOP  f xs -> SOP  g xs
-ap_SOP (POP (fs :* _)  ) (SOP (Z xs) ) = SOP (Z (ap_NP  fs  xs))
-ap_SOP (POP (_  :* fss)) (SOP (S xss)) = SOP (S (unSOP (ap_SOP (POP fss) (SOP xss))))
-ap_SOP _ _ = error "inaccessible"
+ap_SOP  :: POP (f -.-> g) xss -> SOP f xss -> SOP g xss
+ap_SOP (POP fss') (SOP xss') = SOP (go fss' xss')
+  where
+    go :: NP (NP (f -.-> g)) xss -> NS (NP f) xss -> NS (NP g) xss
+    go (fs :* _  ) (Z xs ) = Z (ap_NP fs  xs )
+    go (_  :* fss) (S xss) = S (go    fss xss)
+    go _           _       = error "inaccessible"
+
+-- The definition of 'ap_SOP' is a more direct variant of
+-- '_ap_SOP_spec'. The direct definition has the advantage
+-- that it avoids the 'SListI' constraint.
+_ap_SOP_spec :: SListI xss => POP (t -.-> f) xss -> SOP t xss -> SOP f xss
+_ap_SOP_spec (POP fs) (SOP xs) = SOP (liftA2_NS ap_NP fs xs)
 
 type instance Prod NS  = NP
 type instance Prod SOP = POP
+
+type instance SListIN NS  = SListI
+type instance SListIN SOP = SListI2
 
 instance HAp NS  where hap = ap_NS
 instance HAp SOP where hap = ap_SOP
@@ -197,57 +216,73 @@ instance HAp SOP where hap = ap_SOP
 -- * Lifting / mapping
 
 -- | Specialization of 'hliftA'.
-liftA_NS  :: SingI xs  => (forall a. f a -> g a) -> NS  f xs  -> NS  g xs
+liftA_NS  :: SListI     xs  => (forall a. f a -> g a) -> NS  f xs  -> NS  g xs
 -- | Specialization of 'hliftA'.
-liftA_SOP :: SingI xss => (forall a. f a -> g a) -> SOP f xss -> SOP g xss
+liftA_SOP :: All SListI xss => (forall a. f a -> g a) -> SOP f xss -> SOP g xss
 
 liftA_NS  = hliftA
 liftA_SOP = hliftA
 
 -- | Specialization of 'hliftA2'.
-liftA2_NS  :: SingI xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS   h xs
+liftA2_NS  :: SListI     xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS   h xs
 -- | Specialization of 'hliftA2'.
-liftA2_SOP :: SingI xss => (forall a. f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP  h xss
+liftA2_SOP :: All SListI xss => (forall a. f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP  h xss
 
 liftA2_NS  = hliftA2
 liftA2_SOP = hliftA2
 
+-- | Specialization of 'hmap', which is equivalent to 'hliftA'.
+map_NS  :: SListI     xs  => (forall a. f a -> g a) -> NS  f xs  -> NS  g xs
+-- | Specialization of 'hmap', which is equivalent to 'hliftA'.
+map_SOP :: All SListI xss => (forall a. f a -> g a) -> SOP f xss -> SOP g xss
+
+map_NS  = hmap
+map_SOP = hmap
+
 -- | Specialization of 'hcliftA'.
-cliftA_NS  :: (All  c xs,  SingI xs)  => Proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
+cliftA_NS  :: (All  c xs,  SListI xs)  => Proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
 -- | Specialization of 'hcliftA'.
-cliftA_SOP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
+cliftA_SOP :: (All2 c xss, SListI xss) => Proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
 
 cliftA_NS  = hcliftA
 cliftA_SOP = hcliftA
 
 -- | Specialization of 'hcliftA2'.
-cliftA2_NS  :: (All  c xs,  SingI xs)  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS  h xs
+cliftA2_NS  :: (All  c xs,  SListI xs)  => Proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS  h xs
 -- | Specialization of 'hcliftA2'.
-cliftA2_SOP :: (All2 c xss, SingI xss) => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP h xss
+cliftA2_SOP :: (All2 c xss, SListI xss) => Proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP h xss
 
 cliftA2_NS  = hcliftA2
 cliftA2_SOP = hcliftA2
 
+-- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
+cmap_NS  :: (All  c xs,  SListI xs)  => Proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
+-- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
+cmap_SOP :: (All2 c xss, SListI xss) => Proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
+
+cmap_NS  = hcmap
+cmap_SOP = hcmap
+
 -- * Dealing with @'All' c@
 
 -- | Specialization of 'hcliftA2''.
-cliftA2'_NS :: (All2 c xss, SingI xss) => Proxy c -> (forall xs. (SingI xs, All c xs) => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
+cliftA2'_NS :: (All2 c xss, SListI xss) => Proxy c -> (forall xs. (SListI xs, All c xs) => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
 
 cliftA2'_NS = hcliftA2'
 
 -- * Collapsing
 
 -- | Specialization of 'hcollapse'.
-collapse_NS  ::              NS  (K a) xs  ->   a
+collapse_NS  ::               NS  (K a) xs  ->   a
 -- | Specialization of 'hcollapse'.
-collapse_SOP :: SingI xss => SOP (K a) xss ->  [a]
+collapse_SOP :: SListI xss => SOP (K a) xss ->  [a]
 
 collapse_NS (Z (K x)) = x
 collapse_NS (S xs)    = collapse_NS xs
 
 collapse_SOP = collapse_NS . hliftA (K . collapse_NP) . unSOP
 
-type instance CollapseTo NS  a = a
+type instance CollapseTo NS  a =  a
 type instance CollapseTo SOP a = [a]
 
 instance HCollapse NS  where hcollapse = collapse_NS
@@ -256,10 +291,10 @@ instance HCollapse SOP where hcollapse = collapse_SOP
 -- * Sequencing
 
 -- | Specialization of 'hsequence''.
-sequence'_NS  ::             Applicative f  => NS  (f :.: g) xs  -> f (NS  g xs)
+sequence'_NS  ::              Applicative f  => NS  (f :.: g) xs  -> f (NS  g xs)
 
 -- | Specialization of 'hsequence''.
-sequence'_SOP :: (SingI xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
+sequence'_SOP :: (SListI xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
 
 sequence'_NS (Z mx)  = Z <$> unComp mx
 sequence'_NS (S mxs) = S <$> sequence'_NS mxs
@@ -270,10 +305,10 @@ instance HSequence NS  where hsequence' = sequence'_NS
 instance HSequence SOP where hsequence' = sequence'_SOP
 
 -- | Specialization of 'hsequence'.
-sequence_NS  :: (SingI xs,  Applicative f) => NS  f xs  -> f (NS  I xs)
+sequence_NS  :: (SListI xs,  Applicative f) => NS  f xs  -> f (NS  I xs)
 
 -- | Specialization of 'hsequence'.
-sequence_SOP :: (SingI xss, Applicative f) => SOP f xss -> f (SOP I xss)
+sequence_SOP :: (All SListI xss, Applicative f) => SOP f xss -> f (SOP I xss)
 
 sequence_NS   = hsequence
 sequence_SOP  = hsequence
