@@ -52,13 +52,13 @@ mapAll2 f d @ Dict = (all2 . mapAll (mapAll f) . unAll2) d
 -- | If two constraints 'c' and 'd' hold over a type-level
 -- list 'xs', then the combination of both constraints holds
 -- over that list.
-zipAll :: Dict (All c) xs -> Dict (All d) xs -> Dict (All (c `Pair` d)) xs
+zipAll :: Dict (All c) xs -> Dict (All d) xs -> Dict (All (c `And` d)) xs
 zipAll dc @ Dict dd = all_NP (hzipWith (\ Dict Dict -> Dict) (unAll_NP dc) (unAll_NP dd))
 
 -- | If two constraints 'c' and 'd' hold over a type-level
 -- list of lists 'xss', then the combination of both constraints
 -- holds over that list of lists.
-zipAll2 :: All SListI xss => Dict (All2 c) xss -> Dict (All2 d) xss -> Dict (All2 (c `Pair` d)) xss
+zipAll2 :: All SListI xss => Dict (All2 c) xss -> Dict (All2 d) xss -> Dict (All2 (c `And` d)) xss
 zipAll2 dc dd = all_POP (hzipWith (\ Dict Dict -> Dict) (unAll_POP dc) (unAll_POP dd))
 -- TODO: I currently don't understand why the All constraint in the beginning
 -- cannot be inferred.

@@ -291,7 +291,7 @@ module Generics.SOP (
   , All
   , All2
   , Compose
-  , Pair
+  , And
   , Top
   , AllN
     -- ** Singletons

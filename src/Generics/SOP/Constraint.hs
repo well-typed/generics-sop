@@ -101,9 +101,9 @@ infixr 9 `Compose`
 
 -- | Pairing of constraints.
 --
-class (f x, g x) => (f `Pair` g) x
-instance (f x, g x) => (f `Pair` g) x
-infixl 7 `Pair`
+class (f x, g x) => (f `And` g) x
+instance (f x, g x) => (f `And` g) x
+infixl 7 `And`
 
 -- | A constraint that can always be satisfied.
 --
