@@ -1,5 +1,4 @@
 {-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE UndecidableInstances #-}
 -- | Explicit dictionaries.
 --
 -- When working with compound constraints such as constructed
