@@ -96,9 +96,9 @@ data NS :: (k -> *) -> [k] -> * where
   Z :: f x -> NS f (x ': xs)
   S :: NS f xs -> NS f (x ': xs)
 
-deriving instance All (Show :. f) xs => Show (NS f xs)
-deriving instance All (Eq   :. f) xs => Eq   (NS f xs)
-deriving instance (All (Eq :. f) xs, All (Ord :. f) xs) => Ord (NS f xs)
+deriving instance All (Show `Compose` f) xs => Show (NS f xs)
+deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)
+deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs)
 
 -- | A sum of products.
 --

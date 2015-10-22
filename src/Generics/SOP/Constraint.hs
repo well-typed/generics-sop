@@ -95,9 +95,20 @@ instance (AllF (All f) xss, SListI xss) => All2 f xss
 -- 'NS'. For example, in order to denote that all elements on an
 -- @'NP' f xs@ satisfy 'Show', we can say @'All' ('Show' :. f) xs@.
 --
-class (f (g x)) => (f :. g) x
-instance (f (g x)) => (f :. g) x
-infixr 9 :.
+class (f (g x)) => (f `Compose` g) x
+instance (f (g x)) => (f `Compose` g) x
+infixr 9 `Compose`
+
+-- | Pairing of constraints.
+--
+class (f x, g x) => (f `Pair` g) x
+instance (f x, g x) => (f `Pair` g) x
+infixl 7 `Pair`
+
+-- | A constraint that can always be satisfied.
+--
+class Top x
+instance Top x
 
 -- | A generalization of 'All' and 'All2'.
 --

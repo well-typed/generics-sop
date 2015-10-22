@@ -290,8 +290,24 @@ module Generics.SOP (
     -- ** Mapping constraints
   , All
   , All2
-  , (:.)
+  , Compose
+  , Pair
+  , Top
   , AllN
+    -- ** Explicit dictionaries
+  , Dict(..)
+  , mapAll
+  , mapAll2
+  , pairAll
+  , pairAll2
+  , topAll
+  , topAll2
+  , dictAll
+  , dictAll2
+  , unDictAll
+  , unDictAll2
+  , dict2
+  , unDict2
     -- ** Singletons
   , SList(..)
   , SListI(..)
@@ -320,6 +336,7 @@ import Data.Proxy (Proxy(..))
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
 import Generics.SOP.Constraint
+import Generics.SOP.Dict
 import Generics.SOP.Instances ()
 import Generics.SOP.Metadata
 import Generics.SOP.NP

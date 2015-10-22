@@ -39,9 +39,9 @@ data DatatypeInfo :: [[*]] -> * where
   -- Newtype
   Newtype :: ModuleName -> DatatypeName -> ConstructorInfo '[x]   -> DatatypeInfo '[ '[x] ]
 
-deriving instance All (Show :. ConstructorInfo) xs => Show (DatatypeInfo xs)
-deriving instance All (Eq   :. ConstructorInfo) xs => Eq   (DatatypeInfo xs)
-deriving instance (All (Eq :. ConstructorInfo) xs, All (Ord :. ConstructorInfo) xs) => Ord (DatatypeInfo xs)
+deriving instance All (Show `Compose` ConstructorInfo) xs => Show (DatatypeInfo xs)
+deriving instance All (Eq   `Compose` ConstructorInfo) xs => Eq   (DatatypeInfo xs)
+deriving instance (All (Eq `Compose` ConstructorInfo) xs, All (Ord `Compose` ConstructorInfo) xs) => Ord (DatatypeInfo xs)
 
 -- | Metadata for a single constructors.
 --
@@ -55,9 +55,9 @@ data ConstructorInfo :: [*] -> * where
   -- Record constructor
   Record :: SListI xs => ConstructorName -> NP FieldInfo xs -> ConstructorInfo xs
 
-deriving instance All (Show :. FieldInfo) xs => Show (ConstructorInfo xs)
-deriving instance All (Eq   :. FieldInfo) xs => Eq   (ConstructorInfo xs)
-deriving instance (All (Eq :. FieldInfo) xs, All (Ord :. FieldInfo) xs) => Ord (ConstructorInfo xs)
+deriving instance All (Show `Compose` FieldInfo) xs => Show (ConstructorInfo xs)
+deriving instance All (Eq   `Compose` FieldInfo) xs => Eq   (ConstructorInfo xs)
+deriving instance (All (Eq `Compose` FieldInfo) xs, All (Ord `Compose` FieldInfo) xs) => Ord (ConstructorInfo xs)
 
 -- | For records, this functor maps the component to its selector name.
 data FieldInfo :: * -> * where
