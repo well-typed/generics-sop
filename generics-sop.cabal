@@ -46,11 +46,11 @@ library
   exposed-modules:     Generics.SOP
                        Generics.SOP.GGP
                        Generics.SOP.TH
+                       Generics.SOP.Dict
                        -- exposed via Generics.SOP:
                        Generics.SOP.BasicFunctors
                        Generics.SOP.Classes
                        Generics.SOP.Constraint
-                       Generics.SOP.Dict
                        Generics.SOP.Instances
                        Generics.SOP.Metadata
                        Generics.SOP.NP
