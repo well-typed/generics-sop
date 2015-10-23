@@ -23,6 +23,13 @@ import Generics.SOP.Constraint
 import Generics.SOP.NP
 import Generics.SOP.Sing
 
+-- | An explicit dictionary carrying evidence of a
+-- class constraint.
+--
+-- The constraint parameter is separated into a
+-- second argument so that @'Dict' c@ is of the correct
+-- kind to be used directly as a parameter to e.g. 'NP'.
+--
 data Dict (c :: k -> Constraint) (a :: k) where
   Dict :: c a => Dict c a
 
