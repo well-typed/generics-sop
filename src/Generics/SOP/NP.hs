@@ -364,7 +364,7 @@ czipWith3_POP = hczipWith3
 -- 'hcliftA'' :: 'All2' c xss => proxy c -> (forall xs. 'All' c xs => f xs -> f' xs) -> 'Generics.SOP.NS.NS' f xss -> 'Generics.SOP.NS.NS' f' xss
 -- @
 --
-{-# DEPRECATED hcliftA' "Use 'hclift' or 'hcmap' instead." #-}
+{-# DEPRECATED hcliftA' "Use 'hcliftA' or 'hcmap' instead." #-}
 hcliftA'  :: (All2 c xss, Prod h ~ NP, HAp h) => proxy c -> (forall xs. All c xs => f xs -> f' xs)                                                       -> h f   xss -> h f'   xss
 
 -- | Like 'hcliftA'', but for binary functions.
