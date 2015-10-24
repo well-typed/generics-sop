@@ -297,6 +297,7 @@ module Generics.SOP (
     -- ** Singletons
   , SList(..)
   , SListI(..)
+  , SListI2
   , Sing
   , SingI(..)
     -- *** Shape of type-level lists
