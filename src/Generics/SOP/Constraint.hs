@@ -138,5 +138,5 @@ instance
 #if __GLASGOW_HASKELL__ >= 710
   {-# OVERLAPPING #-}
 #endif
-  All SListI xss => SingI (xss :: [[k]]) where
+  (All SListI xss, SListI xss) => SingI (xss :: [[k]]) where
   sing = sList
