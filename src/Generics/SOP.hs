@@ -239,6 +239,12 @@ module Generics.SOP (
     -- * Combinators
     -- ** Constructing products
   , HPure(..)
+    -- ** Destructing products
+  , hd
+  , tl
+  , Projection
+  , projections
+  , shiftProjection
     -- ** Application
   , (-.->)(..)
   , fn
@@ -264,6 +270,7 @@ module Generics.SOP (
   , Injection
   , injections
   , shift
+  , shiftInjection
   , apInjs_NP
   , apInjs_POP
     -- ** Dealing with @'All' c@
