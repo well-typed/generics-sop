@@ -40,7 +40,11 @@ type instance ToSumCode V1         xs = xs
 type instance ToSumCode (M1 D c a) xs = ToSumCode a xs
 type instance ToSumCode (M1 C c a) xs = ToProductCode a '[] ': xs
 
+#if MIN_VERSION_base(4,9,0)
+data InfoProxy (c :: Meta) (f :: * -> *) (x :: *) = InfoProxy
+#else
 data InfoProxy (c :: *) (f :: * -> *) (x :: *) = InfoProxy
+#endif
 
 class GDatatypeInfo' (a :: * -> *) where
   gDatatypeInfo' :: proxy a -> DatatypeInfo (ToSumCode a '[])

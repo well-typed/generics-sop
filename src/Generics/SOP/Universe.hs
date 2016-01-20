@@ -1,4 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE UndecidableSuperClasses #-}
+#endif
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 

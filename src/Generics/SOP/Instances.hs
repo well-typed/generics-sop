@@ -1,6 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# OPTIONS_GHC -freduction-depth=100 #-}
+#else
 {-# OPTIONS_GHC -fcontext-stack=50 #-}
+#endif
 -- | Instances for 'Generic' and 'HasMetadata'.
 --
 -- We define instances for datatypes from @generics-sop@ and
