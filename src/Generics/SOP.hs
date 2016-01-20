@@ -240,11 +240,7 @@ module Generics.SOP (
     -- ** Constructing products
   , HPure(..)
     -- ** Application
-#if __GLASGOW_HASKELL__ >= 800
   , type (-.->)(..)
-#else
-  , (-.->)(..)
-#endif
   , fn
   , fn_2
   , fn_3
