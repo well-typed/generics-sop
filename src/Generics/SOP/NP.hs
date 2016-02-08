@@ -15,6 +15,12 @@ module Generics.SOP.NP
     -- * Application
   , ap_NP
   , ap_POP
+    -- * Destructing products
+  , hd
+  , tl
+  , Projection
+  , projections
+  , shiftProjection
     -- * Lifting / mapping
   , liftA_NP
   , liftA_POP
@@ -245,6 +251,32 @@ type instance Prod POP = POP
 
 instance HAp NP  where hap = ap_NP
 instance HAp POP where hap = ap_POP
+
+-- * Destructing products
+
+-- | Obtain the head of an n-ary product.
+hd :: NP f (x ': xs) -> f x
+hd (x :* _xs) = x
+
+-- | Obtain the tail of an n-ary product.
+tl :: NP f (x ': xs) -> NP f xs
+tl (_x :* xs) = xs
+
+-- | The type of projections from an n-ary product.
+--
+type Projection (f :: k -> *) (xs :: [k]) = K (NP f xs) -.-> f
+
+-- | Compute all projections from an n-ary product.
+--
+-- Each element of the resulting product contains one of the projections.
+--
+projections :: forall xs f . SListI xs => NP (Projection f xs) xs
+projections = case sList :: SList xs of
+  SNil  -> Nil
+  SCons -> fn (hd . unK) :* liftA_NP shiftProjection projections
+
+shiftProjection :: Projection f xs a -> Projection f (x ': xs) a
+shiftProjection (Fn f) = Fn $ f . K . tl . unK
 
 -- * Lifting / mapping
 

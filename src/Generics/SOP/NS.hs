@@ -10,6 +10,7 @@ module Generics.SOP.NS
   , Injection
   , injections
   , shift
+  , shiftInjection
   , apInjs_NP
   , apInjs_POP
     -- * Application
@@ -143,14 +144,22 @@ type Injection (f :: k -> *) (xs :: [k]) = f -.-> K (NS f xs)
 injections :: forall xs f. SListI xs => NP (Injection f xs) xs
 injections = case sList :: SList xs of
   SNil   -> Nil
-  SCons  -> fn (K . Z) :* liftA_NP shift injections
+  SCons  -> fn (K . Z) :* liftA_NP shiftInjection injections
 
 -- | Shift an injection.
 --
 -- Given an injection, return an injection into a sum that is one component larger.
 --
+shiftInjection :: Injection f xs a -> Injection f (x ': xs) a
+shiftInjection (Fn f) = Fn $ K . S . unK . f
+
+{-# DEPRECATED shift "Use 'shiftInjection' instead." #-}
+-- | Shift an injection.
+--
+-- Given an injection, return an injection into a sum that is one component larger.
+--
 shift :: Injection f xs a -> Injection f (x ': xs) a
-shift (Fn f) = Fn $ K . S . unK . f
+shift = shiftInjection
 
 -- | Apply injections to a product.
 --
