@@ -27,18 +27,18 @@ import Generics.SOP.Metadata as SOP
 import Generics.SOP.Sing
 
 type family ToSingleCode (a :: * -> *) :: *
-type instance ToSingleCode (K1 i a) = a
+type instance ToSingleCode (K1 _i a) = a
 
 type family ToProductCode (a :: * -> *) (xs :: [*]) :: [*]
-type instance ToProductCode (a :*: b)  xs = ToProductCode a (ToProductCode b xs)
-type instance ToProductCode U1         xs = xs
-type instance ToProductCode (M1 S c a) xs = ToSingleCode a ': xs
+type instance ToProductCode (a :*: b)   xs = ToProductCode a (ToProductCode b xs)
+type instance ToProductCode U1          xs = xs
+type instance ToProductCode (M1 S _c a) xs = ToSingleCode a ': xs
 
 type family ToSumCode (a :: * -> *) (xs :: [[*]]) :: [[*]]
-type instance ToSumCode (a :+: b)  xs = ToSumCode a (ToSumCode b xs)
-type instance ToSumCode V1         xs = xs
-type instance ToSumCode (M1 D c a) xs = ToSumCode a xs
-type instance ToSumCode (M1 C c a) xs = ToProductCode a '[] ': xs
+type instance ToSumCode (a :+: b)   xs = ToSumCode a (ToSumCode b xs)
+type instance ToSumCode V1          xs = xs
+type instance ToSumCode (M1 D _c a) xs = ToSumCode a xs
+type instance ToSumCode (M1 C _c a) xs = ToProductCode a '[] ': xs
 
 #if MIN_VERSION_base(4,9,0)
 data InfoProxy (c :: Meta) (f :: * -> *) (x :: *) = InfoProxy
@@ -153,7 +153,9 @@ instance (GProductTo a, GProductTo b) => GProductTo (a :*: b) where
 
 instance GSingleTo a => GProductTo (M1 S c a) where
   gProductTo (SOP.I a :* xs) k = k (M1 (gSingleTo a)) xs
+#if __GLASGOW_HASKELL__ < 800
   gProductTo _               _ = error "inaccessible"
+#endif
 
 instance GProductTo U1 where
   gProductTo xs k = k U1 xs

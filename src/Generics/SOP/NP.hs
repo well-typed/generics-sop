@@ -225,7 +225,9 @@ fromList = go sList
 ap_NP :: NP (f -.-> g) xs -> NP f xs -> NP g xs
 ap_NP Nil           Nil        = Nil
 ap_NP (Fn f :* fs)  (x :* xs)  = f x :* ap_NP fs xs
+#if __GLASGOW_HASKELL__ < 800
 ap_NP _ _ = error "inaccessible"
+#endif
 
 -- | Specialization of 'hap'.
 --
@@ -238,7 +240,9 @@ ap_POP (POP fss') (POP xss') = POP (go fss' xss')
     go :: NP (NP (f -.-> g)) xss -> NP (NP f) xss -> NP (NP g) xss
     go Nil         Nil         = Nil
     go (fs :* fss) (xs :* xss) = ap_NP fs xs :* go fss xss
+#if __GLASGOW_HASKELL__ < 800
     go _           _           = error "inaccessible"
+#endif
 
 -- The definition of 'ap_POP' is a more direct variant of
 -- '_ap_POP_spec'. The direct definition has the advantage

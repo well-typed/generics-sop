@@ -47,8 +47,8 @@ instance (AllF f xs, SListI xs) => All f xs
 -- | Type family used to implement 'All'.
 --
 type family AllF (c :: k -> Constraint) (xs :: [k]) :: Constraint
-type instance AllF c '[]       = ()
-type instance AllF c (x ': xs) = (c x, All c xs)
+type instance AllF _c '[]       = ()
+type instance AllF  c (x ': xs) = (c x, All c xs)
 
 -- | Require a singleton for every inner list in a list of lists.
 type SListI2 = All SListI

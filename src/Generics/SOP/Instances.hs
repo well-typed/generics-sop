@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 #if __GLASGOW_HASKELL__ >= 800
 {-# OPTIONS_GHC -freduction-depth=100 #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
 #else
 {-# OPTIONS_GHC -fcontext-stack=50 #-}
 #endif
