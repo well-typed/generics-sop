@@ -1,5 +1,5 @@
 name:                generics-sop
-version:             0.2.1.0
+version:             0.2.1.1
 synopsis:            Generic Programming using True Sums of Products
 description:
   A library to support the definition of generic functions.
@@ -36,6 +36,7 @@ maintainer:          andres@well-typed.com
 category:            Generics
 build-type:          Simple
 cabal-version:       >=1.10
+extra-source-files:  CHANGELOG.md
 tested-with:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
 
 source-repository head
