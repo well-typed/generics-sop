@@ -52,7 +52,7 @@
 --
 -- To create 'Generic' instances for @A@ and @B@ via "GHC.Generics", we say
 --
--- > {-# LANGUAGE DeriveGenerics #-}
+-- > {-# LANGUAGE DeriveGeneric #-}
 -- >
 -- > import qualified GHC.Generics as GHC
 -- > import Generics.SOP
