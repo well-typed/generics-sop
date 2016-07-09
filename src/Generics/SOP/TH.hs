@@ -90,6 +90,8 @@ deriveGenericOnly n = do
 -- > toTree (SOP (S (Z (I l :* I r :* Nil)))) = Node l r
 -- > toTree _ = error "unreachable" -- to avoid GHC warnings
 --
+-- @since 0.2
+--
 deriveGenericFunctions :: Name -> String -> String -> String -> Q [Dec]
 deriveGenericFunctions n codeName fromName toName = do
   let codeName'  = mkName codeName
@@ -120,6 +122,9 @@ deriveGenericFunctions n codeName fromName toName = do
 -- >     (Constructor "Leaf" :* Constructor "Node" :* Nil)
 --
 -- /Note:/ CodeType need to be derived with 'deriveGenericFunctions'.
+--
+-- @since 0.2
+--
 deriveMetadataValue :: Name -> String -> String -> Q [Dec]
 deriveMetadataValue n codeName datatypeInfoName = do
   let codeName'  = mkName codeName

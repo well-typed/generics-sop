@@ -222,10 +222,21 @@ hliftA2 f xs ys    = hpure (fn_2 f) `hap` xs `hap` ys
 hliftA3 f xs ys zs = hpure (fn_3 f) `hap` xs `hap` ys `hap` zs
 
 -- | Another name for 'hliftA'.
+--
+-- @since 0.2
+--
 hmap      :: (SListIN (Prod h) xs, HAp h)               => (forall a. f a -> f' a)                                                   -> h f   xs -> h f'   xs
+
 -- | Another name for 'hliftA2'.
+--
+-- @since 0.2
+--
 hzipWith  :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+
 -- | Another name for 'hliftA3'.
+--
+-- @since 0.2
+--
 hzipWith3 :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hmap      = hliftA
@@ -267,10 +278,21 @@ hcliftA2 p f xs ys    = hcpure p (fn_2 f) `hap` xs `hap` ys
 hcliftA3 p f xs ys zs = hcpure p (fn_3 f) `hap` xs `hap` ys `hap` zs
 
 -- | Another name for 'hcliftA'.
+--
+-- @since 0.2
+--
 hcmap      :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+
 -- | Another name for 'hcliftA2'.
+--
+-- @since 0.2
+--
 hczipWith  :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+
 -- | Another name for 'hcliftA3'.
+--
+-- @since 0.2
+--
 hczipWith3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcmap      = hcliftA

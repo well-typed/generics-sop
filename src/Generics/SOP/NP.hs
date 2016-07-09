@@ -259,10 +259,16 @@ instance HAp POP where hap = ap_POP
 -- * Destructing products
 
 -- | Obtain the head of an n-ary product.
+--
+-- @since 0.2.1.0
+--
 hd :: NP f (x ': xs) -> f x
 hd (x :* _xs) = x
 
 -- | Obtain the tail of an n-ary product.
+--
+-- @since 0.2.1.0
+--
 tl :: NP f (x ': xs) -> NP f xs
 tl (_x :* xs) = xs
 

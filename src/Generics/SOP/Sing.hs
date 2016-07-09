@@ -35,6 +35,8 @@ module Generics.SOP.Sing
 -- list elements; we do not require a singleton representation
 -- for them.
 --
+-- @since 0.2
+--
 data SList :: [k] -> * where
   SNil  :: SList '[]
   SCons :: SListI xs => SList (x ': xs)
@@ -51,6 +53,8 @@ deriving instance Ord  (SList (xs :: [k]))
 --
 -- The class 'SListI' should have instances that match the
 -- constructors of 'SList'.
+--
+-- @since 0.2
 --
 class SListI (xs :: [k]) where
   -- | Get hold of the explicit singleton (that one can then
@@ -97,6 +101,9 @@ shape = case sList :: SList xs of
           SCons -> ShapeCons shape
 
 -- | The length of a type-level list.
+--
+-- @since 0.2
+--
 lengthSList :: forall (xs :: [k]) proxy. SListI xs => proxy xs -> Int
 lengthSList _ = lengthShape (shape :: Shape xs)
   where

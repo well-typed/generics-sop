@@ -2,6 +2,8 @@
 
 * Introduced `unZ` to destruct a unary sum.
 
+* Add Haddock `@since` annotations for various functions.
+
 # 0.2.1.0 (2016-02-08)
 
 * Now includes a CHANGELOG.
