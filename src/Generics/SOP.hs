@@ -221,6 +221,7 @@ module Generics.SOP (
     -- * n-ary datatypes
   , NP(..)
   , NS(..)
+  , unZ
   , SOP(..)
   , unSOP
   , POP(..)

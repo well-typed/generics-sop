@@ -5,6 +5,7 @@ module Generics.SOP.NS
   ( -- * Datatypes
     NS(..)
   , SOP(..)
+  , unZ
   , unSOP
     -- * Constructing sums
   , Injection
@@ -100,6 +101,22 @@ data NS :: (k -> *) -> [k] -> * where
 deriving instance All (Show `Compose` f) xs => Show (NS f xs)
 deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs)
+
+-- | Extract the payload from a unary sum.
+--
+-- For larger sums, this function would be partial, so it is only
+-- provided with a rather restrictive type.
+--
+-- /Example:/
+--
+-- >>> unZ (Z (I 'x'))
+-- I 'x'
+--
+-- @since 0.2.2.0
+--
+unZ :: NS f '[x] -> f x
+unZ (Z x) = x
+unZ _     = error "inaccessible" -- needed even in GHC 8.0.1
 
 -- | A sum of products.
 --

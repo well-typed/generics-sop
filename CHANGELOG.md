@@ -1,3 +1,7 @@
+# 0.2.2.0
+
+* Introduced `unZ` to destruct a unary sum.
+
 # 0.2.1.0 (2016-02-08)
 
 * Now includes a CHANGELOG.
