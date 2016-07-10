@@ -1,4 +1,4 @@
-# 0.2.2.0
+# 0.2.2.0 (2016-07-10)
 
 * Introduced `unZ` to destruct a unary sum.
 
