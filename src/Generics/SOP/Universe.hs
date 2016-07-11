@@ -5,6 +5,7 @@
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
+import Data.Proxy
 import qualified GHC.Generics as GHC
 
 import Generics.SOP.BasicFunctors
@@ -13,6 +14,7 @@ import Generics.SOP.NS
 import Generics.SOP.Sing
 import Generics.SOP.GGP
 import Generics.SOP.Metadata
+import qualified Generics.SOP.Type.Metadata as T
 
 -- | The (generic) representation of a datatype.
 --
@@ -137,7 +139,12 @@ class (All SListI (Code a)) => Generic (a :: *) where
 -- of 'Generic' for the options.
 --
 class HasDatatypeInfo a where
+  type DatatypeInfoOf a :: T.DatatypeInfo
+  type DatatypeInfoOf a = GDatatypeInfoOf a
+
   datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
-  default datatypeInfo :: (GDatatypeInfo a, Code a ~ GCode a)
-                       => proxy a -> DatatypeInfo (Code a)
-  datatypeInfo = gdatatypeInfo
+  default datatypeInfo :: (T.Demote (DatatypeInfoOf a) (Code a)) => proxy a -> DatatypeInfo (Code a)
+  datatypeInfo _ = T.demote (Proxy :: Proxy (DatatypeInfoOf a)) (Proxy :: Proxy (Code a))
+
+-- instance {-# OVERLAPPABLE #-} (Demote (DatatypeInfoOf a) (Code a)) => HasDatatypeInfo a where
+--   datatypeInfo _ = demote (Proxy :: Proxy (DatatypeInfoOf a)) (Proxy :: Proxy (Code a))

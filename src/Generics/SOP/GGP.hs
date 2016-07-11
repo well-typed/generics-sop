@@ -1,4 +1,5 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE PolyKinds, UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
 -- | Derive @generics-sop@ boilerplate instances from GHC's 'GHC.Generic'.
 --
 -- The technique being used here is described in the following paper:
@@ -11,10 +12,9 @@ module Generics.SOP.GGP
   ( GCode
   , GFrom
   , GTo
-  , GDatatypeInfo
+  , GDatatypeInfoOf
   , gfrom
   , gto
-  , gdatatypeInfo
   ) where
 
 import Data.Proxy
@@ -22,9 +22,8 @@ import GHC.Generics as GHC
 import Generics.SOP.NP as SOP
 import Generics.SOP.NS as SOP
 import Generics.SOP.BasicFunctors as SOP
-import Generics.SOP.Constraint as SOP
+import qualified Generics.SOP.Type.Metadata as SOP.T
 import Generics.SOP.Metadata as SOP
-import Generics.SOP.Sing
 
 type family ToSingleCode (a :: * -> *) :: *
 type instance ToSingleCode (K1 _i a) = a
@@ -46,65 +45,32 @@ data InfoProxy (c :: Meta) (f :: * -> *) (x :: *) = InfoProxy
 data InfoProxy (c :: *) (f :: * -> *) (x :: *) = InfoProxy
 #endif
 
-class GDatatypeInfo' (a :: * -> *) where
-  gDatatypeInfo' :: proxy a -> DatatypeInfo (ToSumCode a '[])
+type family ToInfo (a :: * -> *) :: SOP.T.DatatypeInfo
+type instance ToInfo (M1 D (MetaData n m p False) a) =
+  SOP.T.ADT m n (ToSumInfo a '[])
+type instance ToInfo (M1 D (MetaData n m p True) a) =
+  SOP.T.Newtype m n (ToSingleConstructorInfo a)
 
-#if !(MIN_VERSION_base(4,7,0))
+type family ToSumInfo (a :: * -> *) (xs :: [SOP.T.ConstructorInfo]) :: [SOP.T.ConstructorInfo]
+type instance ToSumInfo (a :+: b)  xs = ToSumInfo a (ToSumInfo b xs)
+type instance ToSumInfo V1         xs = xs
+type instance ToSumInfo (M1 C c a) xs = ToSingleConstructorInfo (M1 C c a) ': xs
 
--- | 'isNewtype' does not exist in "GHC.Generics" before GHC-7.8.
---
--- The only safe assumption to make is that it always returns 'False'.
---
-isNewtype :: Datatype d => t d (f :: * -> *) a -> Bool
-isNewtype _ = False
+type family ToSingleConstructorInfo (a :: * -> *) :: SOP.T.ConstructorInfo
+type instance ToSingleConstructorInfo (M1 C (MetaCons n PrefixI False) a) =
+  SOP.T.Constructor n
+type instance ToSingleConstructorInfo (M1 C (MetaCons n (InfixI assoc fix) False) a) =
+  SOP.T.Infix n assoc fix
+type instance ToSingleConstructorInfo (M1 C (MetaCons n f True) a) =
+  SOP.T.Record n (ToProductInfo a '[])
 
-#endif
+type family ToProductInfo (a :: * -> *) (xs :: [SOP.T.FieldInfo]) :: [SOP.T.FieldInfo]
+type instance ToProductInfo (a :*: b)  xs = ToProductInfo a (ToProductInfo b xs)
+type instance ToProductInfo U1         xs = xs
+type instance ToProductInfo (M1 S c a) xs = ToSingleInfo (M1 S c a) ': xs
 
-instance (All SListI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatypeInfo' (M1 D c a) where
-  gDatatypeInfo' _ =
-    let adt = ADT     (GHC.moduleName p) (GHC.datatypeName p)
-        ci  = gConstructorInfos (Proxy :: Proxy a) Nil
-    in if isNewtype p
-       then case isNewtypeShape ci of
-              NewYes c -> Newtype (GHC.moduleName p) (GHC.datatypeName p) c
-              NewNo    -> adt ci -- should not happen
-       else adt ci
-    where
-     p :: InfoProxy c a x
-     p = InfoProxy
-
-data IsNewtypeShape (xss :: [[*]]) where
-  NewYes :: ConstructorInfo '[x] -> IsNewtypeShape '[ '[x] ]
-  NewNo  :: IsNewtypeShape xss
-
-isNewtypeShape :: All SListI xss => NP ConstructorInfo xss -> IsNewtypeShape xss
-isNewtypeShape (x :* Nil) = go shape x
-  where
-    go :: Shape xs -> ConstructorInfo xs -> IsNewtypeShape '[ xs ]
-    go (ShapeCons ShapeNil) c   = NewYes c
-    go _                    _   = NewNo
-isNewtypeShape _          = NewNo
-
-class GConstructorInfos (a :: * -> *) where
-  gConstructorInfos :: proxy a -> NP ConstructorInfo xss -> NP ConstructorInfo (ToSumCode a xss)
-
-instance (GConstructorInfos a, GConstructorInfos b) => GConstructorInfos (a :+: b) where
-  gConstructorInfos _ xss = gConstructorInfos (Proxy :: Proxy a) (gConstructorInfos (Proxy :: Proxy b) xss)
-
-instance GConstructorInfos GHC.V1 where
-  gConstructorInfos _ xss = xss
-
-instance (Constructor c, GFieldInfos a, SListI (ToProductCode a '[])) => GConstructorInfos (M1 C c a) where
-  gConstructorInfos _ xss
-    | conIsRecord p = Record (conName p) (gFieldInfos (Proxy :: Proxy a) Nil) :* xss
-    | otherwise     = case conFixity p of
-        Prefix        -> Constructor (conName p) :* xss
-        GHC.Infix a f -> case (shape :: Shape (ToProductCode a '[])) of
-          ShapeCons (ShapeCons ShapeNil) -> SOP.Infix (conName p) a f :* xss
-          _                              -> Constructor (conName p) :* xss -- should not happen
-    where
-      p :: InfoProxy c a x
-      p = InfoProxy
+type family ToSingleInfo (a :: * -> *) :: SOP.T.FieldInfo
+type instance ToSingleInfo (M1 S (MetaSel (Just n) _ _ _) a) = 'SOP.T.FieldInfo n
 
 class GFieldInfos (a :: * -> *) where
   gFieldInfos :: proxy a -> NP FieldInfo xs -> NP FieldInfo (ToProductCode a xs)
@@ -208,8 +174,8 @@ type GFrom a = GSumFrom (GHC.Rep a)
 -- | Constraint for the class that computes 'gto'.
 type GTo a = GSumTo (GHC.Rep a)
 
--- | Constraint for the class that computes 'gdatatypeInfo'.
-type GDatatypeInfo a = GDatatypeInfo' (GHC.Rep a)
+-- | Compute the datatype info of a datatype.
+type GDatatypeInfoOf (a :: *) = ToInfo (GHC.Rep a)
 
 -- | An automatically computed version of 'Generics.SOP.from'.
 --
@@ -233,14 +199,4 @@ gfrom x = gSumFrom (GHC.from x) (error "gfrom: internal error" :: SOP.SOP SOP.I 
 gto :: forall a. (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
 gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.Rep a) x))
 
--- | An automatically computed version of 'Generics.SOP.datatypeInfo'.
---
--- This requires that the type being converted has a
--- 'GHC.Generic' (from module "GHC.Generics") instance.
---
--- This is the default definition for 'Generics.SOP.datatypeInfo'.
--- For more info, see 'Generics.SOP.HasDatatypeInfo'.
---
-gdatatypeInfo :: forall proxy a. (GDatatypeInfo a) => proxy a -> DatatypeInfo (GCode a)
-gdatatypeInfo _ = gDatatypeInfo' (Proxy :: Proxy (GHC.Rep a))
 
