@@ -48,6 +48,7 @@ library
                        Generics.SOP.GGP
                        Generics.SOP.TH
                        Generics.SOP.Dict
+                       Generics.SOP.Type.Metadata
                        -- exposed via Generics.SOP:
                        Generics.SOP.BasicFunctors
                        Generics.SOP.Classes
