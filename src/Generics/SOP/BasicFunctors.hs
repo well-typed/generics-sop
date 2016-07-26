@@ -9,6 +9,17 @@
 -- library, they're primarily used as parameters for
 -- the 'NP', 'NS', 'POP', and 'SOP' types.
 --
+-- We define own variants of 'Control.Applicative.Const',
+-- 'Data.Functor.Identity.Identity' and 'Data.Functor.Compose.Compose' for
+-- various reasons.
+--
+-- * 'Control.Applicative.Const' and 'Data.Functor.Compose.Compose' become
+-- kind polymorphic only in @base-4.9.0.0@ (@transformers-0.5.0.0@).
+--
+-- * Shorter names are convenient, and pattern synonyms aren't
+-- (yet) powerful enough, particularly exhaustiveness check doesn't work
+-- properly. See <https://ghc.haskell.org/trac/ghc/ticket/8779>.
+--
 module Generics.SOP.BasicFunctors
   ( K(..)
   , unK
