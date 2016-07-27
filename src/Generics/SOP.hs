@@ -228,8 +228,13 @@ module Generics.SOP (
   , unPOP
     -- * Metadata
   , DatatypeInfo(..)
+  , moduleName
+  , datatypeName
+  , constructorInfo
   , ConstructorInfo(..)
+  , constructorName
   , FieldInfo(..)
+  , fieldName
   , HasDatatypeInfo(..)
   , DatatypeName
   , ModuleName
