@@ -62,11 +62,11 @@ isNewtype _ = False
 
 instance (All SListI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatypeInfo' (M1 D c a) where
   gDatatypeInfo' _ =
-    let adt = ADT     (moduleName p) (datatypeName p)
+    let adt = ADT     (GHC.moduleName p) (GHC.datatypeName p)
         ci  = gConstructorInfos (Proxy :: Proxy a) Nil
     in if isNewtype p
        then case isNewtypeShape ci of
-              NewYes c -> Newtype (moduleName p) (datatypeName p) c
+              NewYes c -> Newtype (GHC.moduleName p) (GHC.datatypeName p) c
               NewNo    -> adt ci -- should not happen
        else adt ci
     where
