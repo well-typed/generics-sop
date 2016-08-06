@@ -39,6 +39,18 @@ data DatatypeInfo :: [[*]] -> * where
   -- Newtype
   Newtype :: ModuleName -> DatatypeName -> ConstructorInfo '[x]   -> DatatypeInfo '[ '[x] ]
 
+moduleName :: DatatypeInfo xss -> ModuleName
+moduleName (ADT name _ _) = name
+moduleName (Newtype name _ _) = name
+
+datatypeName :: DatatypeInfo xss -> DatatypeName
+datatypeName (ADT _ name _ ) = name
+datatypeName (Newtype _ name _) = name
+
+constructorInfo :: DatatypeInfo xss -> NP ConstructorInfo xss
+constructorInfo (ADT _ _ cs) = cs
+constructorInfo (Newtype _ _ c) = c :* Nil
+
 deriving instance All (Show `Compose` ConstructorInfo) xs => Show (DatatypeInfo xs)
 deriving instance All (Eq   `Compose` ConstructorInfo) xs => Eq   (DatatypeInfo xs)
 deriving instance (All (Eq `Compose` ConstructorInfo) xs, All (Ord `Compose` ConstructorInfo) xs) => Ord (DatatypeInfo xs)
@@ -55,6 +67,11 @@ data ConstructorInfo :: [*] -> * where
   -- Record constructor
   Record :: SListI xs => ConstructorName -> NP FieldInfo xs -> ConstructorInfo xs
 
+constructorName :: ConstructorInfo xs -> ConstructorName
+constructorName (Constructor name) = name
+constructorName (Infix name _ _)   = name
+constructorName (Record name _)    = name
+
 deriving instance All (Show `Compose` FieldInfo) xs => Show (ConstructorInfo xs)
 deriving instance All (Eq   `Compose` FieldInfo) xs => Eq   (ConstructorInfo xs)
 deriving instance (All (Eq `Compose` FieldInfo) xs, All (Ord `Compose` FieldInfo) xs) => Ord (ConstructorInfo xs)
@@ -63,6 +80,9 @@ deriving instance (All (Eq `Compose` FieldInfo) xs, All (Ord `Compose` FieldInfo
 data FieldInfo :: * -> * where
   FieldInfo :: FieldName -> FieldInfo a
   deriving (Show, Eq, Ord, Functor)
+
+fieldName :: FieldInfo a -> FieldName
+fieldName (FieldInfo n) = n
 
 -- | The name of a datatype.
 type DatatypeName    = String
