@@ -92,7 +92,7 @@ import Generics.SOP.Sing
 --
 -- > Z (I 'x')      :: NS I       '[ Char, Bool ]
 -- > S (Z (I True)) :: NS I       '[ Char, Bool ]
--- > S (Z (I 1))    :: NS (K Int) '[ Char, Bool ]
+-- > S (Z (K 1))    :: NS (K Int) '[ Char, Bool ]
 --
 data NS :: (k -> *) -> [k] -> * where
   Z :: f x -> NS f (x ': xs)
