@@ -40,6 +40,11 @@ module Generics.SOP.NS
   , sequence'_SOP
   , sequence_NS
   , sequence_SOP
+    -- * Catamorphism and anamorphism
+  , cata_NS
+  , ccata_NS
+  , ana_NS
+  , cana_NS
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
@@ -340,3 +345,53 @@ sequence_SOP :: (All SListI xss, Applicative f) => SOP f xss -> f (SOP I xss)
 sequence_NS   = hsequence
 sequence_SOP  = hsequence
 
+-- * Catamorphism and anamorphism
+
+cata_NS :: forall r f xs . (forall y ys . f y -> r (y ': ys)) -> (forall y ys . r ys -> r (y ': ys)) -> NS f xs -> r xs
+cata_NS z s = go
+  where
+    go :: forall ys . NS f ys -> r ys
+    go (Z x) = z x
+    go (S i) = s (go i)
+
+ccata_NS ::
+     forall c proxy r f xs . (All c xs)
+  => proxy c
+  -> (forall y ys . c y => f y -> r (y ': ys))
+  -> (forall y ys . c y => r ys -> r (y ': ys))
+  -> NS f xs
+  -> r xs
+ccata_NS _ z s = go
+  where
+    go :: forall ys . (All c ys) => NS f ys -> r ys
+    go (Z x) = z x
+    go (S i) = s (go i)
+
+ana_NS :: forall s f xs .
+     (SListI xs)
+  => (forall r . s '[] -> r)
+  -> (forall y ys . s (y ': ys) -> Either (f y) (s ys))
+  -> s xs
+  -> NS f xs
+ana_NS refute decide = go sList
+  where
+    go :: forall ys . SList ys -> s ys -> NS f ys
+    go SNil  s = refute s
+    go SCons s = case decide s of
+      Left x   -> Z x
+      Right s' -> S (go sList s')
+
+cana_NS :: forall c proxy s f xs .
+     (All c xs)
+  => proxy c
+  -> (forall r . s '[] -> r)
+  -> (forall y ys . c y => s (y ': ys) -> Either (f y) (s ys))
+  -> s xs
+  -> NS f xs
+cana_NS _ refute decide = go sList
+  where
+    go :: forall ys . (All c ys) => SList ys -> s ys -> NS f ys
+    go SNil  s = refute s
+    go SCons s = case decide s of
+      Left x   -> Z x
+      Right s' -> S (go sList s')

@@ -497,3 +497,45 @@ sequence_POP :: (All SListI xss, Applicative f) => POP f xss -> f (POP I xss)
 sequence_NP   = hsequence
 sequence_POP  = hsequence
 
+-- * Catamorphism and anamorphism
+
+cata_NP :: forall r f xs . r '[] -> (forall y ys . f y -> r ys -> r (y ': ys)) -> NP f xs -> r xs
+cata_NP nil cons = go
+  where
+    go :: forall ys . NP f ys -> r ys
+    go Nil       = nil
+    go (x :* xs) = cons x (go xs)
+
+ccata_NP ::
+     forall c proxy r f xs . (All c xs)
+  => proxy c
+  -> r '[]
+  -> (forall y ys . c y => f y -> r ys -> r (y ': ys))
+  -> NP f xs
+  -> r xs
+ccata_NP _ nil cons = go
+  where
+    go :: forall ys . (All c ys) => NP f ys -> r ys
+    go Nil       = nil
+    go (x :* xs) = cons x (go xs)
+
+ana_NP :: forall s f xs . SListI xs => (forall y ys . s (y ': ys) -> (f y, s ys)) -> s xs -> NP f xs
+ana_NP uncons = go sList
+  where
+    go :: forall ys . SList ys -> s ys -> NP f ys
+    go SNil  _ = Nil
+    go SCons s = case uncons s of
+      (x, s') -> x :* go sList s'
+
+cana_NP ::
+     forall c proxy s f xs . (All c xs)
+  => proxy c
+  -> (forall y ys . c y => s (y ': ys) -> (f y, s ys))
+  -> s xs
+  -> NP f xs
+cana_NP _ uncons = go sList
+  where
+    go :: forall ys . (All c ys) => SList ys -> s ys -> NP f ys
+    go SNil  _ = Nil
+    go SCons s = case uncons s of
+      (x, s') -> x :* go sList s'
