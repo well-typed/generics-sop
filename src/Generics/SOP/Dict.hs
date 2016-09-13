@@ -1,4 +1,5 @@
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
 -- | Explicit dictionaries.
 --
 -- When working with compound constraints such as constructed
@@ -34,6 +35,8 @@ import Generics.SOP.Sing
 --
 data Dict (c :: k -> Constraint) (a :: k) where
   Dict :: c a => Dict c a
+
+deriving instance Show (Dict c a)
 
 -- | A proof that the trivial constraint holds
 -- over all type-level lists.
@@ -97,7 +100,7 @@ zipAll2 dc dd = all_POP (hzipWith (\ Dict Dict -> Dict) (unAll_POP dc) (unAll_PO
 -- @since 0.2
 --
 unAll_NP :: forall c xs . Dict (All c) xs -> NP (Dict c) xs
-unAll_NP Dict = hcpure (Proxy :: Proxy c) Dict
+unAll_NP d = withDict d hdicts
 
 -- | If we have a constraint 'c' that holds over a type-level
 -- list of lists 'xss', we can create a product of products
@@ -106,7 +109,7 @@ unAll_NP Dict = hcpure (Proxy :: Proxy c) Dict
 -- @since 0.2
 --
 unAll_POP :: forall c xss . Dict (All2 c) xss -> POP (Dict c) xss
-unAll_POP Dict = hcpure (Proxy :: Proxy c) Dict
+unAll_POP d = withDict d hdicts
 
 -- | If we have a product containing proofs that each element
 -- of 'xs' satisfies 'c', then 'All c' holds for 'xs'.
@@ -148,3 +151,7 @@ all2 Dict = Dict
 --
 withDict :: Dict c a -> (c a => r) -> r
 withDict Dict x = x
+
+
+hdicts :: forall h c xs . (AllN h c xs, HPure h) => h (Dict c) xs
+hdicts = hcpure (Proxy :: Proxy c) Dict
