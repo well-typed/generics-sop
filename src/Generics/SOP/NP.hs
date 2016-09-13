@@ -59,6 +59,11 @@ module Generics.SOP.NP
   , sequence'_POP
   , sequence_NP
   , sequence_POP
+    -- * Catamorphism and anamorphism
+  , cata_NP
+  , ccata_NP
+  , ana_NP
+  , cana_NP
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
