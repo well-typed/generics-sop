@@ -117,8 +117,7 @@ unAll_POP d = withDict d hdicts
 -- @since 0.2
 --
 all_NP :: NP (Dict c) xs -> Dict (All c) xs
-all_NP Nil          = Dict
-all_NP (Dict :* ds) = withDict (all_NP ds) Dict
+all_NP = cata_NP Dict (\ Dict r -> withDict r Dict)
 
 -- | If we have a product of products containing proofs that
 -- each inner element of 'xss' satisfies 'c', then 'All2 c'

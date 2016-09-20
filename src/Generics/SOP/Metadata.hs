@@ -17,7 +17,9 @@ module Generics.SOP.Metadata
   , Associativity(..)
   ) where
 
+import qualified Data.Vector as V
 import GHC.Generics (Associativity(..))
+import Unsafe.Coerce
 
 import Generics.SOP.Constraint
 import Generics.SOP.NP
@@ -49,11 +51,13 @@ datatypeName (Newtype _ name _) = name
 
 constructorInfo :: DatatypeInfo xss -> NP ConstructorInfo xss
 constructorInfo (ADT _ _ cs) = cs
-constructorInfo (Newtype _ _ c) = c :* Nil
+constructorInfo (Newtype _ _ c) = NP (unsafeCoerce (V.singleton c))
 
+{-
 deriving instance All (Show `Compose` ConstructorInfo) xs => Show (DatatypeInfo xs)
 deriving instance All (Eq   `Compose` ConstructorInfo) xs => Eq   (DatatypeInfo xs)
 deriving instance (All (Eq `Compose` ConstructorInfo) xs, All (Ord `Compose` ConstructorInfo) xs) => Ord (DatatypeInfo xs)
+-}
 
 -- | Metadata for a single constructors.
 --
@@ -72,9 +76,11 @@ constructorName (Constructor name) = name
 constructorName (Infix name _ _)   = name
 constructorName (Record name _)    = name
 
+{-
 deriving instance All (Show `Compose` FieldInfo) xs => Show (ConstructorInfo xs)
 deriving instance All (Eq   `Compose` FieldInfo) xs => Eq   (ConstructorInfo xs)
 deriving instance (All (Eq `Compose` FieldInfo) xs, All (Ord `Compose` FieldInfo) xs) => Ord (ConstructorInfo xs)
+-}
 
 -- | For records, this functor maps the component to its selector name.
 data FieldInfo :: * -> * where

@@ -1,17 +1,15 @@
-{-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+{-# LANGUAGE PatternSynonyms, PolyKinds, StandaloneDeriving, UndecidableInstances, ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 -- | n-ary sums (and sums of products)
 module Generics.SOP.NS
   ( -- * Datatypes
-    NS(..)
+    NS(.., Z, S)
   , SOP(..)
   , unZ
   , unSOP
     -- * Constructing sums
   , Injection
   , injections
-  , shift
-  , shiftInjection
   , apInjs_NP
   , apInjs_POP
     -- * Application
@@ -50,6 +48,10 @@ module Generics.SOP.NS
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 #endif
+import Data.Proxy
+import qualified Data.Vector as V
+import GHC.Exts (Any)
+import Unsafe.Coerce
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
@@ -99,13 +101,34 @@ import Generics.SOP.Sing
 -- > S (Z (I True)) :: NS I       '[ Char, Bool ]
 -- > S (Z (K 1))    :: NS (K Int) '[ Char, Bool ]
 --
-data NS :: (k -> *) -> [k] -> * where
-  Z :: f x -> NS f (x ': xs)
-  S :: NS f xs -> NS f (x ': xs)
+data NS (f :: k -> *) (xs :: [k]) = NS !Int (f Any)
 
-deriving instance All (Show `Compose` f) xs => Show (NS f xs)
+data IsNS (f :: k -> *) (xs :: [k]) where
+  IsZ :: f x -> IsNS f (x ': xs)
+  IsS :: NS f xs -> IsNS f (x ': xs)
+
+isNS :: NS f xs -> IsNS f xs
+isNS (NS i x)
+  | i == 0    = unsafeCoerce (IsZ x)
+  | otherwise = unsafeCoerce (IsS (NS (i - 1) x))
+
+pattern Z :: () => (xs' ~ (x ': xs)) => f x -> NS f xs'
+pattern Z x <- (isNS -> IsZ x)
+  where
+    Z x = NS 0 (unsafeCoerce x)
+
+pattern S :: () => (xs' ~ (x ': xs)) => NS f xs -> NS f xs'
+pattern S p <- (isNS -> IsS p)
+  where
+    S (NS i x) = NS (i + 1) x
+
+instance All (Show `Compose` f) xs => Show (NS f xs) where
+  show ns @ (NS i _) =
+    show i ++ " " ++ hcollapse (hcmap (Proxy :: Proxy (Show `Compose` f)) (K . show) ns)
+{-
 deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs)
+-}
 
 -- | Extract the payload from a unary sum.
 --
@@ -120,8 +143,7 @@ deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS
 -- @since 0.2.2.0
 --
 unZ :: NS f '[x] -> f x
-unZ (Z x) = x
-unZ _     = error "inaccessible" -- needed even in GHC 8.0.1
+unZ (NS _ x) = unsafeCoerce x
 
 -- | A sum of products.
 --
@@ -148,6 +170,9 @@ unSOP (SOP xss) = xss
 
 -- * Constructing sums
 
+z :: f x -> NS f (x ': xs)
+z x = NS 0 (unsafeCoerce x)
+
 -- | The type of injections into an n-ary sum.
 --
 -- If you expand the type synonyms and newtypes involved, you get
@@ -164,24 +189,7 @@ type Injection (f :: k -> *) (xs :: [k]) = f -.-> K (NS f xs)
 -- Each element of the resulting product contains one of the injections.
 --
 injections :: forall xs f. SListI xs => NP (Injection f xs) xs
-injections = case sList :: SList xs of
-  SNil   -> Nil
-  SCons  -> fn (K . Z) :* liftA_NP shiftInjection injections
-
--- | Shift an injection.
---
--- Given an injection, return an injection into a sum that is one component larger.
---
-shiftInjection :: Injection f xs a -> Injection f (x ': xs) a
-shiftInjection (Fn f) = Fn $ K . S . unK . f
-
-{-# DEPRECATED shift "Use 'shiftInjection' instead." #-}
--- | Shift an injection.
---
--- Given an injection, return an injection into a sum that is one component larger.
---
-shift :: Injection f xs a -> Injection f (x ': xs) a
-shift = shiftInjection
+injections = ana_NP (\ (K i) -> (Fn (\ x -> K (NS i (unsafeCoerce x))), K (i + 1))) (K 0)
 
 -- | Apply injections to a product.
 --
@@ -216,18 +224,11 @@ apInjs_POP = map SOP . apInjs_NP . unPOP
 
 -- | Specialization of 'hap'.
 ap_NS :: NP (f -.-> g) xs -> NS f xs -> NS g xs
-ap_NS (Fn f  :* _)   (Z x)   = Z (f x)
-ap_NS (_     :* fs)  (S xs)  = S (ap_NS fs xs)
-ap_NS _ _ = error "inaccessible"
+ap_NS (NP fs) (NS i x) = NS i (unsafeCoerce (fs V.! i) x)
 
 -- | Specialization of 'hap'.
 ap_SOP  :: POP (f -.-> g) xss -> SOP f xss -> SOP g xss
-ap_SOP (POP fss') (SOP xss') = SOP (go fss' xss')
-  where
-    go :: NP (NP (f -.-> g)) xss -> NS (NP f) xss -> NS (NP g) xss
-    go (fs :* _  ) (Z xs ) = Z (ap_NP fs  xs )
-    go (_  :* fss) (S xss) = S (go    fss xss)
-    go _           _       = error "inaccessible"
+ap_SOP (POP (NP fss)) (SOP (NS i xs)) = SOP (NS i (ap_NP (fss V.! i) xs))
 
 -- The definition of 'ap_SOP' is a more direct variant of
 -- '_ap_SOP_spec'. The direct definition has the advantage
@@ -309,8 +310,7 @@ collapse_NS  ::               NS  (K a) xs  ->   a
 -- | Specialization of 'hcollapse'.
 collapse_SOP :: SListI xss => SOP (K a) xss ->  [a]
 
-collapse_NS (Z (K x)) = x
-collapse_NS (S xs)    = collapse_NS xs
+collapse_NS (NS _ (K x)) = x
 
 collapse_SOP = collapse_NS . hliftA (K . collapse_NP) . unSOP
 
@@ -328,8 +328,7 @@ sequence'_NS  ::              Applicative f  => NS  (f :.: g) xs  -> f (NS  g xs
 -- | Specialization of 'hsequence''.
 sequence'_SOP :: (SListI xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
 
-sequence'_NS (Z mx)  = Z <$> unComp mx
-sequence'_NS (S mxs) = S <$> sequence'_NS mxs
+sequence'_NS (NS i (Comp x)) = NS i <$> x
 
 sequence'_SOP = fmap SOP . sequence'_NS . hliftA (Comp . sequence'_NP) . unSOP
 
@@ -348,11 +347,14 @@ sequence_SOP  = hsequence
 -- * Catamorphism and anamorphism
 
 cata_NS :: forall r f xs . (forall y ys . f y -> r (y ': ys)) -> (forall y ys . r ys -> r (y ': ys)) -> NS f xs -> r xs
+cata_NS z s = error "TODO"
+{-
 cata_NS z s = go
   where
     go :: forall ys . NS f ys -> r ys
     go (Z x) = z x
     go (S i) = s (go i)
+-}
 
 ccata_NS ::
      forall c proxy r f xs . (All c xs)
@@ -361,11 +363,14 @@ ccata_NS ::
   -> (forall y ys . c y => r ys -> r (y ': ys))
   -> NS f xs
   -> r xs
+ccata_NS _ z s = error "TODO"
+{-
 ccata_NS _ z s = go
   where
     go :: forall ys . (All c ys) => NS f ys -> r ys
     go (Z x) = z x
     go (S i) = s (go i)
+-}
 
 ana_NS :: forall s f xs .
      (SListI xs)
@@ -373,6 +378,8 @@ ana_NS :: forall s f xs .
   -> (forall y ys . s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
+ana_NS refute decide = error "TODO"
+{-
 ana_NS refute decide = go sList
   where
     go :: forall ys . SList ys -> s ys -> NS f ys
@@ -380,6 +387,7 @@ ana_NS refute decide = go sList
     go SCons s = case decide s of
       Left x   -> Z x
       Right s' -> S (go sList s')
+-}
 
 cana_NS :: forall c proxy s f xs .
      (All c xs)
@@ -388,6 +396,8 @@ cana_NS :: forall c proxy s f xs .
   -> (forall y ys . c y => s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
+cana_NS _ refute decide = error "TODO"
+{-
 cana_NS _ refute decide = go sList
   where
     go :: forall ys . (All c ys) => SList ys -> s ys -> NS f ys
@@ -395,3 +405,4 @@ cana_NS _ refute decide = go sList
     go SCons s = case decide s of
       Left x   -> Z x
       Right s' -> S (go sList s')
+-}

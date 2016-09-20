@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -ddump-splices #-}
 -- | Generate @generics-sop@ boilerplate instances using Template Haskell.
 module Generics.SOP.TH
   ( deriveGeneric
@@ -9,8 +10,10 @@ module Generics.SOP.TH
 
 import Control.Monad (replicateM)
 import Data.Maybe (fromMaybe)
+import qualified Data.Vector as V
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax hiding (Infix)
+import Unsafe.Coerce
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Metadata
@@ -181,39 +184,32 @@ codeFor = promotedTypeList . map go
 -------------------------------------------------------------------------------}
 
 embedding :: Name -> [Con] -> Q Dec
-embedding fromName = funD fromName . go (\e -> [| Z $e |])
+embedding fromName cons =
+  funD fromName (zipWith go [0 ..] cons)
   where
-    go :: (Q Exp -> Q Exp) -> [Con] -> [Q Clause]
-    go _  []     = []
-    go br (c:cs) = mkClause br c : go (\e -> [| S $(br e) |]) cs
-
-    mkClause :: (Q Exp -> Q Exp) -> Con -> Q Clause
-    mkClause br c = do
+    go :: Integer -> Con -> Q Clause
+    go i c = do
       (n, ts) <- conInfo c
       vars    <- replicateM (length ts) (newName "x")
-      clause [conP n (map varP vars)]
-             (normalB [| SOP $(br . npE . map (appE (conE 'I) . varE) $ vars) |])
-             []
+      clause
+        [conP n (map varP vars)]
+        (normalB
+          [| SOP (NS $(litE (integerL i)) $(npE (map (appE (conE 'I) . varE) vars))) |])
+        []
 
 projection :: Name -> [Con] -> Q Dec
-projection toName = funD toName . go (\p -> conP 'Z [p])
+projection toName cons =
+  funD toName (zipWith go [0 ..] cons)
   where
-    go :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
-    go _ [] = [unreachable]
-    go br (c:cs) = mkClause br c : go (\p -> conP 'S [br p]) cs
-
-    mkClause :: (Q Pat -> Q Pat) -> Con -> Q Clause
-    mkClause br c = do
+    go :: Integer -> Con -> Q Clause
+    go i c = do
       (n, ts) <- conInfo c
-      vars    <- replicateM (length ts) (newName "x")
-      clause [conP 'SOP [br . npP . map (\v -> conP 'I [varP v]) $ vars]]
-             (normalB . appsE $ conE n : map varE vars)
-             []
-
-unreachable :: Q Clause
-unreachable = clause [wildP]
-                     (normalB [| error "unreachable" |])
-                     []
+      var     <- newName "x"
+      let fields = map (\ j -> [| unsafeCoerce ($(varE var) V.! $(litE (integerL j))) |]) [0 .. fromIntegral (length ts) - 1]
+      clause
+        [ [p| SOP (NS $(litP (integerL i)) (NP $(varP var))) |] ]
+        (normalB (appsE ((conE n) : fields)))
+        []
 
 {-------------------------------------------------------------------------------
   Compute metadata
@@ -236,13 +232,17 @@ metadata' isNewtype typeName cs = md
                                 $(npE $ map mdCon cs)
                       |]
 
-
     mdCon :: Con -> Q Exp
-    mdCon (NormalC n _)   = [| Constructor $(stringE (nameBase n)) |]
-    mdCon (RecC n ts)     = [| Record      $(stringE (nameBase n))
-                                           $(npE (map mdField ts))
-                             |]
-    mdCon (InfixC _ n _)  = do
+    mdCon c = do
+      (_, ts) <- conInfo c
+      [| $(mdCon' c) :: ConstructorInfo $(promotedTypeList ts) |]
+
+    mdCon' :: Con -> Q Exp
+    mdCon' (NormalC n _)   = [| Constructor $(stringE (nameBase n)) |]
+    mdCon' (RecC n ts)     = [| Record      $(stringE (nameBase n))
+                                            $(npE (map mdField ts))
+                              |]
+    mdCon' (InfixC _ n _)  = do
 #if MIN_VERSION_template_haskell(2,11,0)
       fixity <- reifyFixity n
       case fromMaybe defaultFixity fixity of
@@ -256,10 +256,10 @@ metadata' isNewtype typeName cs = md
 #if !MIN_VERSION_template_haskell(2,11,0)
         _                -> fail "Strange infix operator"
 #endif
-    mdCon (ForallC _ _ _) = fail "Existentials not supported"
+    mdCon' (ForallC _ _ _) = fail "Existentials not supported"
 #if MIN_VERSION_template_haskell(2,11,0)
-    mdCon (GadtC _ _ _)    = fail "GADTs not supported"
-    mdCon (RecGadtC _ _ _) = fail "GADTs not supported"
+    mdCon' (GadtC _ _ _)    = fail "GADTs not supported"
+    mdCon' (RecGadtC _ _ _) = fail "GADTs not supported"
 #endif
 
     mdField :: VarStrictType -> Q Exp
@@ -285,13 +285,10 @@ nameModule' = fromMaybe "" . nameModule
 --
 -- > a :* b :* c :* Nil
 npE :: [Q Exp] -> Q Exp
-npE []     = [| Nil |]
-npE (e:es) = [| $e :* $(npE es) |]
-
--- Like npE, but construct a pattern instead
-npP :: [Q Pat] -> Q Pat
-npP []     = conP 'Nil []
-npP (p:ps) = conP '(:*) [p, npP ps]
+npE xs = [| NP (V.fromList $(listE (map go xs))) |]
+  where
+    go :: Q Exp -> Q Exp
+    go x = [| unsafeCoerce $x |]
 
 {-------------------------------------------------------------------------------
   Some auxiliary definitions for working with TH

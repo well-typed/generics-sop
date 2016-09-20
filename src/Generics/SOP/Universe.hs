@@ -5,13 +5,13 @@
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
-import qualified GHC.Generics as GHC
+-- import qualified GHC.Generics as GHC
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
 import Generics.SOP.NS
 import Generics.SOP.Sing
-import Generics.SOP.GGP
+-- import Generics.SOP.GGP
 import Generics.SOP.Metadata
 
 -- | The (generic) representation of a datatype.
@@ -111,18 +111,18 @@ class (All SListI (Code a)) => Generic (a :: *) where
   -- >    ]
   --
   type Code a :: [[*]]
-  type Code a = GCode a
+  -- type Code a = GCode a
 
   -- | Converts from a value to its structural representation.
   from         :: a -> Rep a
-  default from :: (GFrom a, GHC.Generic a) => a -> SOP I (GCode a)
-  from = gfrom
+  -- default from :: (GFrom a, GHC.Generic a) => a -> SOP I (GCode a)
+  -- from = gfrom
 
   -- | Converts from a structural representation back to the
   -- original value.
   to         :: Rep a -> a
-  default to :: (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
-  to = gto
+  -- default to :: (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
+  -- to = gto
 
 -- | A class of datatypes that have associated metadata.
 --
@@ -136,5 +136,5 @@ class (All SListI (Code a)) => Generic (a :: *) where
 --
 class HasDatatypeInfo a where
   datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
-  default datatypeInfo :: GDatatypeInfo a => proxy a -> DatatypeInfo (GCode a)
-  datatypeInfo = gdatatypeInfo
+  -- default datatypeInfo :: GDatatypeInfo a => proxy a -> DatatypeInfo (GCode a)
+  -- datatypeInfo = gdatatypeInfo

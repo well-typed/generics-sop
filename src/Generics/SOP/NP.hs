@@ -1,8 +1,8 @@
-{-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+{-# LANGUAGE PatternSynonyms, PolyKinds, StandaloneDeriving, UndecidableInstances, ViewPatterns #-}
 -- | n-ary products (and products of products)
 module Generics.SOP.NP
   ( -- * Datatypes
-    NP(..)
+    NP(.., Nil, (:*))
   , POP(..)
   , unPOP
     -- * Constructing products
@@ -20,7 +20,6 @@ module Generics.SOP.NP
   , tl
   , Projection
   , projections
-  , shiftProjection
     -- * Lifting / mapping
   , liftA_NP
   , liftA_POP
@@ -70,6 +69,9 @@ module Generics.SOP.NP
 import Control.Applicative
 #endif
 import Data.Proxy (Proxy(..))
+import qualified Data.Vector as V
+import GHC.Exts (Any)
+import Unsafe.Coerce
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
@@ -104,15 +106,41 @@ import Generics.SOP.Sing
 -- > K 0      :* K 1     :* Nil  ::  NP (K Int) '[ Char, Bool ]
 -- > Just 'x' :* Nothing :* Nil  ::  NP Maybe   '[ Char, Bool ]
 --
-data NP :: (k -> *) -> [k] -> * where
-  Nil  :: NP f '[]
-  (:*) :: f x -> NP f xs -> NP f (x ': xs)
+newtype NP (f :: k -> *) (xs :: [k]) = NP (V.Vector (f Any))
 
+data IsNP (f :: k -> *) (xs :: [k]) where
+  IsNil  :: IsNP f '[]
+  IsCons :: f x -> NP f xs -> IsNP f (x ': xs)
+
+isNP :: NP f xs -> IsNP f xs
+isNP (NP xs) =
+  if V.null xs
+    then unsafeCoerce IsNil
+    else unsafeCoerce (IsCons (V.unsafeHead xs) (NP (V.unsafeTail xs)))
+
+pattern Nil :: () => (xs ~ '[]) => NP f xs
+pattern Nil <- (isNP -> IsNil)
+  where
+    Nil = NP V.empty
+
+pattern (:*) :: () => (xs' ~ (x ': xs)) => f x -> NP f xs -> NP f xs'
+pattern x :* xs <- (isNP -> IsCons x xs)
+  where
+    x :* NP xs = NP (V.cons (unsafeCoerce x) xs)
 infixr 5 :*
 
-deriving instance All (Show `Compose` f) xs => Show (NP f xs)
+instance All (Show `Compose` f) xs => Show (NP f xs) where
+  show xs =
+    show (hcollapse (hcmap (Proxy :: Proxy (Show `Compose` f)) (K . Showable . show) xs))
+
+newtype Showable = Showable String
+
+instance Show Showable where
+  show (Showable x) = x
+{-
 deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
+-}
 
 -- | A product of products.
 --
@@ -159,9 +187,12 @@ type instance SListIN POP = SListI2
 -- K 0 :* K 0 :* K 0 :* Nil
 --
 pure_NP :: forall f xs. SListI xs => (forall a. f a) -> NP f xs
+pure_NP f = NP (V.replicate (lengthSList (Proxy :: Proxy xs)) (unsafeCoerce f))
+{-
 pure_NP f = case sList :: SList xs of
   SNil   -> Nil
   SCons  -> f :* pure_NP f
+-}
 
 -- | Specialization of 'hpure'.
 --
@@ -181,16 +212,14 @@ sListP = Proxy
 --
 cpure_NP :: forall c xs proxy f. All c xs
          => proxy c -> (forall a. c a => f a) -> NP f xs
-cpure_NP p f = case sList :: SList xs of
-  SNil   -> Nil
-  SCons  -> f :* cpure_NP p f
+cpure_NP _ x = NP (unsafeCoerce (V.fromList (cpure_List (Proxy :: Proxy '(c, xs)) x :: [f Any])))
 
 -- | Specialization of 'hcpure'.
 --
 -- The call @'cpure_NP' p x@ generates a product of products that contains 'x'
 -- in every element position.
 --
-cpure_POP :: forall c xss proxy f. All2 c xss
+cpure_POP :: forall c xss proxy f. (All2 c xss)
           => proxy c -> (forall a. c a => f a) -> POP f xss
 cpure_POP p f = POP (cpure_NP (allP p) (cpure_NP p f))
 
@@ -212,13 +241,20 @@ instance HPure POP where
 -- Returns 'Nothing' if the length of the list does not exactly match the
 -- expected size of the product.
 --
-fromList :: SListI xs => [a] -> Maybe (NP (K a) xs)
+fromList :: forall xs a . SListI xs => [a] -> Maybe (NP (K a) xs)
+fromList xs =
+  if length xs == lengthSList (Proxy :: Proxy xs)
+    then Just (NP (V.fromList (unsafeCoerce xs)))
+    else Nothing
+    
+{-
 fromList = go sList
   where
     go :: SList xs -> [a] -> Maybe (NP (K a) xs)
     go SNil  []     = return Nil
     go SCons (x:xs) = do ys <- go sList xs ; return (K x :* ys)
     go _     _      = Nothing
+-}
 
 -- * Application
 
@@ -228,11 +264,9 @@ fromList = go sList
 -- suitable arguments.
 --
 ap_NP :: NP (f -.-> g) xs -> NP f xs -> NP g xs
-ap_NP Nil           Nil        = Nil
-ap_NP (Fn f :* fs)  (x :* xs)  = f x :* ap_NP fs xs
-#if __GLASGOW_HASKELL__ < 800
-ap_NP _ _ = error "inaccessible"
-#endif
+ap_NP (NP fs) (NP xs) = NP (V.zipWith unsafeApply fs xs) 
+  where
+    unsafeApply f x = unsafeCoerce f x
 
 -- | Specialization of 'hap'.
 --
@@ -240,14 +274,8 @@ ap_NP _ _ = error "inaccessible"
 -- suitable arguments.
 --
 ap_POP :: POP (f -.-> g) xss -> POP f xss -> POP g xss
-ap_POP (POP fss') (POP xss') = POP (go fss' xss')
-  where
-    go :: NP (NP (f -.-> g)) xss -> NP (NP f) xss -> NP (NP g) xss
-    go Nil         Nil         = Nil
-    go (fs :* fss) (xs :* xss) = ap_NP fs xs :* go fss xss
-#if __GLASGOW_HASKELL__ < 800
-    go _           _           = error "inaccessible"
-#endif
+ap_POP (POP (NP fss)) (POP (NP xss)) =
+  POP (NP (V.zipWith ap_NP fss xss))
 
 -- The definition of 'ap_POP' is a more direct variant of
 -- '_ap_POP_spec'. The direct definition has the advantage
@@ -268,14 +296,14 @@ instance HAp POP where hap = ap_POP
 -- @since 0.2.1.0
 --
 hd :: NP f (x ': xs) -> f x
-hd (x :* _xs) = x
+hd (NP xs) = unsafeCoerce (V.head xs)
 
 -- | Obtain the tail of an n-ary product.
 --
 -- @since 0.2.1.0
 --
 tl :: NP f (x ': xs) -> NP f xs
-tl (_x :* xs) = xs
+tl (NP xs) = unsafeCoerce (V.tail xs)
 
 -- | The type of projections from an n-ary product.
 --
@@ -286,12 +314,7 @@ type Projection (f :: k -> *) (xs :: [k]) = K (NP f xs) -.-> f
 -- Each element of the resulting product contains one of the projections.
 --
 projections :: forall xs f . SListI xs => NP (Projection f xs) xs
-projections = case sList :: SList xs of
-  SNil  -> Nil
-  SCons -> fn (hd . unK) :* liftA_NP shiftProjection projections
-
-shiftProjection :: Projection f xs a -> Projection f (x ': xs) a
-shiftProjection (Fn f) = Fn $ f . K . tl . unK
+projections = ana_NP (\ (K i) -> (Fn (\ (K (NP xs)) -> unsafeCoerce (xs V.! i)), K (i + 1))) (K 0)
 
 -- * Lifting / mapping
 
@@ -454,8 +477,7 @@ collapse_NP  ::              NP  (K a) xs  ->  [a]
 --
 collapse_POP :: SListI xss => POP (K a) xss -> [[a]]
 
-collapse_NP Nil         = []
-collapse_NP (K x :* xs) = x : collapse_NP xs
+collapse_NP (NP xs) = unsafeCoerce (V.toList xs)
 
 collapse_POP = collapse_NP . hliftA (K . collapse_NP) . unPOP
 
@@ -468,13 +490,14 @@ instance HCollapse POP where hcollapse = collapse_POP
 -- * Sequencing
 
 -- | Specialization of 'hsequence''.
-sequence'_NP  ::             Applicative f  => NP  (f :.: g) xs  -> f (NP  g xs)
+sequence'_NP  :: forall f g xs . Applicative f  => NP (f :.: g) xs  -> f (NP  g xs)
 
 -- | Specialization of 'hsequence''.
 sequence'_POP :: (SListI xss, Applicative f) => POP (f :.: g) xss -> f (POP g xss)
 
-sequence'_NP Nil         = pure Nil
-sequence'_NP (mx :* mxs) = (:*) <$> unComp mx <*> sequence'_NP mxs
+sequence'_NP (NP mxs) =
+  NP <$> sequenceA (unsafeCoerce mxs :: V.Vector (f (g Any)))
+  -- the outer NP mapping could probably be an unsafeCoerce, too, with sufficient role constraints
 
 sequence'_POP = fmap POP . sequence'_NP . hliftA (Comp . sequence'_NP) . unPOP
 
@@ -505,11 +528,7 @@ sequence_POP  = hsequence
 -- * Catamorphism and anamorphism
 
 cata_NP :: forall r f xs . r '[] -> (forall y ys . f y -> r ys -> r (y ': ys)) -> NP f xs -> r xs
-cata_NP nil cons = go
-  where
-    go :: forall ys . NP f ys -> r ys
-    go Nil       = nil
-    go (x :* xs) = cons x (go xs)
+cata_NP nil cons (NP xs) = unsafeCoerce (V.foldr (unsafeCoerce cons) (unsafeCoerce nil) xs)
 
 ccata_NP ::
      forall c proxy r f xs . (All c xs)
@@ -518,19 +537,19 @@ ccata_NP ::
   -> (forall y ys . c y => f y -> r ys -> r (y ': ys))
   -> NP f xs
   -> r xs
+ccata_NP _p _nil _cons = error "TODO"
+{-
 ccata_NP _ nil cons = go
   where
     go :: forall ys . (All c ys) => NP f ys -> r ys
     go Nil       = nil
     go (x :* xs) = cons x (go xs)
+-}
 
 ana_NP :: forall s f xs . SListI xs => (forall y ys . s (y ': ys) -> (f y, s ys)) -> s xs -> NP f xs
-ana_NP uncons = go sList
-  where
-    go :: forall ys . SList ys -> s ys -> NP f ys
-    go SNil  _ = Nil
-    go SCons s = case uncons s of
-      (x, s') -> x :* go sList s'
+ana_NP uncons s = NP (V.fromList (ana_List (Proxy :: Proxy xs) uncons s))
+-- We could define this as a special case of cana_NP except we need allTop,
+-- and we cannot depend on the Dict module here without circular dependencies.
 
 cana_NP ::
      forall c proxy s f xs . (All c xs)
@@ -538,9 +557,4 @@ cana_NP ::
   -> (forall y ys . c y => s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
-cana_NP _ uncons = go sList
-  where
-    go :: forall ys . (All c ys) => SList ys -> s ys -> NP f ys
-    go SNil  _ = Nil
-    go SCons s = case uncons s of
-      (x, s') -> x :* go sList s'
+cana_NP _ uncons s = NP (V.fromList (cana_List (Proxy :: Proxy '(c, xs)) uncons s))

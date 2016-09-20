@@ -22,6 +22,10 @@ module Generics.SOP.Sing
   , lengthSing
   ) where
 
+import Data.Proxy
+import GHC.Exts (Any)
+import Unsafe.Coerce
+
 -- * Singletons
 
 -- | Explicit singleton list.
@@ -60,12 +64,23 @@ class SListI (xs :: [k]) where
   -- | Get hold of the explicit singleton (that one can then
   -- pattern match on).
   sList :: SList xs
+  -- | The length of a type-level list.
+  --
+  -- @since 0.2
+  --
+  lengthSList :: proxy xs -> Int
+  ana_List :: Proxy xs -> (forall y ys . s (y ': ys) -> (f y, s ys)) -> s xs -> [f Any]
 
 instance SListI '[] where
   sList = SNil
+  lengthSList _ = 0
+  ana_List _ _ _ = []
 
 instance SListI xs => SListI (x ': xs) where
   sList = SCons
+  lengthSList _ = 1 + lengthSList (Proxy :: Proxy xs)
+  ana_List  p uncons s = case uncons s of
+    (x, s') -> unsafeCoerce x : ana_List  (Proxy :: Proxy xs)       uncons s'
 
 -- | General class for implicit singletons.
 --
@@ -99,17 +114,6 @@ shape :: forall (xs :: [k]). SListI xs => Shape xs
 shape = case sList :: SList xs of
           SNil  -> ShapeNil
           SCons -> ShapeCons shape
-
--- | The length of a type-level list.
---
--- @since 0.2
---
-lengthSList :: forall (xs :: [k]) proxy. SListI xs => proxy xs -> Int
-lengthSList _ = lengthShape (shape :: Shape xs)
-  where
-    lengthShape :: forall xs'. Shape xs' -> Int
-    lengthShape ShapeNil      = 0
-    lengthShape (ShapeCons s) = 1 + lengthShape s
 
 -- | Old name for 'lengthSList'.
 {-# DEPRECATED lengthSing "Use 'lengthSList' instead." #-}

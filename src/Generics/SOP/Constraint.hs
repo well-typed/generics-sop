@@ -17,8 +17,11 @@ module Generics.SOP.Constraint
   , Constraint
   ) where
 
-import GHC.Exts (Constraint)
+import Data.Proxy
+import GHC.Exts (Any, Constraint)
+import Generics.SOP.BasicFunctors
 import Generics.SOP.Sing
+import Unsafe.Coerce
 
 -- | Require a constraint for every element of a list.
 --
@@ -41,8 +44,24 @@ import Generics.SOP.Sing
 -- means that 'f' can assume that all elements of the n-ary
 -- product satisfy 'Eq'.
 --
-class (AllF f xs, SListI xs) => All (f :: k -> Constraint) (xs :: [k])
-instance (AllF f xs, SListI xs) => All f xs
+class (SListI xs, AllF c xs) => All (c :: k -> Constraint) (xs :: [k]) where
+  cana_List :: Proxy '(c, xs) -> (forall y ys . c y => s (y ': ys) -> (f y, s ys)) -> s xs -> [f Any]
+
+instance All c '[] where
+  cana_List _ _ _ = []
+
+instance (c x, All c xs) => All c (x ': xs) where
+  cana_List p uncons s = case uncons s of
+    (x, s') -> unsafeCoerce x : cana_List (Proxy :: Proxy '(c, xs)) uncons s'
+
+cpure_List :: All c xs => Proxy '(c, xs) -> (forall a . c a => f a) -> [f Any]
+cpure_List p x = cana_List p (\ _ -> (x, K ())) (K ())
+{-# INLINE cpure_List #-}
+
+cpure_List_Cons ::
+  forall c f x xs . (c x, All c xs) => Proxy '(c, (x ': xs)) -> (forall a . c a => f a) -> [f Any]
+cpure_List_Cons p x =
+  unsafeCoerce (x :: f x) : cpure_List (Proxy :: Proxy '(c, xs)) x
 
 -- | Type family used to implement 'All'.
 --
@@ -74,18 +93,7 @@ type SListI2 = All SListI
 -- means that 'f' can assume that all elements of the sum
 -- of product satisfy 'Eq'.
 --
-class (AllF (All f) xss, SListI xss) => All2 f xss
-instance (AllF (All f) xss, SListI xss) => All2 f xss
---
--- NOTE:
---
--- The definition
---
--- type All2 f = All (All f)
---
--- is more direct, but has the unfortunate disadvantage the
--- it triggers GHC's superclass cycle check when used in a
--- class context.
+type All2 f = All (All f)
 
 -- | Composition of constraints.
 --

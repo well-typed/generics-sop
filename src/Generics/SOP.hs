@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, UndecidableInstances #-}
+{-# LANGUAGE PatternSynonyms, PolyKinds, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 -- | Main module of @generics-sop@
 --
@@ -250,7 +250,6 @@ module Generics.SOP (
   , tl
   , Projection
   , projections
-  , shiftProjection
     -- ** Application
   , type (-.->)(..)
   , fn
@@ -275,8 +274,6 @@ module Generics.SOP (
     -- ** Constructing sums
   , Injection
   , injections
-  , shift
-  , shiftInjection
   , apInjs_NP
   , apInjs_POP
     -- ** Dealing with @'All' c@
@@ -316,7 +313,6 @@ module Generics.SOP (
     -- *** Shape of type-level lists
   , Shape(..)
   , shape
-  , lengthSList
   , lengthSing
     -- ** Re-exports
 
