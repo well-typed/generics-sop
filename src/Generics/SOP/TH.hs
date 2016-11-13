@@ -10,10 +10,10 @@ module Generics.SOP.TH
 import Control.Monad (replicateM)
 import Data.Maybe (fromMaybe)
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax hiding (Infix)
+import Language.Haskell.TH.Syntax
 
 import Generics.SOP.BasicFunctors
-import Generics.SOP.Metadata
+import qualified Generics.SOP.Metadata as SOP
 import Generics.SOP.NP
 import Generics.SOP.NS
 import Generics.SOP.Universe
@@ -131,7 +131,7 @@ deriveMetadataValue n codeName datatypeInfoName = do
   let datatypeInfoName' = mkName datatypeInfoName
   dec <- reifyDec n
   withDataDec dec $ \isNewtype _cxt name _bndrs cons _derivs -> do
-    sequence [ sigD datatypeInfoName' [t| DatatypeInfo $(conT codeName') |]                    -- treeDatatypeInfo :: DatatypeInfo TreeCode
+    sequence [ sigD datatypeInfoName' [t| SOP.DatatypeInfo $(conT codeName') |]                    -- treeDatatypeInfo :: DatatypeInfo TreeCode
              , funD datatypeInfoName' [clause [] (normalB $ metadata' isNewtype name cons) []] -- treeDatatypeInfo = ...
              ]
 
