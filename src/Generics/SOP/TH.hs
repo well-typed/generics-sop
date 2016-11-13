@@ -136,7 +136,7 @@ deriveMetadataValue n codeName datatypeInfoName = do
              ]
 
 #if MIN_VERSION_template_haskell(2,11,0)
-deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Cxt -> Q [Dec]
+deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [DerivClause] -> Q [Dec]
 #else
 deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
 #endif
@@ -154,7 +154,7 @@ deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
   return [inst]
 
 #if MIN_VERSION_template_haskell(2,11,0)
-deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Cxt -> Q [Dec]
+deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [DerivClause] -> Q [Dec]
 #else
 deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
 #endif
@@ -326,7 +326,7 @@ reifyDec name =
                   _          -> fail "Info must be type declaration type."
 
 #if MIN_VERSION_template_haskell(2,11,0)
-withDataDec :: Dec -> (Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Cxt -> Q a) -> Q a
+withDataDec :: Dec -> (Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [DerivClause] -> Q a) -> Q a
 withDataDec (DataD    ctxt name bndrs _ cons derivs) f = f False ctxt name bndrs cons  derivs
 withDataDec (NewtypeD ctxt name bndrs _ con  derivs) f = f True  ctxt name bndrs [con] derivs
 #else
