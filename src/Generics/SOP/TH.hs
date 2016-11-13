@@ -227,20 +227,20 @@ metadata' :: Bool -> Name -> [Con] -> Q Exp
 metadata' isNewtype typeName cs = md
   where
     md :: Q Exp
-    md | isNewtype = [| Newtype $(stringE (nameModule' typeName))
-                                $(stringE (nameBase typeName))
-                                $(mdCon (head cs))
+    md | isNewtype = [| SOP.Newtype $(stringE (nameModule' typeName))
+                                    $(stringE (nameBase typeName))
+                                    $(mdCon (head cs))
                       |]
-       | otherwise = [| ADT     $(stringE (nameModule' typeName))
-                                $(stringE (nameBase typeName))
-                                $(npE $ map mdCon cs)
+       | otherwise = [| SOP.ADT     $(stringE (nameModule' typeName))
+                                    $(stringE (nameBase typeName))
+                                    $(npE $ map mdCon cs)
                       |]
 
 
     mdCon :: Con -> Q Exp
-    mdCon (NormalC n _)   = [| Constructor $(stringE (nameBase n)) |]
-    mdCon (RecC n ts)     = [| Record      $(stringE (nameBase n))
-                                           $(npE (map mdField ts))
+    mdCon (NormalC n _)   = [| SOP.Constructor $(stringE (nameBase n)) |]
+    mdCon (RecC n ts)     = [| SOP.Record      $(stringE (nameBase n))
+                                               $(npE (map mdField ts))
                              |]
     mdCon (InfixC _ n _)  = do
 #if MIN_VERSION_template_haskell(2,11,0)
@@ -252,7 +252,7 @@ metadata' isNewtype typeName cs = md
       case i of
         DataConI _ _ _ (Fixity f a) ->
 #endif
-                            [| Infix       $(stringE (nameBase n)) $(mdAssociativity a) f |]
+                            [| SOP.Infix       $(stringE (nameBase n)) $(mdAssociativity a) f |]
 #if !MIN_VERSION_template_haskell(2,11,0)
         _                -> fail "Strange infix operator"
 #endif
@@ -263,12 +263,12 @@ metadata' isNewtype typeName cs = md
 #endif
 
     mdField :: VarStrictType -> Q Exp
-    mdField (n, _, _) = [| FieldInfo $(stringE (nameBase n)) |]
+    mdField (n, _, _) = [| SOP.FieldInfo $(stringE (nameBase n)) |]
 
     mdAssociativity :: FixityDirection -> Q Exp
-    mdAssociativity InfixL = [| LeftAssociative  |]
-    mdAssociativity InfixR = [| RightAssociative |]
-    mdAssociativity InfixN = [| NotAssociative   |]
+    mdAssociativity InfixL = [| SOP.LeftAssociative  |]
+    mdAssociativity InfixR = [| SOP.RightAssociative |]
+    mdAssociativity InfixN = [| SOP.NotAssociative   |]
 
 nameModule' :: Name -> String
 nameModule' = fromMaybe "" . nameModule
