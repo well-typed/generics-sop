@@ -135,11 +135,7 @@ deriveMetadataValue n codeName datatypeInfoName = do
              , funD datatypeInfoName' [clause [] (normalB $ metadata' isNewtype name cons) []] -- treeDatatypeInfo = ...
              ]
 
-#if MIN_VERSION_template_haskell(2,11,0)
-deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [DerivClause] -> Q [Dec]
-#else
-deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
-#endif
+deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
 deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
   let typ = appTyVars name bndrs
 #if MIN_VERSION_template_haskell(2,9,0)
@@ -153,17 +149,14 @@ deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
             [codeSyn, embedding 'from cons, projection 'to cons]
   return [inst]
 
-#if MIN_VERSION_template_haskell(2,11,0)
-deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [DerivClause] -> Q [Dec]
-#else
-deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q [Dec]
-#endif
+deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
 deriveMetadataForDataDec isNewtype _cxt name bndrs cons _derivs = do
   let typ = appTyVars name bndrs
   md   <- instanceD (cxt [])
             [t| HasDatatypeInfo $typ |]
             [metadata isNewtype name cons]
   return [md]
+
 
 {-------------------------------------------------------------------------------
   Computing the code for a data type
@@ -325,13 +318,21 @@ reifyDec name =
      case info of TyConI dec -> return dec
                   _          -> fail "Info must be type declaration type."
 
+withDataDec :: Dec -> (Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q a) -> Q a
 #if MIN_VERSION_template_haskell(2,11,0)
-withDataDec :: Dec -> (Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [DerivClause] -> Q a) -> Q a
 withDataDec (DataD    ctxt name bndrs _ cons derivs) f = f False ctxt name bndrs cons  derivs
 withDataDec (NewtypeD ctxt name bndrs _ con  derivs) f = f True  ctxt name bndrs [con] derivs
 #else
-withDataDec :: Dec -> (Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> [Name] -> Q a) -> Q a
 withDataDec (DataD    ctxt name bndrs cons derivs) f = f False ctxt name bndrs cons  derivs
 withDataDec (NewtypeD ctxt name bndrs con  derivs) f = f True  ctxt name bndrs [con] derivs
 #endif
 withDataDec _ _ = fail "Can only derive labels for datatypes and newtypes."
+
+-- | Utility type synonym to cover changes in the TH code
+#if MIN_VERSION_template_haskell(2,12,0)
+type Derivings = [DerivClause]
+#elif MIN_VERSION_template_haskell(2,11,0)
+type Derivings = Cxt
+#else
+type Derivings = [Name]
+#endif
