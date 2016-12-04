@@ -2,6 +2,12 @@
 
 * Add various metadata getters
 
+* Add `hdicts`.
+
+* Add catamorphisms and anamorphisms for `NP` and `NS`.
+
+* TH compatibility changes for GHC 8.1 (master).
+
 # 0.2.2.0 (2016-07-10)
 
 * Introduced `unZ` to destruct a unary sum.
