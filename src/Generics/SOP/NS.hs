@@ -347,13 +347,30 @@ sequence_SOP  = hsequence
 
 -- * Catamorphism and anamorphism
 
-cata_NS :: forall r f xs . (forall y ys . f y -> r (y ': ys)) -> (forall y ys . r ys -> r (y ': ys)) -> NS f xs -> r xs
+-- | Catamorphism for 'NS'.
+--
+-- Takes arguments determining what to do for 'Z'
+-- and what to do for 'S'. The result type is still
+-- indexed over the type-level lit.
+--
+-- @since 0.2.3.0
+--
+cata_NS ::
+     forall r f xs .
+     (forall y ys . f y -> r (y ': ys))
+  -> (forall y ys . r ys -> r (y ': ys))
+  -> NS f xs
+  -> r xs
 cata_NS z s = go
   where
     go :: forall ys . NS f ys -> r ys
     go (Z x) = z x
     go (S i) = s (go i)
 
+-- | Constrained catamorphism for 'NS'.
+--
+-- @since 0.2.3.0
+--
 ccata_NS ::
      forall c proxy r f xs . (All c xs)
   => proxy c
@@ -367,8 +384,12 @@ ccata_NS _ z s = go
     go (Z x) = z x
     go (S i) = s (go i)
 
-ana_NS :: forall s f xs .
-     (SListI xs)
+-- | Anamorphism for 'NS'.
+--
+-- @since 0.2.3.0
+--
+ana_NS ::
+     forall s f xs . (SListI xs)
   => (forall r . s '[] -> r)
   -> (forall y ys . s (y ': ys) -> Either (f y) (s ys))
   -> s xs
@@ -381,6 +402,10 @@ ana_NS refute decide = go sList
       Left x   -> Z x
       Right s' -> S (go sList s')
 
+-- | Constrained anamorphism for 'NS'.
+--
+-- @since 0.2.3.0
+--
 cana_NS :: forall c proxy s f xs .
      (All c xs)
   => proxy c

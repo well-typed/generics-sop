@@ -152,6 +152,9 @@ all2 Dict = Dict
 withDict :: Dict c a -> (c a => r) -> r
 withDict Dict x = x
 
-
+-- | A structure of dictionaries.
+--
+-- @since 0.2.3.0
+--
 hdicts :: forall h c xs . (AllN h c xs, HPure h) => h (Dict c) xs
 hdicts = hcpure (Proxy :: Proxy c) Dict
