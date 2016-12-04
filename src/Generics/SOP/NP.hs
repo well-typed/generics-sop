@@ -159,9 +159,10 @@ type instance SListIN POP = SListI2
 -- K 0 :* K 0 :* K 0 :* Nil
 --
 pure_NP :: forall f xs. SListI xs => (forall a. f a) -> NP f xs
-pure_NP f = case sList :: SList xs of
-  SNil   -> Nil
-  SCons  -> f :* pure_NP f
+pure_NP f =
+  caseSList
+    Nil
+    (f :* pure_NP f)
 
 -- | Specialization of 'hpure'.
 --
@@ -181,9 +182,11 @@ sListP = Proxy
 --
 cpure_NP :: forall c xs proxy f. All c xs
          => proxy c -> (forall a. c a => f a) -> NP f xs
-cpure_NP p f = case sList :: SList xs of
-  SNil   -> Nil
-  SCons  -> f :* cpure_NP p f
+cpure_NP p f =
+  ccaseSList
+    p
+    Nil
+    (f :* cpure_NP p f)
 
 -- | Specialization of 'hcpure'.
 --
@@ -564,12 +567,19 @@ ana_NP ::
   => (forall y ys . s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
-ana_NP uncons = go sList
-  where
-    go :: forall ys . SList ys -> s ys -> NP f ys
-    go SNil  _ = Nil
-    go SCons s = case uncons s of
-      (x, s') -> x :* go sList s'
+ana_NP uncons =
+  let
+    go :: forall ys . SListI ys => s ys -> NP f ys
+    go =
+      apFn $
+      caseSList
+        (Fn $ \ _ -> Nil)
+        (Fn $ \ s ->
+          case uncons s of
+            (x, s') -> x :* go s'
+        )
+  in
+    go
 
 -- | Constrained anamorphism for 'NP'.
 --

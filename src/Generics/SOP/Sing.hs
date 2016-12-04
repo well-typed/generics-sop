@@ -61,11 +61,16 @@ class SListI (xs :: [k]) where
   -- pattern match on).
   sList :: SList xs
 
+  -- | Perform a case distinction on a type-level list.
+  caseSList :: r '[] -> (forall y ys . SListI ys => r (y ': ys)) -> r xs
+
 instance SListI '[] where
   sList = SNil
+  caseSList nil _cons = nil
 
 instance SListI xs => SListI (x ': xs) where
   sList = SCons
+  caseSList _nil cons = cons
 
 -- | General class for implicit singletons.
 --

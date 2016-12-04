@@ -41,11 +41,21 @@ import Generics.SOP.Sing
 -- means that 'f' can assume that all elements of the n-ary
 -- product satisfy 'Eq'.
 --
-class (AllF f xs, SListI xs) => All (f :: k -> Constraint) (xs :: [k])
-instance (AllF f xs, SListI xs) => All f xs
+class (AllF c xs, SListI xs) => All (c :: k -> Constraint) (xs :: [k]) where
+  -- | Perform a constrained case distinction on a type-level list.
+  ccaseSList ::
+       proxy c
+    -> r '[]
+    -> (forall y ys . (c y, All c ys) => r (y ': ys))
+    -> r xs
+
+instance All c '[] where
+  ccaseSList _p nil _cons = nil
+
+instance (c x, All c xs) => All c (x ': xs) where
+  ccaseSList _p _nil cons = cons
 
 -- | Type family used to implement 'All'.
---
 type family AllF (c :: k -> Constraint) (xs :: [k]) :: Constraint
 type instance AllF _c '[]       = ()
 type instance AllF  c (x ': xs) = (c x, All c xs)
@@ -74,8 +84,8 @@ type SListI2 = All SListI
 -- means that 'f' can assume that all elements of the sum
 -- of product satisfy 'Eq'.
 --
-class (AllF (All f) xss, SListI xss) => All2 f xss
-instance (AllF (All f) xss, SListI xss) => All2 f xss
+class (All (All f) xss, SListI xss) => All2 f xss
+instance (All (All f) xss, SListI xss) => All2 f xss
 --
 -- NOTE:
 --
