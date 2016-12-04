@@ -39,14 +39,26 @@ data DatatypeInfo :: [[*]] -> * where
   -- Newtype
   Newtype :: ModuleName -> DatatypeName -> ConstructorInfo '[x]   -> DatatypeInfo '[ '[x] ]
 
+-- | The module name where a datatype is defined.
+--
+-- @since 0.2.3.0
+--
 moduleName :: DatatypeInfo xss -> ModuleName
 moduleName (ADT name _ _) = name
 moduleName (Newtype name _ _) = name
 
+-- | The name of a datatype (or newtype).
+--
+-- @since 0.2.3.0
+--
 datatypeName :: DatatypeInfo xss -> DatatypeName
 datatypeName (ADT _ name _ ) = name
 datatypeName (Newtype _ name _) = name
 
+-- | The constructor info for a datatype (or newtype).
+--
+-- @since 0.2.3.0
+--
 constructorInfo :: DatatypeInfo xss -> NP ConstructorInfo xss
 constructorInfo (ADT _ _ cs) = cs
 constructorInfo (Newtype _ _ c) = c :* Nil
@@ -67,6 +79,10 @@ data ConstructorInfo :: [*] -> * where
   -- Record constructor
   Record :: SListI xs => ConstructorName -> NP FieldInfo xs -> ConstructorInfo xs
 
+-- | The name of a constructor.
+--
+-- @since 0.2.3.0
+--
 constructorName :: ConstructorInfo xs -> ConstructorName
 constructorName (Constructor name) = name
 constructorName (Infix name _ _)   = name
@@ -81,6 +97,10 @@ data FieldInfo :: * -> * where
   FieldInfo :: FieldName -> FieldInfo a
   deriving (Show, Eq, Ord, Functor)
 
+-- | The name of a field.
+--
+-- @since 0.2.3.0
+--
 fieldName :: FieldInfo a -> FieldName
 fieldName (FieldInfo n) = n
 
