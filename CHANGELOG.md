@@ -1,4 +1,4 @@
-# 0.2.3.0
+# 0.2.3.0 (2016-12-04)
 
 * Add various metadata getters
 
@@ -25,7 +25,7 @@
   `Projection` and `projections` as duals of `Injection` and
   `injections`.
 
-# 0.2 (2015-10-23)
+# 0.2.0.0 (2015-10-23)
 
 * Now tested with ghc-7.10
 
