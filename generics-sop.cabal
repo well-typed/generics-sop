@@ -59,7 +59,7 @@ library
                        Generics.SOP.Universe
                        Generics.SOP.Sing
   build-depends:       base                 >= 4.6  && < 5,
-                       template-haskell     >= 2.8  && < 2.12,
+                       template-haskell     >= 2.8  && < 2.13,
                        ghc-prim             >= 0.3  && < 0.6,
                        vector
   if impl (ghc < 7.8)

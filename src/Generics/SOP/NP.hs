@@ -527,9 +527,33 @@ sequence_POP  = hsequence
 
 -- * Catamorphism and anamorphism
 
-cata_NP :: forall r f xs . r '[] -> (forall y ys . f y -> r ys -> r (y ': ys)) -> NP f xs -> r xs
-cata_NP nil cons (NP xs) = unsafeCoerce (V.foldr (unsafeCoerce cons) (unsafeCoerce nil) xs)
+-- | Catamorphism for 'NP'.
+--
+-- This is a suitable generalization of 'foldr'. It takes
+-- parameters on what to do for 'Nil' and ':*'. Since the
+-- input list is heterogeneous, the result is also indexed
+-- by a type-level list.
+--
+-- @since 0.2.3.0
+--
+cata_NP ::
+     forall r f xs .
+     r '[]
+  -> (forall y ys . f y -> r ys -> r (y ': ys))
+  -> NP f xs
+  -> r xs
+cata_NP nil cons (NP xs) =
+  unsafeCoerce (V.foldr (unsafeCoerce cons) (unsafeCoerce nil) xs)
 
+-- | Constrained catamorphism for 'NP'.
+--
+-- The difference compared to 'cata_NP' is that the function
+-- for the cons-case can make use of the fact that the specified
+-- constraint holds for all the types in the signature of the
+-- product.
+--
+-- @since 0.2.3.0
+--
 ccata_NP ::
      forall c proxy r f xs . (All c xs)
   => proxy c
@@ -546,11 +570,36 @@ ccata_NP _ nil cons = go
     go (x :* xs) = cons x (go xs)
 -}
 
-ana_NP :: forall s f xs . SListI xs => (forall y ys . s (y ': ys) -> (f y, s ys)) -> s xs -> NP f xs
-ana_NP uncons s = NP (V.fromList (ana_List (Proxy :: Proxy xs) uncons s))
--- We could define this as a special case of cana_NP except we need allTop,
--- and we cannot depend on the Dict module here without circular dependencies.
+-- | Anamorphism for 'NP'.
+--
+-- In contrast to the anamorphism for normal lists, the
+-- generating function does not return an 'Either', but
+-- simply an element and a new seed value.
+--
+-- This is because the decision on whether to generate a
+-- 'Nil' or a ':*' is determined by the types.
+--
+-- @since 0.2.3.0
+--
+ana_NP ::
+     forall s f xs .
+     SListI xs
+  => (forall y ys . s (y ': ys) -> (f y, s ys))
+  -> s xs
+  -> NP f xs
+ana_NP uncons s =
+  NP (V.fromList (ana_List (Proxy :: Proxy xs) uncons s))
+  -- We could define this as a special case of cana_NP except we need allTop,
+  -- and we cannot depend on the Dict module here without circular dependencies.
 
+-- | Constrained anamorphism for 'NP'.
+--
+-- Compared to 'ana_NP', the generating function can
+-- make use of the specified constraint here for the
+-- elements that it generates.
+--
+-- @since 0.2.3.0
+--
 cana_NP ::
      forall c proxy s f xs . (All c xs)
   => proxy c
