@@ -65,8 +65,8 @@ constructorInfo :: DatatypeInfo xss -> NP ConstructorInfo xss
 constructorInfo (ADT _ _ cs) = cs
 constructorInfo (Newtype _ _ c) = NP (unsafeCoerce (V.singleton c))
 
-{-
 deriving instance All (Show `Compose` ConstructorInfo) xs => Show (DatatypeInfo xs)
+{-
 deriving instance All (Eq   `Compose` ConstructorInfo) xs => Eq   (DatatypeInfo xs)
 deriving instance (All (Eq `Compose` ConstructorInfo) xs, All (Ord `Compose` ConstructorInfo) xs) => Ord (DatatypeInfo xs)
 -}
@@ -92,8 +92,8 @@ constructorName (Constructor name) = name
 constructorName (Infix name _ _)   = name
 constructorName (Record name _)    = name
 
-{-
 deriving instance All (Show `Compose` FieldInfo) xs => Show (ConstructorInfo xs)
+{-
 deriving instance All (Eq   `Compose` FieldInfo) xs => Eq   (ConstructorInfo xs)
 deriving instance (All (Eq `Compose` FieldInfo) xs, All (Ord `Compose` FieldInfo) xs) => Ord (ConstructorInfo xs)
 -}

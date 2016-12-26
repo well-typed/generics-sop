@@ -8,8 +8,6 @@
 --     Practical Aspects of Declarative Languages (PADL) 2014.
 --
 module Generics.SOP.GGP
-  where
-{-
   ( GCode
   , GFrom
   , GTo
@@ -245,4 +243,3 @@ gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.
 --
 gdatatypeInfo :: forall proxy a. (GDatatypeInfo a) => proxy a -> DatatypeInfo (GCode a)
 gdatatypeInfo _ = gDatatypeInfo' (Proxy :: Proxy (GHC.Rep a))
--}
