@@ -45,23 +45,37 @@ import Unsafe.Coerce
 -- product satisfy 'Eq'.
 --
 class (SListI xs, AllF c xs) => All (c :: k -> Constraint) (xs :: [k]) where
-  cana_List :: Proxy '(c, xs) -> (forall y ys . c y => s (y ': ys) -> (f y, s ys)) -> s xs -> [f Any]
+  ccata_All :: Proxy c -> r '[] -> (forall y ys . c y => r ys -> r (y ': ys)) -> r xs
 
 instance All c '[] where
-  cana_List _ _ _ = []
+  ccata_All _ nil _cons = nil
+  {-# INLINE ccata_All #-}
 
 instance (c x, All c xs) => All c (x ': xs) where
-  cana_List p uncons s = case uncons s of
-    (x, s') -> unsafeCoerce x : cana_List (Proxy :: Proxy '(c, xs)) uncons s'
+  ccata_All p nil cons = cons (ccata_All p nil cons)
+  {-# INLINE ccata_All #-}
 
-cpure_List :: All c xs => Proxy '(c, xs) -> (forall a . c a => f a) -> [f Any]
-cpure_List p x = cana_List p (\ _ -> (x, K ())) (K ())
-{-# INLINE cpure_List #-}
+newtype NP_List f xs = NP_List { unNP_List :: [f Any] }
 
-cpure_List_Cons ::
-  forall c f x xs . (c x, All c xs) => Proxy '(c, (x ': xs)) -> (forall a . c a => f a) -> [f Any]
-cpure_List_Cons p x =
-  unsafeCoerce (x :: f x) : cpure_List (Proxy :: Proxy '(c, xs)) x
+cons_NP_List :: f x -> NP_List f xs -> NP_List f (x ': xs)
+cons_NP_List x (NP_List xs) = NP_List (unsafeCoerce x : xs)
+{-# INLINE cons_NP_List #-}
+
+cana_NP_List ::
+     All c xs
+  => Proxy c
+  -> (forall y ys . c y => s (y ': ys) -> (f y, s ys))
+  -> s xs -> NP_List f xs
+cana_NP_List p uncons =
+  apFn $ ccata_All p
+    (Fn $ \ _ -> NP_List [])
+    (\ rec -> Fn $ \ s -> case uncons s of
+      (x, s') -> cons_NP_List x (apFn rec s'))
+{-# INLINE cana_NP_List #-}
+
+cpure_NP_List :: All c xs => Proxy c -> (forall a . c a => f a) -> NP_List f xs
+cpure_NP_List p x = cana_NP_List p (\ _ -> (x, K ())) (K ())
+{-# INLINE cpure_NP_List #-}
 
 -- | Type family used to implement 'All'.
 --

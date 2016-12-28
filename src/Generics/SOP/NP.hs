@@ -108,6 +108,10 @@ import Generics.SOP.Sing
 --
 newtype NP (f :: k -> *) (xs :: [k]) = NP (V.Vector (f Any))
 
+from_NP_List :: NP_List f xs -> NP f xs
+from_NP_List (NP_List xs) = NP (V.fromList xs)
+{-# INLINE from_NP_List #-}
+
 data IsNP (f :: k -> *) (xs :: [k]) where
   IsNil  :: IsNP f '[]
   IsCons :: f x -> NP f xs -> IsNP f (x ': xs)
@@ -137,10 +141,14 @@ newtype Showable = Showable String
 
 instance Show Showable where
   show (Showable x) = x
-{-
-deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
-deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
--}
+
+instance All (Eq `Compose` f) xs => Eq (NP f xs) where
+  xs == ys =
+    and (hcollapse (hczipWith (Proxy :: Proxy (Eq `Compose` f)) (\ x y -> K (x == y)) xs ys))
+
+instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs) where
+  compare xs ys =
+    mconcat (hcollapse (hczipWith (Proxy :: Proxy (Ord `Compose` f)) (\ x y -> K (compare x y)) xs ys))
 
 -- | A product of products.
 --
@@ -212,7 +220,7 @@ sListP = Proxy
 --
 cpure_NP :: forall c xs proxy f. All c xs
          => proxy c -> (forall a. c a => f a) -> NP f xs
-cpure_NP _ x = NP (unsafeCoerce (V.fromList (cpure_List (Proxy :: Proxy '(c, xs)) x :: [f Any])))
+cpure_NP _ x = from_NP_List (cpure_NP_List (Proxy :: Proxy c) x)
 
 -- | Specialization of 'hcpure'.
 --
@@ -606,4 +614,4 @@ cana_NP ::
   -> (forall y ys . c y => s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
-cana_NP _ uncons s = NP (V.fromList (cana_List (Proxy :: Proxy '(c, xs)) uncons s))
+cana_NP _ uncons s = from_NP_List (cana_NP_List (Proxy :: Proxy c) uncons s)

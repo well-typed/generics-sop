@@ -56,6 +56,7 @@ import Unsafe.Coerce
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
 import Generics.SOP.Constraint
+import Generics.SOP.Dict
 import Generics.SOP.NP
 import Generics.SOP.Sing
 
@@ -122,13 +123,44 @@ pattern S p <- (isNS -> IsS p)
   where
     S (NS i x) = NS (i + 1) x
 
+getDictByIndex :: forall xs c . (All c xs) => K (Int -> Dict c Any) xs
+getDictByIndex =
+  ccata_All
+    (Proxy :: Proxy c)
+    (K (error "absurd"))
+    cons
+  where
+    cons :: forall y ys . (c y) => K (Int -> Dict c Any) ys -> K (Int -> Dict c Any) (y ': ys)
+    cons rec = K $ \ i -> case i of
+      0 -> unsafeCoerce (Dict :: Dict c y)
+      _ -> unK rec (i - 1)
+{-# INLINE getDictByIndex #-}
+
+ccompareNS ::
+     forall xs c f g r .
+     (All c xs)
+  => Proxy c
+  -> r  -- LT
+  -> (forall x . c x => f x -> g x -> r)  -- EQ
+  -> r  -- GT
+  -> NS f xs -> NS g xs
+  -> r
+ccompareNS p lt eq gt (NS i1 x1) (NS i2 x2) =
+  case compare i1 i2 of
+    LT -> lt
+    EQ -> case unK (getDictByIndex :: K (Int -> Dict c Any) xs) i1 of Dict -> eq x1 x2
+    GT -> gt
+{-# INLINE ccompareNS #-}
+
 instance All (Show `Compose` f) xs => Show (NS f xs) where
   show ns @ (NS i _) =
     show i ++ " " ++ hcollapse (hcmap (Proxy :: Proxy (Show `Compose` f)) (K . show) ns)
-{-
-deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)
-deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs)
--}
+
+instance All (Eq `Compose` f) xs => Eq (NS f xs) where
+  (==) = ccompareNS (Proxy :: Proxy (Eq `Compose` f)) False (==) False
+
+instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs) where
+  compare = ccompareNS (Proxy :: Proxy (Ord `Compose` f)) LT compare GT
 
 -- | Extract the payload from a unary sum.
 --

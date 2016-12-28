@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, DeriveGeneric #-}
+{-# LANGUAGE ExplicitNamespaces, PolyKinds, DeriveGeneric #-}
 -- | Basic functors.
 --
 -- Definitions of the type-level equivalents of
@@ -27,6 +27,11 @@ module Generics.SOP.BasicFunctors
   , unI
   , (:.:)(..)
   , unComp
+  , type (-.->)(..)
+  , fn
+  , fn_2
+  , fn_3
+  , fn_4
   ) where
 
 #if MIN_VERSION_base(4,8,0)
@@ -119,3 +124,29 @@ instance (Functor f, Functor g) => Functor (f :.: g) where
 unComp :: (f :.: g) p -> f (g p)
 unComp (Comp x) = x
 
+-- | Lifted functions.
+newtype (f -.-> g) a = Fn { apFn :: f a -> g a }
+
+-- TODO: What is the right precedence?
+infixr 1 -.->
+
+-- | Construct a lifted function.
+--
+-- Same as 'Fn'. Only available for uniformity with the
+-- higher-arity versions.
+--
+fn   :: (f a -> f' a) -> (f -.-> f') a
+
+-- | Construct a binary lifted function.
+fn_2 :: (f a -> f' a -> f'' a) -> (f -.-> f' -.-> f'') a
+
+-- | Construct a ternary lifted function.
+fn_3 :: (f a -> f' a -> f'' a -> f''' a) -> (f -.-> f' -.-> f'' -.-> f''') a
+
+-- | Construct a quarternary lifted function.
+fn_4 :: (f a -> f' a -> f'' a -> f''' a -> f'''' a) -> (f -.-> f' -.-> f'' -.-> f''' -.-> f'''') a
+
+fn   f = Fn $ \x -> f x
+fn_2 f = Fn $ \x -> Fn $ \x' -> f x x'
+fn_3 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> f x x' x''
+fn_4 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> Fn $ \x''' -> f x x' x'' x'''

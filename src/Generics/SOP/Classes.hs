@@ -80,33 +80,6 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   Application
 -------------------------------------------------------------------------------}
 
--- | Lifted functions.
-newtype (f -.-> g) a = Fn { apFn :: f a -> g a }
-
--- TODO: What is the right precedence?
-infixr 1 -.->
-
--- | Construct a lifted function.
---
--- Same as 'Fn'. Only available for uniformity with the
--- higher-arity versions.
---
-fn   :: (f a -> f' a) -> (f -.-> f') a
-
--- | Construct a binary lifted function.
-fn_2 :: (f a -> f' a -> f'' a) -> (f -.-> f' -.-> f'') a
-
--- | Construct a ternary lifted function.
-fn_3 :: (f a -> f' a -> f'' a -> f''' a) -> (f -.-> f' -.-> f'' -.-> f''') a
-
--- | Construct a quarternary lifted function.
-fn_4 :: (f a -> f' a -> f'' a -> f''' a -> f'''' a) -> (f -.-> f' -.-> f'' -.-> f''' -.-> f'''') a
-
-fn   f = Fn $ \x -> f x
-fn_2 f = Fn $ \x -> Fn $ \x' -> f x x'
-fn_3 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> f x x' x''
-fn_4 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> Fn $ \x''' -> f x x' x'' x'''
-
 -- | Maps a structure containing sums to the corresponding
 -- product structure.
 type family Prod (h :: (k -> *) -> (l -> *)) :: (k -> *) -> (l -> *)
