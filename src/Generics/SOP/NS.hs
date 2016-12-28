@@ -392,14 +392,11 @@ cata_NS ::
   -> (forall y ys . r ys -> r (y ': ys))
   -> NS f xs
   -> r xs
-cata_NS z s = error "TODO"
-{-
 cata_NS z s = go
   where
     go :: forall ys . NS f ys -> r ys
     go (Z x) = z x
     go (S i) = s (go i)
--}
 
 -- | Constrained catamorphism for 'NS'.
 --
@@ -412,14 +409,11 @@ ccata_NS ::
   -> (forall y ys . c y => r ys -> r (y ': ys))
   -> NS f xs
   -> r xs
-ccata_NS _ z s = error "TODO"
-{-
 ccata_NS _ z s = go
   where
     go :: forall ys . (All c ys) => NS f ys -> r ys
     go (Z x) = z x
     go (S i) = s (go i)
--}
 
 -- | Anamorphism for 'NS'.
 --
@@ -431,8 +425,6 @@ ana_NS ::
   -> (forall y ys . s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
-ana_NS refute decide = error "TODO"
-{-
 ana_NS refute decide = go sList
   where
     go :: forall ys . SList ys -> s ys -> NS f ys
@@ -440,7 +432,6 @@ ana_NS refute decide = go sList
     go SCons s = case decide s of
       Left x   -> Z x
       Right s' -> S (go sList s')
--}
 
 -- | Constrained anamorphism for 'NS'.
 --
@@ -453,8 +444,6 @@ cana_NS :: forall c proxy s f xs .
   -> (forall y ys . c y => s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
-cana_NS _ refute decide = error "TODO"
-{-
 cana_NS _ refute decide = go sList
   where
     go :: forall ys . (All c ys) => SList ys -> s ys -> NS f ys
@@ -462,4 +451,3 @@ cana_NS _ refute decide = go sList
     go SCons s = case decide s of
       Left x   -> Z x
       Right s' -> S (go sList s')
--}
