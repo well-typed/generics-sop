@@ -145,7 +145,7 @@ ccompareNS ::
   -> r  -- GT
   -> NS f xs -> NS g xs
   -> r
-ccompareNS p lt eq gt (NS i1 x1) (NS i2 x2) =
+ccompareNS _ lt eq gt (NS i1 x1) (NS i2 x2) =
   case compare i1 i2 of
     LT -> lt
     EQ -> case unK (getDictByIndex :: K (Int -> Dict c Any) xs) i1 of Dict -> eq x1 x2
@@ -201,9 +201,6 @@ unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
 
 -- * Constructing sums
-
-z :: f x -> NS f (x ': xs)
-z x = NS 0 (unsafeCoerce x)
 
 -- | The type of injections into an n-ary sum.
 --

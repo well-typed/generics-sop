@@ -18,7 +18,7 @@ module Generics.SOP.Sing
     -- ** Shape of type-level lists
   , Shape(..)
   , shape
-  , lengthSList
+  -- , lengthSList
   , lengthSing
   ) where
 
@@ -79,8 +79,8 @@ instance SListI '[] where
 instance SListI xs => SListI (x ': xs) where
   sList = SCons
   lengthSList _ = 1 + lengthSList (Proxy :: Proxy xs)
-  ana_List  p uncons s = case uncons s of
-    (x, s') -> unsafeCoerce x : ana_List  (Proxy :: Proxy xs)       uncons s'
+  ana_List _ uncons s = case uncons s of
+    (x, s') -> unsafeCoerce x : ana_List (Proxy :: Proxy xs) uncons s'
 
 -- | General class for implicit singletons.
 --
