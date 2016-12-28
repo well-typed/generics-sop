@@ -12,19 +12,21 @@
 module Generics.SOP.Sing
   ( -- * Singletons
     SList(..)
-  , SListI(..)
-  , Sing
-  , SingI(..)
+  , SListI
+  , sList
+  , para_SList
+  , ana_NP_List
     -- ** Shape of type-level lists
   , Shape(..)
   , shape
-  -- , lengthSList
-  , lengthSing
+  , lengthSList
+  -- , lengthSing
   ) where
 
 import Data.Proxy
-import GHC.Exts (Any)
-import Unsafe.Coerce
+
+import Generics.SOP.BasicFunctors
+import Generics.SOP.Constraint
 
 -- * Singletons
 
@@ -49,53 +51,30 @@ deriving instance Show (SList (xs :: [k]))
 deriving instance Eq   (SList (xs :: [k]))
 deriving instance Ord  (SList (xs :: [k]))
 
--- | Implicit singleton list.
+-- | General eliminator for type-level lists.
 --
--- A singleton list can be used to reveal the structure of
--- a type-level list argument that the function is quantified
--- over.
+-- This is a specialization of 'cpara_All' where the constraint
+-- is 'Top'.
 --
--- The class 'SListI' should have instances that match the
--- constructors of 'SList'.
---
--- @since 0.2
---
-class SListI (xs :: [k]) where
-  -- | Get hold of the explicit singleton (that one can then
-  -- pattern match on).
-  sList :: SList xs
-  -- | The length of a type-level list.
-  --
-  -- @since 0.2
-  --
-  lengthSList :: proxy xs -> Int
-  ana_List :: Proxy xs -> (forall y ys . s (y ': ys) -> (f y, s ys)) -> s xs -> [f Any]
+para_SList ::
+     SListI xs
+  => r '[] -> (forall y ys . SListI ys => r ys -> r (y ': ys))
+  -> r xs
+para_SList = cpara_All (Proxy :: Proxy Top)
 
-instance SListI '[] where
-  sList = SNil
-  lengthSList _ = 0
-  ana_List _ _ _ = []
+ana_NP_List ::
+     SListI xs
+  => (forall y ys . s (y ': ys) -> (f y, s ys))
+  -> s xs -> NP_List f xs
+ana_NP_List = cana_NP_List (Proxy :: Proxy Top)
 
-instance SListI xs => SListI (x ': xs) where
-  sList = SCons
-  lengthSList _ = 1 + lengthSList (Proxy :: Proxy xs)
-  ana_List _ uncons s = case uncons s of
-    (x, s') -> unsafeCoerce x : ana_List (Proxy :: Proxy xs) uncons s'
+-- | Get hold of the explicit singleton (for pattern matching).
+sList :: SListI xs => SList xs
+sList = para_SList SNil (const SCons)
 
--- | General class for implicit singletons.
---
--- Just provided for limited backward compatibility.
---
-{-# DEPRECATED SingI "Use 'SListI' instead." #-}
-{-# DEPRECATED sing "Use 'sList' instead." #-}
-class SListI xs => SingI (xs :: [k]) where
-  sing :: Sing xs
-
--- | Explicit singleton type.
---
--- Just provided for limited backward compatibility.
-{-# DEPRECATED Sing "Use 'SList' instead." #-}
-type Sing = SList
+-- | Compute the length of a type-level list.
+lengthSList :: forall xs proxy . SListI xs => proxy xs -> Int
+lengthSList _ = unK (para_SList (K 0) (\ (K n) -> K (n + 1)) :: K Int xs)
 
 -- * Shape of type-level lists
 
@@ -114,8 +93,3 @@ shape :: forall (xs :: [k]). SListI xs => Shape xs
 shape = case sList :: SList xs of
           SNil  -> ShapeNil
           SCons -> ShapeCons shape
-
--- | Old name for 'lengthSList'.
-{-# DEPRECATED lengthSing "Use 'lengthSList' instead." #-}
-lengthSing :: SListI xs => proxy xs -> Int
-lengthSing = lengthSList

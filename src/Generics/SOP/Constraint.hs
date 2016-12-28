@@ -20,7 +20,6 @@ module Generics.SOP.Constraint
 import Data.Proxy
 import GHC.Exts (Any, Constraint)
 import Generics.SOP.BasicFunctors
-import Generics.SOP.Sing
 import Unsafe.Coerce
 
 -- | Require a constraint for every element of a list.
@@ -45,15 +44,27 @@ import Unsafe.Coerce
 -- product satisfy 'Eq'.
 --
 class (SListI xs, AllF c xs) => All (c :: k -> Constraint) (xs :: [k]) where
-  ccata_All :: Proxy c -> r '[] -> (forall y ys . c y => r ys -> r (y ': ys)) -> r xs
+
+  -- | General constrained eliminator for type-level lists.
+  --
+  -- Takes an argument for the case of the empty list, and an argument
+  -- for the case of the non-empty list. The non-empty case can make use
+  -- of the constraint for the head, and of an 'All' constraint on the
+  -- tail.
+  --
+  cpara_All ::
+       Proxy c
+    -> r '[]
+    -> (forall y ys . (c y, All c ys) => r ys -> r (y ': ys))
+    -> r xs
 
 instance All c '[] where
-  ccata_All _ nil _cons = nil
-  {-# INLINE ccata_All #-}
+  cpara_All _ nil _cons = nil
+  {-# INLINE cpara_All #-}
 
 instance (c x, All c xs) => All c (x ': xs) where
-  ccata_All p nil cons = cons (ccata_All p nil cons)
-  {-# INLINE ccata_All #-}
+  cpara_All p nil cons = cons (cpara_All p nil cons)
+  {-# INLINE cpara_All #-}
 
 newtype NP_List f xs = NP_List { unNP_List :: [f Any] }
 
@@ -67,7 +78,7 @@ cana_NP_List ::
   -> (forall y ys . c y => s (y ': ys) -> (f y, s ys))
   -> s xs -> NP_List f xs
 cana_NP_List p uncons =
-  apFn $ ccata_All p
+  apFn $ cpara_All p
     (Fn $ \ _ -> NP_List [])
     (\ rec -> Fn $ \ s -> case uncons s of
       (x, s') -> cons_NP_List x (apFn rec s'))
@@ -82,6 +93,16 @@ cpure_NP_List p x = cana_NP_List p (\ _ -> (x, K ())) (K ())
 type family AllF (c :: k -> Constraint) (xs :: [k]) :: Constraint
 type instance AllF _c '[]       = ()
 type instance AllF  c (x ': xs) = (c x, All c xs)
+
+-- | Implicit singleton list.
+--
+-- A singleton list can be used to reveal the structure of
+-- a type-level list argument that the function is quantified
+-- over.
+--
+-- @since 0.2
+--
+type SListI = All Top
 
 -- | Require a singleton for every inner list in a list of lists.
 type SListI2 = All SListI
@@ -155,16 +176,3 @@ type family AllN (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) :: l -> Cons
 --
 type family SListIN (h :: (k -> *) -> (l -> *)) :: l -> Constraint
 
-instance
-#if __GLASGOW_HASKELL__ >= 710
-  {-# OVERLAPPABLE #-}
-#endif
-  SListI xs => SingI (xs :: [k]) where
-  sing = sList
-
-instance
-#if __GLASGOW_HASKELL__ >= 710
-  {-# OVERLAPPING #-}
-#endif
-  (All SListI xss, SListI xss) => SingI (xss :: [[k]]) where
-  sing = sList

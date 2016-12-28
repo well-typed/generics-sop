@@ -596,7 +596,7 @@ ana_NP ::
   -> s xs
   -> NP f xs
 ana_NP uncons s =
-  NP (V.fromList (ana_List (Proxy :: Proxy xs) uncons s))
+  from_NP_List (ana_NP_List uncons s)
   -- We could define this as a special case of cana_NP except we need allTop,
   -- and we cannot depend on the Dict module here without circular dependencies.
 

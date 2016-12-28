@@ -22,7 +22,6 @@ import Data.Proxy
 import Generics.SOP.Classes
 import Generics.SOP.Constraint
 import Generics.SOP.NP
-import Generics.SOP.Sing
 
 -- | An explicit dictionary carrying evidence of a
 -- class constraint.

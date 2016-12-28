@@ -304,16 +304,16 @@ module Generics.SOP (
   , And
   , Top
   , AllN
+  , cpara_All
     -- ** Singletons
   , SList(..)
-  , SListI(..)
+  , SListI
   , SListI2
-  , Sing
-  , SingI(..)
+  , para_SList
+  , lengthSList
     -- *** Shape of type-level lists
   , Shape(..)
   , shape
-  , lengthSing
     -- ** Re-exports
 
 -- Workaround for lack of MIN_TOOL_VERSION macro in Cabal 1.18, see:

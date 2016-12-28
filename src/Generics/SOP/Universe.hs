@@ -10,7 +10,6 @@ import qualified GHC.Generics as GHC
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
 import Generics.SOP.NS
-import Generics.SOP.Sing
 import Generics.SOP.GGP
 import Generics.SOP.Metadata
 

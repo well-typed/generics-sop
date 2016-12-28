@@ -125,7 +125,7 @@ pattern S p <- (isNS -> IsS p)
 
 getDictByIndex :: forall xs c . (All c xs) => K (Int -> Dict c Any) xs
 getDictByIndex =
-  ccata_All
+  cpara_All
     (Proxy :: Proxy c)
     (K (error "absurd"))
     cons
