@@ -84,6 +84,15 @@ script:
  # this builds all libraries and executables (without tests/benchmarks)
  - rm -f cabal.project.freeze
  - cabal new-build -w ${HC} --disable-tests --disable-benchmarks
+
+ # Test various transformers combinations
+ - if [ $HC = "ghc-7.6.3" ]; then UNLESSGHC706=true; fi
+ - if [ $HC = "ghc-8.0.1" -o $HC = "ghc-8.0.2" -o $HC = "ghc-head" ]; then UNLESSGHC8=true; fi
+
+ -               cabal new-build -w ${HC} --disable-tests --disable-benchmarks --constraint 'transformers-compat==0.5.*'
+ - $UNLESSGHC706 cabal new-build -w ${HC} --disable-tests --disable-benchmarks --constraint 'transformers installed'
+ - $UNLESSGHC8   cabal new-build -w ${HC} --disable-tests --disable-benchmarks --constraint 'transformers-compat==0.4.*'
+
  # this builds all libraries and executables (including tests/benchmarks)
  # - rm -rf ./dist-newstyle
  - cabal new-build -w ${HC} ${TEST} ${BENCH}
