@@ -1,12 +1,18 @@
-{-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 -- | n-ary sums (and sums of products)
 module Generics.SOP.NS
   ( -- * Datatypes
     NS(..)
   , SOP(..)
+    -- * Accessing data
   , unZ
   , unSOP
+  , index_NS
     -- * Constructing sums
   , Injection
   , injections
@@ -122,6 +128,28 @@ deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS
 unZ :: NS f '[x] -> f x
 unZ (Z x) = x
 unZ _     = error "inaccessible" -- needed even in GHC 8.0.1
+
+-- | Obtain the index from an n-ary sum.
+--
+-- An n-nary sum represents a choice between n different options.
+-- This function returns an integer between 0 and n - 1 indicating
+-- the option chosen by the given value.
+--
+-- /Examples:/
+--
+-- >>> index_NS (S (S (Z (I False))))
+-- 2
+-- >>> index_NS (Z (K ()))
+-- 0
+--
+-- @since 0.2.4.0
+--
+index_NS :: forall f xs . NS f xs -> Int
+index_NS = go 0
+  where
+    go :: forall ys . Int -> NS f ys -> Int
+    go !acc (Z _) = acc
+    go !acc (S x) = go (acc + 1) x
 
 -- | A sum of products.
 --
