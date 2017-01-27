@@ -105,23 +105,22 @@ instance (Show a) => Show1 (K a) where
     showsPrec1 d (K x) = showsUnary "K" d x
 #endif
 
--- This have to be implemented manually
+-- This have to be implemented manually, K is polykinded.
 instance (Eq a) => Eq (K a b) where
     K x == K y = x == y
 instance (Ord a) => Ord (K a b) where
     compare (K x) (K y) = compare x y
-{-
+#ifdef LIFTED_CLASSES
 instance (Read a) => Read (K a b) where
-    readsPrec d r = readParen (d > 10) (\r' ->
-        [ (K x, t)
-        | ("K", s) <- lex r'
-        , (x, t) <- readsPrec 11 s
-        ]) r
--}
+    readsPrec = readsData $ readsUnaryWith readsPrec "K" K
 instance (Show a) => Show (K a b) where
-    showsPrec d (K x) = showParen (d > 10)
-        $ showString "K "
-        . showsPrec 11 x
+    showsPrec d (K x) = showsUnaryWith showsPrec "K" d x
+#else
+instance (Read a) => Read (K a b) where
+    readsPrec = readsData $ readsUnary "K" K
+instance (Show a) => Show (K a b) where
+    showsPrec d (K x) = showsUnary "K" d x
+#endif
 
 instance Monoid a => Applicative (K a) where
   pure _      = K mempty
