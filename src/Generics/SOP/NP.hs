@@ -12,6 +12,7 @@ module Generics.SOP.NP
   , cpure_POP
     -- ** Construction from a list
   , fromList
+  , from_NP_List
     -- * Application
   , ap_NP
   , ap_POP

@@ -62,8 +62,8 @@ isNewtype _ = False
 
 instance (All SListI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDatatypeInfo' (M1 D c a) where
   gDatatypeInfo' _ =
-    let adt = ADT     (GHC.moduleName p) (GHC.datatypeName p)
-        ci  = gConstructorInfos (Proxy :: Proxy a) Nil
+    let adt = ADT (GHC.moduleName p) (GHC.datatypeName p)
+        ci  = from_NP_List (gConstructorInfos (Proxy :: Proxy a) nil_NP_List)
     in if isNewtype p
        then case isNewtypeShape ci of
               NewYes c -> Newtype (GHC.moduleName p) (GHC.datatypeName p) c
@@ -86,7 +86,8 @@ isNewtypeShape (x :* Nil) = go shape x
 isNewtypeShape _          = NewNo
 
 class GConstructorInfos (a :: * -> *) where
-  gConstructorInfos :: proxy a -> NP ConstructorInfo xss -> NP ConstructorInfo (ToSumCode a xss)
+  gConstructorInfos ::
+    proxy a -> NP_List ConstructorInfo xss -> NP_List ConstructorInfo (ToSumCode a xss)
 
 instance (GConstructorInfos a, GConstructorInfos b) => GConstructorInfos (a :+: b) where
   gConstructorInfos _ xss = gConstructorInfos (Proxy :: Proxy a) (gConstructorInfos (Proxy :: Proxy b) xss)
@@ -96,18 +97,18 @@ instance GConstructorInfos GHC.V1 where
 
 instance (Constructor c, GFieldInfos a, SListI (ToProductCode a '[])) => GConstructorInfos (M1 C c a) where
   gConstructorInfos _ xss
-    | conIsRecord p = Record (conName p) (gFieldInfos (Proxy :: Proxy a) Nil) :* xss
+    | conIsRecord p = Record (conName p) (from_NP_List (gFieldInfos (Proxy :: Proxy a) nil_NP_List)) `cons_NP_List` xss
     | otherwise     = case conFixity p of
-        Prefix        -> Constructor (conName p) :* xss
+        Prefix        -> Constructor (conName p) `cons_NP_List` xss
         GHC.Infix a f -> case (shape :: Shape (ToProductCode a '[])) of
-          ShapeCons (ShapeCons ShapeNil) -> SOP.Infix (conName p) a f :* xss
-          _                              -> Constructor (conName p) :* xss -- should not happen
+          ShapeCons (ShapeCons ShapeNil) -> SOP.Infix (conName p) a f `cons_NP_List` xss
+          _                              -> Constructor (conName p) `cons_NP_List` xss -- should not happen
     where
       p :: InfoProxy c a x
       p = InfoProxy
 
 class GFieldInfos (a :: * -> *) where
-  gFieldInfos :: proxy a -> NP FieldInfo xs -> NP FieldInfo (ToProductCode a xs)
+  gFieldInfos :: proxy a -> NP_List FieldInfo xs -> NP_List FieldInfo (ToProductCode a xs)
 
 instance (GFieldInfos a, GFieldInfos b) => GFieldInfos (a :*: b) where
   gFieldInfos _ xs = gFieldInfos (Proxy :: Proxy a) (gFieldInfos (Proxy :: Proxy b) xs)
@@ -116,7 +117,7 @@ instance GFieldInfos U1 where
   gFieldInfos _ xs = xs
 
 instance (Selector c) => GFieldInfos (M1 S c a) where
-  gFieldInfos _ xs = FieldInfo (selName p) :* xs
+  gFieldInfos _ xs = FieldInfo (selName p) `cons_NP_List` xs
     where
       p :: InfoProxy c a x
       p = InfoProxy

@@ -68,6 +68,9 @@ instance (c x, All c xs) => All c (x ': xs) where
 
 newtype NP_List f xs = NP_List { unNP_List :: [f Any] }
 
+nil_NP_List :: NP_List f '[]
+nil_NP_List = NP_List []
+
 cons_NP_List :: f x -> NP_List f xs -> NP_List f (x ': xs)
 cons_NP_List x (NP_List xs) = NP_List (unsafeCoerce x : xs)
 {-# INLINE cons_NP_List #-}
