@@ -29,7 +29,45 @@
 -- The actual instances are defined in "Generics.SOP.NP" and
 -- "Generics.SOP.NS".
 --
-module Generics.SOP.Classes where
+module Generics.SOP.Classes
+  ( -- * Generalized applicative functor structure
+    -- ** Generalized 'Control.Applicative.pure'
+    HPure(..)
+    -- ** Generalized 'Control.Applicative.<*>'
+  , type (-.->)(..)
+  , fn
+  , fn_2
+  , fn_3
+  , fn_4
+  , Prod
+  , HAp(..)
+    -- ** Derived functions
+  , hliftA
+  , hliftA2
+  , hliftA3
+  , hmap
+  , hzipWith
+  , hzipWith3
+  , hcliftA
+  , hcliftA2
+  , hcliftA3
+  , hcmap
+  , hczipWith
+  , hczipWith3
+    -- * Collapsing homogeneous structures
+  , CollapseTo
+  , HCollapse(..)
+    -- * Sequencing effects
+  , HSequence(..)
+    -- ** Derived functions
+  , hsequence
+  , hsequenceK
+    -- * Indexing into sums
+  , HIndex(..)
+    -- * Applying all injections
+  , UnProd
+  , HApInjs(..)
+  ) where
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative (Applicative)
@@ -37,6 +75,10 @@ import Control.Applicative (Applicative)
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
+
+-- * Generalized applicative functor structure
+
+-- ** Generalized 'Control.Applicative.pure'
 
 -- | A generalization of 'Control.Applicative.pure' or
 -- 'Control.Monad.return' to higher kinds.
@@ -46,7 +88,7 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   -- /Instances:/
   --
   -- @
-  -- 'hpure', 'Generics.SOP.NP.pure_NP'  :: 'SListI'  xs  => (forall a. f a) -> 'Generics.SOP.NP.NP'  f xs
+  -- 'hpure', 'Generics.SOP.NP.pure_NP'  :: 'Generics.SOP.Sing.SListI'  xs  => (forall a. f a) -> 'Generics.SOP.NP.NP'  f xs
   -- 'hpure', 'Generics.SOP.NP.pure_POP' :: 'SListI2' xss => (forall a. f a) -> 'Generics.SOP.NP.POP' f xss
   -- @
   --
@@ -76,14 +118,10 @@ class HPure (h :: (k -> *) -> (l -> *)) where
   --
   hcpure :: (AllN h c xs) => proxy c -> (forall a. c a => f a) -> h f xs
 
-{-------------------------------------------------------------------------------
-  Application
--------------------------------------------------------------------------------}
+-- ** Generalized 'Control.Applicative.<*>'
 
 -- | Lifted functions.
 newtype (f -.-> g) a = Fn { apFn :: f a -> g a }
-
--- TODO: What is the right precedence?
 infixr 1 -.->
 
 -- | Construct a lifted function.
@@ -138,9 +176,7 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
   --
   hap :: Prod h (f -.-> g) xs -> h f xs -> h g xs
 
-{-------------------------------------------------------------------------------
-  Derived from application
--------------------------------------------------------------------------------}
+-- ** Derived functions
 
 -- | A generalized form of 'Control.Applicative.liftA',
 -- which in turn is a generalized 'map'.
@@ -157,8 +193,8 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
 -- /Instances:/
 --
 -- @
--- 'hliftA', 'Generics.SOP.NP.liftA_NP'  :: 'SListI'  xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs
--- 'hliftA', 'Generics.SOP.NS.liftA_NS'  :: 'SListI'  xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NS.NS'  f xs  -> 'Generics.SOP.NS.NS'  f' xs
+-- 'hliftA', 'Generics.SOP.NP.liftA_NP'  :: 'Generics.SOP.Sing.SListI'  xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs
+-- 'hliftA', 'Generics.SOP.NS.liftA_NS'  :: 'Generics.SOP.Sing.SListI'  xs  => (forall a. f a -> f' a) -> 'Generics.SOP.NS.NS'  f xs  -> 'Generics.SOP.NS.NS'  f' xs
 -- 'hliftA', 'Generics.SOP.NP.liftA_POP' :: 'SListI2' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss
 -- 'hliftA', 'Generics.SOP.NS.liftA_SOP' :: 'SListI2' xss => (forall a. f a -> f' a) -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NS.SOP' f' xss
 -- @
@@ -183,8 +219,8 @@ hliftA  :: (SListIN (Prod h) xs, HAp h)               => (forall a. f a -> f' a)
 -- /Instances:/
 --
 -- @
--- 'hliftA2', 'Generics.SOP.NP.liftA2_NP'  :: 'SListI'  xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs
--- 'hliftA2', 'Generics.SOP.NS.liftA2_NS'  :: 'SListI'  xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NS.NS'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs
+-- 'hliftA2', 'Generics.SOP.NP.liftA2_NP'  :: 'Generics.SOP.Sing.SListI'  xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs
+-- 'hliftA2', 'Generics.SOP.NS.liftA2_NS'  :: 'Generics.SOP.Sing.SListI'  xs  => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NS.NS'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs
 -- 'hliftA2', 'Generics.SOP.NP.liftA2_POP' :: 'SListI2' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NP.POP' f'' xss
 -- 'hliftA2', 'Generics.SOP.NS.liftA2_SOP' :: 'SListI2' xss => (forall a. f a -> f' a -> f'' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NS.SOP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss
 -- @
@@ -209,8 +245,8 @@ hliftA2 :: (SListIN (Prod h) xs, HAp h, HAp (Prod h)) => (forall a. f a -> f' a 
 -- /Instances:/
 --
 -- @
--- 'hliftA3', 'Generics.SOP.NP.liftA3_NP'  :: 'SListI'  xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs  -> 'Generics.SOP.NP.NP'  f''' xs
--- 'hliftA3', 'Generics.SOP.NS.liftA3_NS'  :: 'SListI'  xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs  -> 'Generics.SOP.NS.NS'  f''' xs
+-- 'hliftA3', 'Generics.SOP.NP.liftA3_NP'  :: 'Generics.SOP.Sing.SListI'  xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NP.NP'  f'' xs  -> 'Generics.SOP.NP.NP'  f''' xs
+-- 'hliftA3', 'Generics.SOP.NS.liftA3_NS'  :: 'Generics.SOP.Sing.SListI'  xs  => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.NP'  f xs  -> 'Generics.SOP.NP.NP'  f' xs  -> 'Generics.SOP.NS.NS'  f'' xs  -> 'Generics.SOP.NS.NS'  f''' xs
 -- 'hliftA3', 'Generics.SOP.NP.liftA3_POP' :: 'SListI2' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NP.POP' f'' xss -> 'Generics.SOP.NP.POP' f''' xs
 -- 'hliftA3', 'Generics.SOP.NS.liftA3_SOP' :: 'SListI2' xss => (forall a. f a -> f' a -> f'' a -> f''' a) -> 'Generics.SOP.NP.POP' f xss -> 'Generics.SOP.NP.POP' f' xss -> 'Generics.SOP.NS.SOP' f'' xss -> 'Generics.SOP.NP.SOP' f''' xs
 -- @
@@ -299,6 +335,8 @@ hcmap      = hcliftA
 hczipWith  = hcliftA2
 hczipWith3 = hcliftA3
 
+-- * Collapsing homogeneous structures
+
 -- | Maps products to lists, and sums to identities.
 type family CollapseTo (h :: (k -> *) -> (l -> *)) (x :: *) :: *
 
@@ -326,6 +364,8 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
   --
   hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
 
+-- * Sequencing effects
+
 -- | A generalization of 'Data.Traversable.sequenceA'.
 class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
 
@@ -336,13 +376,15 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   -- /Instances:/
   --
   -- @
-  -- 'hsequence'', 'Generics.SOP.NP.sequence'_NP'  :: ('SListI'  xs , 'Applicative' f) => 'Generics.SOP.NP.NP'  (f ':.:' g) xs  -> f ('Generics.SOP.NP.NP'  g xs )
-  -- 'hsequence'', 'Generics.SOP.NS.sequence'_NS'  :: ('SListI'  xs , 'Applicative' f) => 'Generics.SOP.NS.NS'  (f ':.:' g) xs  -> f ('Generics.SOP.NS.NS'  g xs )
+  -- 'hsequence'', 'Generics.SOP.NP.sequence'_NP'  :: ('Generics.SOP.Sing.SListI'  xs , 'Applicative' f) => 'Generics.SOP.NP.NP'  (f ':.:' g) xs  -> f ('Generics.SOP.NP.NP'  g xs )
+  -- 'hsequence'', 'Generics.SOP.NS.sequence'_NS'  :: ('Generics.SOP.Sing.SListI'  xs , 'Applicative' f) => 'Generics.SOP.NS.NS'  (f ':.:' g) xs  -> f ('Generics.SOP.NS.NS'  g xs )
   -- 'hsequence'', 'Generics.SOP.NP.sequence'_POP' :: ('SListI2' xss, 'Applicative' f) => 'Generics.SOP.NP.POP' (f ':.:' g) xss -> f ('Generics.SOP.NP.POP' g xss)
   -- 'hsequence'', 'Generics.SOP.NS.sequence'_SOP' :: ('SListI2' xss, 'Applicative' f) => 'Generics.SOP.NS.SOP' (f ':.:' g) xss -> f ('Generics.SOP.NS.SOP' g xss)
   -- @
   --
   hsequence' :: (SListIN h xs, Applicative f) => h (f :.: g) xs -> f (h g xs)
+
+-- ** Derived functions
 
 -- | Special case of 'hsequence'' where @g = 'I'@.
 hsequence :: (SListIN h xs, SListIN (Prod h) xs, HSequence h) => Applicative f => h f xs -> f (h I xs)
@@ -351,3 +393,73 @@ hsequence = hsequence' . hliftA (Comp . fmap I)
 -- | Special case of 'hsequence'' where @g = 'K' a@.
 hsequenceK ::  (SListIN h xs, SListIN (Prod h) xs, Applicative f, HSequence h) => h (K (f a)) xs -> f (h (K a) xs)
 hsequenceK = hsequence' . hliftA (Comp . fmap K . unK)
+
+-- * Indexing into sums
+
+-- | A class for determining which choice in a sum-like structure
+-- a value represents.
+--
+class HIndex (h :: (k -> *) -> (l -> *)) where
+
+  -- | If 'h' is a sum-like structure representing a choice
+  -- between @n@ different options, and @x@ is a value of
+  -- type @h f xs@, then @'hindex' x@ returns a number between
+  -- @0@ and @n - 1@ representing the index of the choice
+  -- made by @x@.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hindex', 'Generics.SOP.NS.index_NS'  :: 'Generics.SOP.NS.NS'  f xs -> Int
+  -- 'hindex', 'Generics.SOP.NS.index_SOP' :: 'Generics.SOP.NS.SOP' f xs -> Int
+  -- @
+  --
+  -- /Examples:/
+  --
+  -- >>> hindex (S (S (Z (I False))))
+  -- 2
+  -- >>> hindex (Z (K ()))
+  -- 0
+  -- >>> hindex (SOP (S (Z (I True :* I 'x' :* Nil))))
+  -- 1
+  --
+  -- @since 0.2.4.0
+  --
+  hindex :: h f xs -> Int
+
+-- * Applying all injections
+
+-- | Maps a structure containing products to the corresponding
+-- sum structure.
+--
+-- @since 0.2.4.0
+--
+type family UnProd (h :: (k -> *) -> (l -> *)) :: (k -> *) -> (l -> *)
+
+-- | A class for applying all injections corresponding to a sum-like
+-- structure to a table containing suitable arguments.
+--
+class (UnProd (Prod h) ~ h) => HApInjs (h :: (k -> *) -> (l -> *)) where
+
+  -- | For a given table (product-like structure), produce a list where
+  -- each element corresponds to the application of an injection function
+  -- into the corresponding sum-like structure.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hapInjs', 'Generics.SOP.NS.apInjs_NP'  :: 'Generics.SOP.Sing.SListI'  xs  => 'Generics.SOP.NP.NP'  f xs -> ['Generics.SOP.NS.NS'  f xs ]
+  -- 'hapInjs', 'Generics.SOP.NS.apInjs_SOP' :: 'SListI2' xss => 'Generics.SOP.NP.POP' f xs -> ['Generics.SOP.NS.SOP' f xss]
+  -- @
+  --
+  -- /Examples:/
+  --
+  -- >>> hapInjs (I 'x' :* I True :* I 2 :* Nil)
+  -- [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
+  --
+  -- >>> hapInjs (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil)
+  -- [SOP (Z (I 'x' :* Nil)), SOP (S (Z (I True :* (I 2 :* Nil))))]
+  --
+  -- @since 0.2.4.0
+  --
+  hapInjs :: (SListIN h xs) => Prod h f xs -> [h f xs]

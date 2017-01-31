@@ -9,10 +9,7 @@ module Generics.SOP.NS
   ( -- * Datatypes
     NS(..)
   , SOP(..)
-    -- * Accessing data
-  , unZ
   , unSOP
-  , index_NS
     -- * Constructing sums
   , Injection
   , injections
@@ -20,6 +17,10 @@ module Generics.SOP.NS
   , shiftInjection
   , apInjs_NP
   , apInjs_POP
+    -- * Destructing sums
+  , unZ
+  , index_NS
+  , index_SOP
     -- * Application
   , ap_NS
   , ap_SOP
@@ -151,6 +152,9 @@ index_NS = go 0
     go !acc (Z _) = acc
     go !acc (S x) = go (acc + 1) x
 
+instance HIndex NS where
+  hindex = index_NS
+
 -- | A sum of products.
 --
 -- This is a 'newtype' for an 'NS' of an 'NP'. The elements of the
@@ -173,6 +177,31 @@ deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss)
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
+
+-- | Obtain the index from an n-ary sum of products.
+--
+-- An n-nary sum represents a choice between n different options.
+-- This function returns an integer between 0 and n - 1 indicating
+-- the option chosen by the given value.
+--
+-- /Specification:/
+--
+-- @
+-- 'index_SOP' = 'index_NS' '.' 'unSOP'
+-- @
+--
+-- /Example:/
+--
+-- >>> index_SOP (SOP (S (Z (I True :* I 'x' :* Nil))))
+-- 1
+--
+-- @since 0.2.4.0
+--
+index_SOP :: SOP f xs -> Int
+index_SOP = index_NS . unSOP
+
+instance HIndex SOP where
+  hindex = index_SOP
 
 -- * Constructing sums
 
@@ -239,6 +268,15 @@ apInjs_NP  = hcollapse . hap injections
 --
 apInjs_POP :: SListI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
+
+type instance UnProd NP  = NS
+type instance UnProd POP = SOP
+
+instance HApInjs NS where
+  hapInjs = apInjs_NP
+
+instance HApInjs SOP where
+  hapInjs = apInjs_POP
 
 -- * Application
 
