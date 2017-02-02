@@ -1,3 +1,11 @@
+# 0.2.4.0 (2017-02-02)
+
+* Add `hindex` (and `index_NS` and `index_SOP`).
+
+* Add `hapInjs` as a generalization of `apInjs_NP` and `apInjs_POP`.
+
+* Make basic functors instances of lifted classes (such as `Eq1` etc).
+
 # 0.2.3.0 (2016-12-04)
 
 * Add various metadata getters
