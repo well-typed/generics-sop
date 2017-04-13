@@ -1,33 +1,55 @@
-{-# LANGUAGE TypeInType, UndecidableInstances #-}
+{-# LANGUAGE PolyKinds, UndecidableInstances #-}
 module Generics.SOP.Type.Metadata where
 
 import Data.Proxy
 import GHC.Generics (Associativity(..))
+#if __GLASGOW_HASKELL__ >= 800
 import GHC.Types
+#endif
 import GHC.TypeLits
 
 import qualified Generics.SOP.Metadata as M
 import Generics.SOP.NP
 import Generics.SOP.Sing
--- import Generics.SOP.Universe
 
-data DatatypeInfo :: Type where
-  -- Standard algebraic datatype
-  ADT     :: ModuleName -> DatatypeName -> [ConstructorInfo] -> DatatypeInfo
-  -- Newtype
-  Newtype :: ModuleName -> DatatypeName -> ConstructorInfo   -> DatatypeInfo
+data DatatypeInfo =
+#if __GLASGOW_HASKELL__ >= 800
+    ADT ModuleName DatatypeName [ConstructorInfo]
+    -- ^ Standard algebraic datatype
+  | Newtype ModuleName DatatypeName ConstructorInfo
+    -- ^ Newtype
+#else
+    ADT Symbol Symbol [ConstructorInfo]
+    -- ^ Standard algebraic datatype
+  | Newtype Symbol Symbol ConstructorInfo
+    -- ^ Newtype
+#endif
 
-data ConstructorInfo :: Type where
-  -- Normal constructor
-  Constructor :: ConstructorName -> ConstructorInfo
-  -- Infix constructor
-  Infix :: ConstructorName -> Associativity -> Fixity -> ConstructorInfo
-  -- Record constructor
-  Record :: ConstructorName -> [FieldInfo] -> ConstructorInfo
+data ConstructorInfo =
+#if __GLASGOW_HASKELL__ >= 800
+    Constructor ConstructorName
+    -- ^ Normal constructor
+  | Infix ConstructorName Associativity Fixity
+    -- ^ Infix constructor
+  | Record ConstructorName [FieldInfo]
+    -- ^ Record constructor
+#else
+    Constructor Symbol
+    -- ^ Normal constructor
+  | Infix Symbol Associativity Nat
+    -- ^ Infix constructor
+  | Record Symbol [FieldInfo]
+    -- ^ Record constructor
+#endif
 
-data FieldInfo :: Type where
-  FieldInfo :: FieldName -> FieldInfo
+data FieldInfo =
+#if __GLASGOW_HASKELL__ >= 800
+    FieldInfo FieldName
+#else
+    FieldInfo Symbol
+#endif
 
+#if __GLASGOW_HASKELL__ >= 800
 -- | The name of a datatype.
 type DatatypeName    = Symbol
 
@@ -42,78 +64,86 @@ type FieldName       = Symbol
 
 -- | The fixity of an infix constructor.
 type Fixity          = Nat
+#endif
 
-type family Demoted (k :: Type) (c :: r) :: Type
-type instance Demoted DatatypeInfo xss     = M.DatatypeInfo xss
-type instance Demoted ConstructorInfo xs   = M.ConstructorInfo xs
-type instance Demoted FieldInfo x          = M.FieldInfo x
-type instance Demoted [f] xs               = NP (WrapDemoted f) xs
-type instance Demoted Symbol _             = String
-type instance Demoted Nat _                = Int
-type instance Demoted Associativity _      = Associativity
+class DemoteDatatypeInfo (x :: DatatypeInfo) (xss :: [[*]]) where
+  demoteDatatypeInfo :: proxy x -> M.DatatypeInfo xss
 
-newtype WrapDemoted f a = WrappedDemoted { unWrapDemoted :: Demoted f a }
-
-class Demote (a :: k) (c :: r) where
-  demote :: proxy1 a -> proxy2 c -> Demoted k c
-
-instance KnownSymbol x => Demote x c where
-  demote p _ = symbolVal p
-
-instance KnownNat x => Demote x c where
-  demote p _ = fromInteger (natVal p)
-
-instance Demote x '() => Demote ('FieldInfo x :: FieldInfo) (a :: Type) where
-  demote _ _ = M.FieldInfo (demote (Proxy :: Proxy x) (Proxy :: Proxy '())) :: M.FieldInfo a
-
-instance (Demote x '(), SListI xs) => Demote ('Constructor x :: ConstructorInfo) (xs :: [Type]) where
-  demote _ _ = M.Constructor (demote (Proxy :: Proxy x) (Proxy :: Proxy '()))
-
-instance (Demote x '(), Demote a '(), Demote f '()) => Demote ('Infix x a f :: ConstructorInfo) ('[y, z] :: [Type]) where
-  demote _ _ =
-    M.Infix
-      (demote (Proxy :: Proxy x) (Proxy :: Proxy '()))
-      (demote (Proxy :: Proxy a) (Proxy :: Proxy '()))
-      (demote (Proxy :: Proxy f) (Proxy :: Proxy '()))
-
-instance (Demote x '(), Demote fis xs, SListI xs) => Demote ('Record x fis :: ConstructorInfo) (xs :: [Type]) where
-  demote _ _ =
-    M.Record
-      (demote (Proxy :: Proxy x) (Proxy :: Proxy '()))
-      (map_NP unWrapDemoted (demote (Proxy :: Proxy fis) (Proxy :: Proxy xs))) -- TODO: coerce?
-
-instance Demote '[] '[] where
-  demote _ _ = Nil
-
-instance (Demote x i, Demote xs is) => Demote (x ': xs) (i ': is) where
-  demote _ _ =
-       WrappedDemoted (demote (Proxy :: Proxy x) (Proxy :: Proxy i))
-    :* demote (Proxy :: Proxy xs) (Proxy :: Proxy is)
-
-instance Demote 'LeftAssociative c where
-  demote _ _ = LeftAssociative
-
-instance Demote 'RightAssociative c where
-  demote _ _ = RightAssociative
-
-instance Demote 'NotAssociative c where
-  demote _ _ = NotAssociative
-
-instance (Demote m '(), Demote d '(), Demote cis xss, SListI xss) => Demote ('ADT m d cis :: DatatypeInfo) (xss :: [[Type]]) where
-  demote _ _ =
+instance
+     (KnownSymbol m, KnownSymbol d, DemoteConstructorInfos cs xss)
+  => DemoteDatatypeInfo ('ADT m d cs) xss where
+  demoteDatatypeInfo _ =
     M.ADT
-      (demote (Proxy :: Proxy m) (Proxy :: Proxy '()))
-      (demote (Proxy :: Proxy d) (Proxy :: Proxy '()))
-      (map_NP unWrapDemoted (demote (Proxy :: Proxy cis) (Proxy :: Proxy xss)))
+      (symbolVal (Proxy :: Proxy m))
+      (symbolVal (Proxy :: Proxy d))
+      (demoteConstructorInfos (Proxy :: Proxy cs))
 
-instance (Demote m '(), Demote d '(), Demote ci '[ x ], xss ~ '[ '[x] ]) => Demote ('Newtype m d ci :: DatatypeInfo) (xss :: [[Type]]) where
-  demote _ _ =
+instance
+     (KnownSymbol m, KnownSymbol d, DemoteConstructorInfo c '[ x ])
+  => DemoteDatatypeInfo ('Newtype m d c) '[ '[ x ] ] where
+  demoteDatatypeInfo _ =
     M.Newtype
-      (demote (Proxy :: Proxy m) (Proxy :: Proxy '()))
-      (demote (Proxy :: Proxy d) (Proxy :: Proxy '()))
-      (demote (Proxy :: Proxy ci) (Proxy :: Proxy '[ x ]))
+      (symbolVal (Proxy :: Proxy m))
+      (symbolVal (Proxy :: Proxy d))
+      (demoteConstructorInfo (Proxy :: Proxy c))
 
--- type family DatatypeInfoOf (a :: Type) :: DatatypeInfo
+class DemoteConstructorInfos (cs :: [ConstructorInfo]) (xss :: [[*]]) where
+  demoteConstructorInfos :: proxy cs -> NP M.ConstructorInfo xss
 
--- instance {-# OVERLAPPABLE #-} (Demote (DatatypeInfoOf a) (Code a)) => HasDatatypeInfo a where
---   datatypeInfo _ = demote (Proxy :: Proxy (DatatypeInfoOf a)) (Proxy :: Proxy (Code a))
+instance DemoteConstructorInfos '[] '[] where
+  demoteConstructorInfos _ = Nil
+
+instance
+     (DemoteConstructorInfo c xs, DemoteConstructorInfos cs xss)
+  => DemoteConstructorInfos (c ': cs) (xs ': xss) where
+  demoteConstructorInfos _ =
+    demoteConstructorInfo (Proxy :: Proxy c) :* demoteConstructorInfos (Proxy :: Proxy cs)
+
+class DemoteConstructorInfo (x :: ConstructorInfo) (xs :: [*]) where
+  demoteConstructorInfo :: proxy x -> M.ConstructorInfo xs
+
+instance (KnownSymbol s, SListI xs) => DemoteConstructorInfo ('Constructor s) xs where
+  demoteConstructorInfo _ = M.Constructor (symbolVal (Proxy :: Proxy s))
+
+instance
+     (KnownSymbol s, DemoteAssociativity a, KnownNat f)
+  => DemoteConstructorInfo ('Infix s a f) [y, z] where
+  demoteConstructorInfo _ =
+    M.Infix
+      (symbolVal (Proxy :: Proxy s))
+      (demoteAssociativity (Proxy :: Proxy a))
+      (fromInteger (natVal (Proxy :: Proxy f)))
+
+instance (KnownSymbol s, DemoteFieldInfos fs xs) => DemoteConstructorInfo ('Record s fs) xs where
+  demoteConstructorInfo _ =
+    M.Record (symbolVal (Proxy :: Proxy s)) (demoteFieldInfos (Proxy :: Proxy fs))
+
+class SListI xs => DemoteFieldInfos (fs :: [FieldInfo]) (xs :: [*]) where
+  demoteFieldInfos :: proxy fs -> NP M.FieldInfo xs
+
+instance DemoteFieldInfos '[] '[] where
+  demoteFieldInfos _ = Nil
+
+instance
+     (DemoteFieldInfo f x, DemoteFieldInfos fs xs)
+  => DemoteFieldInfos (f ': fs) (x ': xs) where
+  demoteFieldInfos _ = demoteFieldInfo (Proxy :: Proxy f) :* demoteFieldInfos (Proxy :: Proxy fs)
+
+class DemoteFieldInfo (x :: FieldInfo) (a :: *) where
+  demoteFieldInfo :: proxy x -> M.FieldInfo a
+
+class DemoteAssociativity (a :: Associativity) where
+  demoteAssociativity :: proxy a -> M.Associativity
+
+instance DemoteAssociativity 'LeftAssociative where
+  demoteAssociativity _ = M.LeftAssociative
+
+instance DemoteAssociativity 'RightAssociative where
+  demoteAssociativity _ = M.RightAssociative
+
+instance DemoteAssociativity 'NotAssociative where
+  demoteAssociativity _ = M.NotAssociative
+
+instance KnownSymbol s => DemoteFieldInfo ('FieldInfo s) a where
+  demoteFieldInfo _ = M.FieldInfo (symbolVal (Proxy :: Proxy s))
+

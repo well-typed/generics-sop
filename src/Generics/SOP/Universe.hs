@@ -5,7 +5,6 @@
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
-import Data.Proxy
 import qualified GHC.Generics as GHC
 
 import Generics.SOP.BasicFunctors
@@ -139,12 +138,17 @@ class (All SListI (Code a)) => Generic (a :: *) where
 -- of 'Generic' for the options.
 --
 class HasDatatypeInfo a where
+  -- | Type-level datatype info
   type DatatypeInfoOf a :: T.DatatypeInfo
+#if MIN_VERSION_base(4,9,0)
   type DatatypeInfoOf a = GDatatypeInfoOf a
+#else
+  type DatatypeInfoOf a = DatatypeInfoOf a
+#endif
 
+  -- | Term-level datatype info; by default, the term-level datatype info is produced
+  -- from the type-level info.
+  --
   datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
-  default datatypeInfo :: (T.Demote (DatatypeInfoOf a) (Code a)) => proxy a -> DatatypeInfo (Code a)
-  datatypeInfo _ = T.demote (Proxy :: Proxy (DatatypeInfoOf a)) (Proxy :: Proxy (Code a))
-
--- instance {-# OVERLAPPABLE #-} (Demote (DatatypeInfoOf a) (Code a)) => HasDatatypeInfo a where
---   datatypeInfo _ = demote (Proxy :: Proxy (DatatypeInfoOf a)) (Proxy :: Proxy (Code a))
+  default datatypeInfo :: (GDatatypeInfo a, GCode a ~ Code a) => proxy a -> DatatypeInfo (Code a)
+  datatypeInfo = gdatatypeInfo
