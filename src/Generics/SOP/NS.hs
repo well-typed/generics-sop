@@ -52,11 +52,17 @@ module Generics.SOP.NS
   , ccata_NS
   , ana_NS
   , cana_NS
+    -- * Expanding sums to products
+  , expand_NS
+  , cexpand_NS
+  , expand_SOP
+  , cexpand_SOP
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 #endif
+import Data.Proxy
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
@@ -486,3 +492,67 @@ cana_NS _ refute decide = go sList
     go SCons s = case decide s of
       Left x   -> Z x
       Right s' -> S (go sList s')
+
+-- * Expanding sums to products
+
+-- | Specialization of 'hexpand'.
+--
+-- @since 0.2.5.0
+--
+expand_NS :: forall f xs .
+     (SListI xs)
+  => (forall x . f x)
+  -> NS f xs -> NP f xs
+expand_NS d = go sList
+  where
+    go :: forall ys . SList ys -> NS f ys -> NP f ys
+    go SCons (Z x) = x :* hpure d
+    go SCons (S i) = d :* go sList i
+    go SNil  _     = error "inaccessible" -- still required in ghc-8.0.*
+
+-- | Specialization of 'hcexpand'.
+--
+-- @since 0.2.5.0
+--
+cexpand_NS :: forall c proxy f xs .
+     (All c xs)
+  => proxy c -> (forall x . c x => f x)
+  -> NS f xs -> NP f xs
+cexpand_NS p d = go
+  where
+    go :: forall ys . All c ys => NS f ys -> NP f ys
+    go (Z x) = x :* hcpure p d
+    go (S i) = d :* go i
+
+-- | Specialization of 'hexpand'.
+--
+-- @since 0.2.5.0
+--
+expand_SOP :: forall f xss .
+     (All SListI xss)
+  => (forall x . f x)
+  -> SOP f xss -> POP f xss
+expand_SOP d =
+  POP . cexpand_NS (Proxy :: Proxy SListI) (hpure d) . unSOP
+
+-- | Specialization of 'hcexpand'.
+--
+-- @since 0.2.5.0
+--
+cexpand_SOP :: forall c proxy f xss .
+     (All2 c xss)
+  => proxy c -> (forall x . c x => f x)
+  -> SOP f xss -> POP f xss
+cexpand_SOP p d =
+  POP . cexpand_NS (allP p) (hcpure p d) . unSOP
+
+allP :: proxy c -> Proxy (All c)
+allP _ = Proxy
+
+instance HExpand NS where
+  hexpand  = expand_NS
+  hcexpand = cexpand_NS
+
+instance HExpand SOP where
+  hexpand  = expand_SOP
+  hcexpand = cexpand_SOP
