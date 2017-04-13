@@ -172,7 +172,7 @@ newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
 
 deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
 deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
-deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss) 
+deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss)
 
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
