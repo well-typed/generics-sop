@@ -1,3 +1,10 @@
+# 0.2.5.0
+
+* Make basic functors instances of `Applicative`, `Foldable` and
+  `Traversable`.
+
+* GHC 8.2 compatibility.
+
 # 0.2.4.0 (2017-02-02)
 
 * Add `hindex` (and `index_NS` and `index_SOP`).
