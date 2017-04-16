@@ -76,31 +76,43 @@ instance Traversable (K a) where
 #endif
 
 #ifdef LIFTED_CLASSES
+-- | @since 0.2.4.0
 instance Eq2 K where
     liftEq2 eq _ (K x) (K y) = eq x y
+-- | @since 0.2.4.0
 instance Ord2 K where
     liftCompare2 comp _ (K x) (K y) = comp x y
+-- | @since 0.2.4.0
 instance Read2 K where
     liftReadsPrec2 rp _ _ _ = readsData $
          readsUnaryWith rp "K" K
+-- | @since 0.2.4.0
 instance Show2 K where
     liftShowsPrec2 sp _ _ _ d (K x) = showsUnaryWith sp "K" d x
 
+-- | @since 0.2.4.0
 instance (Eq a) => Eq1 (K a) where
     liftEq = liftEq2 (==)
+-- | @since 0.2.4.0
 instance (Ord a) => Ord1 (K a) where
     liftCompare = liftCompare2 compare
+-- | @since 0.2.4.0
 instance (Read a) => Read1 (K a) where
     liftReadsPrec = liftReadsPrec2 readsPrec readList
+-- | @since 0.2.4.0
 instance (Show a) => Show1 (K a) where
     liftShowsPrec = liftShowsPrec2 showsPrec showList
 #else
+-- | @since 0.2.4.0
 instance (Eq a) => Eq1 (K a) where
     eq1 (K x) (K y) = x == y
+-- | @since 0.2.4.0
 instance (Ord a) => Ord1 (K a) where
     compare1 (K x) (K y) = compare x y
+-- | @since 0.2.4.0
 instance (Read a) => Read1 (K a) where
     readsPrec1 = readsData $ readsUnary "K" K
+-- | @since 0.2.4.0
 instance (Show a) => Show1 (K a) where
     showsPrec1 d (K x) = showsUnary "K" d x
 #endif
@@ -161,22 +173,30 @@ instance Monad I where
 
 
 #ifdef LIFTED_CLASSES
+-- | @since 0.2.4.0
 instance Eq1 I where
     liftEq eq (I x) (I y) = eq x y
+-- | @since 0.2.4.0
 instance Ord1 I where
     liftCompare comp (I x) (I y) = comp x y
+-- | @since 0.2.4.0
 instance Read1 I where
     liftReadsPrec rp _ = readsData $
          readsUnaryWith rp "I" I
+-- | @since 0.2.4.0
 instance Show1 I where
     liftShowsPrec sp _ d (I x) = showsUnaryWith sp "I" d x
 #else
+-- | @since 0.2.4.0
 instance Eq1 I where
     eq1 (I x) (I y) = x == y
+-- | @since 0.2.4.0
 instance Ord1 I where
     compare1 (I x) (I y) = compare x y
+-- | @since 0.2.4.0
 instance Read1 I where
     readsPrec1 = readsData $ readsUnary "I" I
+-- | @since 0.2.4.0
 instance Show1 I where
     showsPrec1 d (I x) = showsUnary "I" d x
 #endif
@@ -203,27 +223,33 @@ infixr 7 :.:
 instance (Functor f, Functor g) => Functor (f :.: g) where
   fmap f (Comp x) = Comp (fmap (fmap f) x)
 
+-- | @since 0.2.5.0
 instance (Applicative f, Applicative g) => Applicative (f :.: g) where
   pure x = Comp (pure (pure x))
   Comp f <*> Comp x = Comp ((<*>) <$> f <*> x)
 
+-- | @since 0.2.5.0
 instance (Foldable f, Foldable g) => Foldable (f :.: g) where
-    foldMap f (Comp t) = foldMap (foldMap f) t
+  foldMap f (Comp t) = foldMap (foldMap f) t
 
+-- | @since 0.2.5.0
 instance (Traversable f, Traversable g) => Traversable (f :.: g) where
-    traverse f (Comp t) = Comp <$> traverse (traverse f) t
+  traverse f (Comp t) = Comp <$> traverse (traverse f) t
 
 
 -- Instances of lifted Prelude classes
 
 #ifdef LIFTED_CLASSES
+-- | @since 0.2.4.0
 instance (Eq1 f, Eq1 g) => Eq1 (f :.: g) where
     liftEq eq (Comp x) (Comp y) = liftEq (liftEq eq) x y
 
+-- | @since 0.2.4.0
 instance (Ord1 f, Ord1 g) => Ord1 (f :.: g) where
     liftCompare comp (Comp x) (Comp y) =
         liftCompare (liftCompare comp) x y
 
+-- | @since 0.2.4.0
 instance (Read1 f, Read1 g) => Read1 (f :.: g) where
     liftReadsPrec rp rl = readsData $
         readsUnaryWith (liftReadsPrec rp' rl') "Comp" Comp
@@ -231,6 +257,7 @@ instance (Read1 f, Read1 g) => Read1 (f :.: g) where
         rp' = liftReadsPrec rp rl
         rl' = liftReadList rp rl
 
+-- | @since 0.2.4.0
 instance (Show1 f, Show1 g) => Show1 (f :.: g) where
     liftShowsPrec sp sl d (Comp x) =
         showsUnaryWith (liftShowsPrec sp' sl') "Comp" d x
@@ -273,11 +300,15 @@ instance (Functor f, Read1 f, Read1 g, Read a) => Read ((f :.: g) a) where
 instance (Functor f, Show1 f, Show1 g, Show a) => Show ((f :.: g) a) where
     showsPrec d (Comp x) = showsUnary1 "Comp" d (fmap Apply x)
 
+-- | @since 0.2.4.0
 instance (Functor f, Eq1 f, Eq1 g) => Eq1 (f :.: g) where eq1 = (==)
+-- | @since 0.2.4.0
 instance (Functor f, Ord1 f, Ord1 g) => Ord1 (f :.: g) where
     compare1 = compare
+-- | @since 0.2.4.0
 instance (Functor f, Read1 f, Read1 g) => Read1 (f :.: g) where
     readsPrec1 = readsPrec
+-- | @since 0.2.4.0
 instance (Functor f, Show1 f, Show1 g) => Show1 (f :.: g) where
     showsPrec1 = showsPrec
 #endif

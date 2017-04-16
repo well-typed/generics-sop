@@ -1,6 +1,6 @@
 # 0.2.5.0
 
-* Make basic functors instances of `Applicative`, `Foldable` and
+* Make `:.:` an instance of `Applicative`, `Foldable` and
   `Traversable`.
 
 * GHC 8.2 compatibility.
