@@ -203,6 +203,17 @@ infixr 7 :.:
 instance (Functor f, Functor g) => Functor (f :.: g) where
   fmap f (Comp x) = Comp (fmap (fmap f) x)
 
+instance (Applicative f, Applicative g) => Applicative (f :.: g) where
+  pure x = Comp (pure (pure x))
+  Comp f <*> Comp x = Comp ((<*>) <$> f <*> x)
+
+instance (Foldable f, Foldable g) => Foldable (f :.: g) where
+    foldMap f (Comp t) = foldMap (foldMap f) t
+
+instance (Traversable f, Traversable g) => Traversable (f :.: g) where
+    traverse f (Comp t) = Comp <$> traverse (traverse f) t
+
+
 -- Instances of lifted Prelude classes
 
 #ifdef LIFTED_CLASSES
