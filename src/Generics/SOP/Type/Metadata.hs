@@ -16,6 +16,24 @@ import qualified Generics.SOP.Metadata as M
 import Generics.SOP.NP
 import Generics.SOP.Sing
 
+-- Regarding the CPP in the datatype definitions below:
+--
+-- We cannot promote type synonyms in GHC 7, so we
+-- use equivalent yet less descriptive definitions
+-- for the older GHCs.
+
+-- | Metadata for a datatype (to be used promoted).
+--
+-- A type of kind @'DatatypeInfo'@ contains meta-information about a datatype
+-- that is not contained in its code. This information consists
+-- primarily of the names of the datatype, its constructors, and possibly its
+-- record selectors.
+--
+-- The constructor indicates whether the datatype has been declared using @newtype@
+-- or not.
+--
+-- @since 0.3
+--
 data DatatypeInfo =
 #if __GLASGOW_HASKELL__ >= 800
     ADT ModuleName DatatypeName [ConstructorInfo]
@@ -29,6 +47,10 @@ data DatatypeInfo =
     -- ^ Newtype
 #endif
 
+-- | Metadata for a single constructors (to be used promoted).
+--
+-- @since 0.3
+--
 data ConstructorInfo =
 #if __GLASGOW_HASKELL__ >= 800
     Constructor ConstructorName
@@ -46,6 +68,10 @@ data ConstructorInfo =
     -- ^ Record constructor
 #endif
 
+-- | Metadata for a single record field (to be used promoted).
+--
+-- @since 0.3
+--
 data FieldInfo =
 #if __GLASGOW_HASKELL__ >= 800
     FieldInfo FieldName
@@ -69,6 +95,11 @@ type FieldName       = Symbol
 -- | The fixity of an infix constructor.
 type Fixity          = Nat
 #endif
+
+-- Demotion
+--
+-- The following classes are concerned with computing the
+-- term-level metadata from the type-level metadata.
 
 class DemoteDatatypeInfo (x :: DatatypeInfo) (xss :: [[*]]) where
   demoteDatatypeInfo :: proxy x -> M.DatatypeInfo xss

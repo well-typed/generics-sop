@@ -54,8 +54,12 @@ import Generics.SOP.Universe
 -- >   to _ = error "unreachable" -- to avoid GHC warnings
 -- >
 -- > instance HasDatatypeInfo Tree where
--- >   datatypeInfo _ = ADT "Main" "Tree"
--- >     (Constructor "Leaf" :* Constructor "Node" :* Nil)
+-- >   type DatatypeInfoOf Tree =
+-- >     T.ADT "Main" "Tree"
+-- >       '[ T.Constructor "Leaf", T.Constructor "Node" ]
+-- >
+-- >   datatypeInfo _ =
+-- >     T.demoteDatatypeInfo (Proxy :: Proxy (DatatypeInfoOf Tree))
 --
 -- /Limitations:/ Generation does not work for GADTs, for
 -- datatypes that involve existential quantification, for
@@ -137,7 +141,22 @@ deriveMetadataValue n codeName datatypeInfoName = do
     sequence [ sigD datatypeInfoName' [t| SOP.DatatypeInfo $(conT codeName') |]                    -- treeDatatypeInfo :: DatatypeInfo TreeCode
              , funD datatypeInfoName' [clause [] (normalB $ metadata' isNewtype name cons) []] -- treeDatatypeInfo = ...
              ]
+{-# DEPRECATED deriveMetadataValue "Use 'deriveMetadataType' and 'demoteDatatypeInfo' instead." #-}
 
+-- | Derive @DatatypeInfo@ type for the type.
+--
+-- /Example:/ If you say
+--
+-- > deriveMetadataType ''Tree "TreeDatatypeInfo"
+--
+-- then you get code that is equivalent to:
+--
+-- > type TreeDatatypeInfo =
+-- >   T.ADT "Main" "Tree"
+-- >     [ T.Constructor "Leaf", T.Constructor "Node" ]
+--
+-- @since 0.3
+--
 deriveMetadataType :: Name -> String -> Q [Dec]
 deriveMetadataType n datatypeInfoName = do
   let datatypeInfoName' = mkName datatypeInfoName
@@ -234,6 +253,7 @@ metadataType :: Q Type -> Bool -> Name -> [Con] -> Q Dec
 metadataType typ isNewtype typeName cs =
   tySynInstD ''DatatypeInfoOf (tySynEqn [typ] (metadataType' isNewtype typeName cs))
 
+-- | Derive term-level metadata.
 metadata' :: Bool -> Name -> [Con] -> Q Exp
 metadata' isNewtype typeName cs = md
   where
@@ -281,6 +301,7 @@ metadata' isNewtype typeName cs = md
     mdAssociativity InfixR = [| SOP.RightAssociative |]
     mdAssociativity InfixN = [| SOP.NotAssociative   |]
 
+-- | Derive type-level metadata.
 metadataType' :: Bool -> Name -> [Con] -> Q Type
 metadataType' isNewtype typeName cs = md
   where
