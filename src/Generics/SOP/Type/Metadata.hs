@@ -1,5 +1,9 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
-module Generics.SOP.Type.Metadata where
+module Generics.SOP.Type.Metadata
+  ( module Generics.SOP.Type.Metadata
+    -- * re-exports
+  , Associativity(..)
+  ) where
 
 import Data.Proxy
 import GHC.Generics (Associativity(..))

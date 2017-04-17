@@ -5,15 +5,18 @@ module Generics.SOP.TH
   , deriveGenericOnly
   , deriveGenericFunctions
   , deriveMetadataValue
+  , deriveMetadataType
   ) where
 
 import Control.Monad (replicateM)
 import Data.Maybe (fromMaybe)
+import Data.Proxy
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
 
 import Generics.SOP.BasicFunctors
 import qualified Generics.SOP.Metadata as SOP
+import qualified Generics.SOP.Type.Metadata as SOP.T
 import Generics.SOP.NP
 import Generics.SOP.NS
 import Generics.SOP.Universe
@@ -135,6 +138,14 @@ deriveMetadataValue n codeName datatypeInfoName = do
              , funD datatypeInfoName' [clause [] (normalB $ metadata' isNewtype name cons) []] -- treeDatatypeInfo = ...
              ]
 
+deriveMetadataType :: Name -> String -> Q [Dec]
+deriveMetadataType n datatypeInfoName = do
+  let datatypeInfoName' = mkName datatypeInfoName
+  dec <- reifyDec n
+  withDataDec dec $ \ isNewtype _ctx name _bndrs cons _derivs ->
+    sequence
+      [ tySynD datatypeInfoName' [] (metadataType' isNewtype name cons) ]
+
 deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
 deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
   let typ = appTyVars name bndrs
@@ -154,7 +165,14 @@ deriveMetadataForDataDec isNewtype _cxt name bndrs cons _derivs = do
   let typ = appTyVars name bndrs
   md   <- instanceD (cxt [])
             [t| HasDatatypeInfo $typ |]
-            [metadata isNewtype name cons]
+            [ metadataType typ isNewtype name cons
+            , funD 'datatypeInfo
+                [ clause [wildP]
+                  (normalB [| SOP.T.demoteDatatypeInfo (Proxy :: Proxy (DatatypeInfoOf $typ)) |])
+                  []
+                ]
+            ]
+            -- [metadata isNewtype name cons]
   return [md]
 
 
@@ -212,9 +230,9 @@ unreachable = clause [wildP]
   Compute metadata
 -------------------------------------------------------------------------------}
 
-metadata :: Bool -> Name -> [Con] -> Q Dec
-metadata isNewtype typeName cs =
-    funD 'datatypeInfo [clause [wildP] (normalB $ metadata' isNewtype typeName cs) []]
+metadataType :: Q Type -> Bool -> Name -> [Con] -> Q Dec
+metadataType typ isNewtype typeName cs =
+  tySynInstD ''DatatypeInfoOf (tySynEqn [typ] (metadataType' isNewtype typeName cs))
 
 metadata' :: Bool -> Name -> [Con] -> Q Exp
 metadata' isNewtype typeName cs = md
@@ -263,6 +281,53 @@ metadata' isNewtype typeName cs = md
     mdAssociativity InfixR = [| SOP.RightAssociative |]
     mdAssociativity InfixN = [| SOP.NotAssociative   |]
 
+metadataType' :: Bool -> Name -> [Con] -> Q Type
+metadataType' isNewtype typeName cs = md
+  where
+    md :: Q Type
+    md | isNewtype = [t| 'SOP.T.Newtype $(stringT (nameModule' typeName))
+                                        $(stringT (nameBase typeName))
+                                        $(mdCon (head cs))
+                       |]
+       | otherwise = [t| 'SOP.T.ADT     $(stringT (nameModule' typeName))
+                                        $(stringT (nameBase typeName))
+                                        $(promotedTypeList $ map mdCon cs)
+                       |]
+
+
+    mdCon :: Con -> Q Type
+    mdCon (NormalC n _)   = [t| 'SOP.T.Constructor $(stringT (nameBase n)) |]
+    mdCon (RecC n ts)     = [t| 'SOP.T.Record      $(stringT (nameBase n))
+                                                   $(promotedTypeList (map mdField ts))
+                              |]
+    mdCon (InfixC _ n _)  = do
+#if MIN_VERSION_template_haskell(2,11,0)
+      fixity <- reifyFixity n
+      case fromMaybe defaultFixity fixity of
+        Fixity f a ->
+#else
+      i <- reify n
+      case i of
+        DataConI _ _ _ (Fixity f a) ->
+#endif
+                            [t| 'SOP.T.Infix       $(stringT (nameBase n)) $(mdAssociativity a) $(natT f) |]
+#if !MIN_VERSION_template_haskell(2,11,0)
+        _                -> fail "Strange infix operator"
+#endif
+    mdCon (ForallC _ _ _) = fail "Existentials not supported"
+#if MIN_VERSION_template_haskell(2,11,0)
+    mdCon (GadtC _ _ _)    = fail "GADTs not supported"
+    mdCon (RecGadtC _ _ _) = fail "GADTs not supported"
+#endif
+
+    mdField :: VarStrictType -> Q Type
+    mdField (n, _, _) = [t| 'SOP.T.FieldInfo $(stringT (nameBase n)) |]
+
+    mdAssociativity :: FixityDirection -> Q Type
+    mdAssociativity InfixL = [t| 'SOP.T.LeftAssociative  |]
+    mdAssociativity InfixR = [t| 'SOP.T.RightAssociative |]
+    mdAssociativity InfixN = [t| 'SOP.T.NotAssociative   |]
+
 nameModule' :: Name -> String
 nameModule' = fromMaybe "" . nameModule
 
@@ -299,6 +364,12 @@ conInfo (ForallC _ _ _) = fail "Existentials not supported"
 conInfo (GadtC _ _ _)    = fail "GADTs not supported"
 conInfo (RecGadtC _ _ _) = fail "GADTs not supported"
 #endif
+
+stringT :: String -> Q Type
+stringT = litT . strTyLit
+
+natT :: Int -> Q Type
+natT = litT . numTyLit . fromIntegral
 
 promotedTypeList :: [Q Type] -> Q Type
 promotedTypeList []     = promotedNilT
