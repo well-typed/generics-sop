@@ -67,6 +67,8 @@ module Generics.SOP.Classes
     -- * Applying all injections
   , UnProd
   , HApInjs(..)
+    -- * Expanding sums to products
+  , HExpand(..)
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
@@ -463,3 +465,56 @@ class (UnProd (Prod h) ~ h) => HApInjs (h :: (k -> *) -> (l -> *)) where
   -- @since 0.2.4.0
   --
   hapInjs :: (SListIN h xs) => Prod h f xs -> [h f xs]
+
+-- * Expanding sums to products
+
+-- | A class for expanding sum structures into corresponding product
+-- structures, filling in the slots not targeted by the sum with
+-- default values.
+--
+-- @since 0.2.5.0
+--
+class HExpand (h :: (k -> *) -> (l -> *)) where
+
+  -- | Expand a given sum structure into a corresponding product
+  -- structure by placing the value contained in the sum into the
+  -- corresponding position in the product, and using the given
+  -- default value for all other positions.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hexpand', 'Generics.SOP.NS.expand_NS'  :: 'Generics.SOP.Sing.SListI' xs  => (forall x . f x) -> 'Generics.SOP.NS.NS'  f xs  -> 'Generics.SOP.NS.NP'  f xs
+  -- 'hexpand', 'Generics.SOP.NS.expand_SOP' :: 'SListI2' xss => (forall x . f x) -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NP.POP' f xss
+  -- @
+  --
+  -- /Examples:/
+  --
+  -- >>> hexpand Nothing (S (Z (Just 3))) :: NP Maybe '[Char, Int, Bool]
+  -- Nothing :* Just 3 :* Nothing :* Nil
+  -- >>> hexpand [] (SOP (S (Z ([1,2] :* "xyz" :* Nil)))) :: POP [] '[ '[Bool], '[Int, Char] ]
+  -- POP (([] :* Nil) :* ([1,2] :* "xyz" :* Nil) :* Nil)
+  --
+  -- @since 0.2.5.0
+  --
+  hexpand :: (SListIN (Prod h) xs) => (forall x . f x) -> h f xs -> Prod h f xs
+
+  -- | Variant of 'hexpand' that allows passing a constrained default.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hcexpand', 'Generics.SOP.NS.cexpand_NS'  :: 'All'  c xs  => proxy c -> (forall x . c x => f x) -> 'Generics.SOP.NS.NS'  f xs  -> 'Generics.SOP.NP.NP'  f xs
+  -- 'hcexpand', 'Generics.SOP.NS.cexpand_SOP' :: 'All2' c xss => proxy c -> (forall x . c x => f x) -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NP.POP' f xss
+  -- @
+  --
+  -- /Examples:/
+  --
+  -- >>> hcexpand (Proxy :: Proxy Bounded) (I minBound) (S (Z (I 20))) :: NP I '[Bool, Int, Ordering]
+  -- I False :* I 20 :* I LT :* Nil
+  -- >>> hcexpand (Proxy :: Proxy Num) (I 0) (SOP (S (Z (I 1 :* I 2 :* Nil)))) :: POP I '[ '[Double], '[Int, Int] ]
+  -- POP ((I 0.0 :* Nil) :* (I 1 :* I 2 :* Nil) :* Nil)
+  --
+  -- @since 0.2.5.0
+  --
+  hcexpand :: (AllN (Prod h) c xs) => proxy c -> (forall x . c x => f x) -> h f xs -> Prod h f xs
