@@ -518,3 +518,6 @@ class HExpand (h :: (k -> *) -> (l -> *)) where
   -- @since 0.2.5.0
   --
   hcexpand :: (AllN (Prod h) c xs) => proxy c -> (forall x . c x => f x) -> h f xs -> Prod h f xs
+
+-- $setup
+-- >>> import Generics.SOP
