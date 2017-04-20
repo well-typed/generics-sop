@@ -21,12 +21,26 @@
 -- properly. See <https://ghc.haskell.org/trac/ghc/ticket/8779>.
 --
 module Generics.SOP.BasicFunctors
-  ( K(..)
+  ( -- * Basic functors
+    K(..)
   , unK
   , I(..)
   , unI
   , (:.:)(..)
   , unComp
+    -- * Mapping functions
+  , mapII
+  , mapIK
+  , mapKI
+  , mapKK
+  , mapIII
+  , mapIIK
+  , mapIKI
+  , mapIKK
+  , mapKII
+  , mapKIK
+  , mapKKI
+  , mapKKK
   ) where
 
 #if MIN_VERSION_base(4,8,0)
@@ -52,6 +66,8 @@ import Data.Functor.Classes
 #endif
 #endif
 #endif
+
+-- * Basic functors
 
 -- | The constant type functor.
 --
@@ -316,3 +332,108 @@ instance (Functor f, Show1 f, Show1 g) => Show1 (f :.: g) where
 -- | Extract the contents of a 'Comp' value.
 unComp :: (f :.: g) p -> f (g p)
 unComp (Comp x) = x
+
+-- * Mapping functions
+
+-- Implementation note:
+--
+-- All of these functions are just type specializations of
+-- 'coerce'. However, we currently still support GHC 7.6
+-- which does not support 'coerce', so we write them
+-- explicitly.
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapII :: (a -> b) -> I a -> I b
+mapII f (I a) = I (f a)
+{-# INLINE mapII #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapIK :: (a -> b) -> I a -> K b c
+mapIK f (I a) = K (f a)
+{-# INLINE mapIK #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapKI :: (a -> b) -> K a c -> I b
+mapKI f (K a) = I (f a)
+{-# INLINE mapKI #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapKK :: (a -> b) -> K a c -> K b d
+mapKK f (K a) = K (f a)
+{-# INLINE mapKK #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapIII :: (a -> b -> c) -> I a -> I b -> I c
+mapIII f (I a) (I b) = I (f a b)
+{-# INLINE mapIII #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapIIK :: (a -> b -> c) -> I a -> I b -> K c d
+mapIIK f (I a) (I b) = K (f a b)
+{-# INLINE mapIIK #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapIKI :: (a -> b -> c) -> I a -> K b d -> I c
+mapIKI f (I a) (K b) = I (f a b)
+{-# INLINE mapIKI #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapIKK :: (a -> b -> c) -> I a -> K b d -> K c e
+mapIKK f (I a) (K b) = K (f a b)
+{-# INLINE mapIKK #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapKII :: (a -> b -> c) -> K a d -> I b -> I c
+mapKII f (K a) (I b) = I (f a b)
+{-# INLINE mapKII #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapKIK :: (a -> b -> c) -> K a d -> I b -> K c e
+mapKIK f (K a) (I b) = K (f a b)
+{-# INLINE mapKIK #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapKKI :: (a -> b -> c) -> K a d -> K b e -> I c
+mapKKI f (K a) (K b) = I (f a b)
+{-# INLINE mapKKI #-}
+
+-- | Lift the given function.
+--
+-- @since 0.2.5.0
+--
+mapKKK :: (a -> b -> c) -> K a d -> K b e -> K c f
+mapKKK f (K a) (K b) = K (f a b)
+{-# INLINE mapKKK #-}

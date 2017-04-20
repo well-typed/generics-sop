@@ -304,6 +304,19 @@ module Generics.SOP (
   , unI
   , (:.:)(..)
   , unComp
+    -- *** Mapping functions
+  , mapII
+  , mapIK
+  , mapKI
+  , mapKK
+  , mapIII
+  , mapIIK
+  , mapIKI
+  , mapIKK
+  , mapKII
+  , mapKIK
+  , mapKKI
+  , mapKKK
     -- ** Mapping constraints
   , All
   , All2
