@@ -60,17 +60,40 @@ class SListI (xs :: [k]) where
   -- | Get hold of the explicit singleton (that one can then
   -- pattern match on).
   sList :: SList xs
+  sList = caseSList SNil SCons
+  {-# INLINE sList #-}
+
+  -- | Catamorphism for a type-level list.
+  --
+  -- Strictly speaking, this is even a paramorphism, because we have the
+  -- 'SListI' constraints available for the tail of the list in the cons
+  -- case.
+  --
+  -- The advantage of writing functions in terms of 'cataSList' is that
+  -- they are typically not recursive, and can be unfolded statically if
+  -- the type-level list is statically known.
+  --
+  cataSList ::
+       r '[]
+    -> (forall y ys . SListI ys => r ys -> r (y ': ys))
+    -> r xs
 
   -- | Perform a case distinction on a type-level list.
-  caseSList :: r '[] -> (forall y ys . SListI ys => r (y ': ys)) -> r xs
+  caseSList ::
+       r '[]
+    -> (forall y ys . SListI ys => r (y ': ys))
+    -> r xs
+  caseSList nil cons = cataSList nil (const cons)
+  {-# INLINE caseSList #-}
 
 instance SListI '[] where
-  sList = SNil
-  caseSList nil _cons = nil
+  cataSList nil _cons = nil
+  {-# INLINE cataSList #-}
 
 instance SListI xs => SListI (x ': xs) where
-  sList = SCons
-  caseSList _nil cons = cons
+  cataSList nil cons =
+    cons (cataSList nil cons)
+  {-# INLINE cataSList #-}
 
 -- | General class for implicit singletons.
 --

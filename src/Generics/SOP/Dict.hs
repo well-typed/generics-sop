@@ -111,6 +111,15 @@ unAll_NP d = withDict d hdicts
 unAll_POP :: forall c xss . Dict (All2 c) xss -> POP (Dict c) xss
 unAll_POP d = withDict d hdicts
 
+all_SListI :: All c xs => proxy c -> Dict SListI xs
+all_SListI p = ccataSList p Dict (\ Dict -> Dict)
+
+all2_SListI :: All (All c) xss => proxy c -> Dict (All SListI) xss
+all2_SListI p = ccataSList (allP p) Dict (\ Dict -> Dict)
+
+allP :: proxy c -> Proxy (All c)
+allP _ = Proxy
+
 -- | If we have a product containing proofs that each element
 -- of 'xs' satisfies 'c', then 'All c' holds for 'xs'.
 --
@@ -141,8 +150,8 @@ unAll2 Dict = Dict
 --
 -- @since 0.2
 --
-all2 :: Dict (All (All c)) xss -> Dict (All2 c) xss
-all2 Dict = Dict
+all2 :: forall c xss . Dict (All (All c)) xss -> Dict (All2 c) xss
+all2 Dict = withDict (all2_SListI (Proxy :: Proxy c) :: Dict (All SListI) xss) Dict
 
 -- | If we have an explicit dictionary, we can unwrap it and
 -- pass a function that makes use of it.

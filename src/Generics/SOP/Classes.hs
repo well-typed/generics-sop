@@ -39,6 +39,7 @@ module Generics.SOP.Classes
   , fn_2
   , fn_3
   , fn_4
+  , apFn_2
   , Prod
   , HAp(..)
     -- ** Derived functions
@@ -124,6 +125,10 @@ class HPure (h :: (k -> *) -> (l -> *)) where
 newtype (f -.-> g) a = Fn { apFn :: f a -> g a }
 infixr 1 -.->
 
+-- | Apply a binary lifted function.
+apFn_2 :: (f -.-> f' -.-> f'') a -> (f a -> f' a -> f'' a)
+apFn_2 f x y = f `apFn` x `apFn` y
+
 -- | Construct a lifted function.
 --
 -- Same as 'Fn'. Only available for uniformity with the
@@ -174,7 +179,7 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *
   -- 'hap', 'Generics.SOP.NS.ap_SOP' :: 'Generics.SOP.NS.POP' (f -.-> g) xss -> 'Generics.SOP.NS.SOP' f xss -> 'Generics.SOP.NS.SOP' g xss
   -- @
   --
-  hap :: Prod h (f -.-> g) xs -> h f xs -> h g xs
+  hap :: SListIN (Prod h) xs => Prod h (f -.-> g) xs -> h f xs -> h g xs
 
 -- ** Derived functions
 
@@ -287,7 +292,7 @@ hzipWith3 = hliftA3
 -- 'hcliftA' p f xs = 'hcpure' p ('fn' f) \` 'hap' \` xs
 -- @
 --
-hcliftA  :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+hcliftA  :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
 
 -- | Variant of 'hcliftA2' that takes a constrained function.
 --
@@ -297,7 +302,7 @@ hcliftA  :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c
 -- 'hcliftA2' p f xs ys = 'hcpure' p ('fn_2' f) \` 'hap' \` xs \` 'hap' \` ys
 -- @
 --
-hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+hcliftA2 :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 
 -- | Variant of 'hcliftA3' that takes a constrained function.
 --
@@ -307,7 +312,7 @@ hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c
 -- 'hcliftA3' p f xs ys zs = 'hcpure' p ('fn_3' f) \` 'hap' \` xs \` 'hap' \` ys \` 'hap' \` zs
 -- @
 --
-hcliftA3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+hcliftA3 :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcliftA  p f xs       = hcpure p (fn   f) `hap` xs
 hcliftA2 p f xs ys    = hcpure p (fn_2 f) `hap` xs `hap` ys
@@ -317,19 +322,19 @@ hcliftA3 p f xs ys zs = hcpure p (fn_3 f) `hap` xs `hap` ys `hap` zs
 --
 -- @since 0.2
 --
-hcmap      :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+hcmap      :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
 
 -- | Another name for 'hcliftA2'.
 --
 -- @since 0.2
 --
-hczipWith  :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+hczipWith  :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 
 -- | Another name for 'hcliftA3'.
 --
 -- @since 0.2
 --
-hczipWith3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+hczipWith3 :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcmap      = hcliftA
 hczipWith  = hcliftA2

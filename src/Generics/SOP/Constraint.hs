@@ -42,20 +42,42 @@ import Generics.SOP.Sing
 -- product satisfy 'Eq'.
 --
 class (AllF c xs, SListI xs) => All (c :: k -> Constraint) (xs :: [k]) where
+  -- | Constrained catamorphism for a type-level list.
+  --
+  -- Strictly speaking, this is even a paramorphism, because we have the
+  -- 'All' and therefore 'SListI' constraints available for the tail of
+  -- the list in the cons case.
+  --
+  -- The advantage of writing functions in terms of 'ccataSList' is that
+  -- they are typically not recursive, and can be unfolded statically if
+  -- the type-level list is statically known.
+  --
+  ccataSList ::
+       proxy c
+    -> r '[]
+    -> (forall y ys . (c y, All c ys) => r ys -> r (y ': ys))
+    -> r xs
+
   -- | Perform a constrained case distinction on a type-level list.
   ccaseSList ::
        proxy c
     -> r '[]
     -> (forall y ys . (c y, All c ys) => r (y ': ys))
     -> r xs
+  ccaseSList p nil cons = ccataSList p nil (const cons)
+  {-# INLINE ccaseSList #-}
 
 instance All c '[] where
-  ccaseSList _p nil _cons = nil
+  ccataSList _p nil _cons = nil
+  {-# INLINE ccataSList #-}
 
 instance (c x, All c xs) => All c (x ': xs) where
-  ccaseSList _p _nil cons = cons
+  ccataSList p nil cons =
+    cons (ccataSList p nil cons)
+  {-# INLINE ccataSList #-}
 
 -- | Type family used to implement 'All'.
+--
 type family AllF (c :: k -> Constraint) (xs :: [k]) :: Constraint
 type instance AllF _c '[]       = ()
 type instance AllF  c (x ': xs) = (c x, All c xs)
@@ -84,8 +106,8 @@ type SListI2 = All SListI
 -- means that 'f' can assume that all elements of the sum
 -- of product satisfy 'Eq'.
 --
-class (All (All f) xss, SListI xss) => All2 f xss
-instance (All (All f) xss, SListI xss) => All2 f xss
+class (All (All f) xss, All SListI xss) => All2 f xss
+instance (All (All f) xss, All SListI xss) => All2 f xss
 --
 -- NOTE:
 --

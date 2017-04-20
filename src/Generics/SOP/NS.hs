@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -19,6 +20,7 @@ module Generics.SOP.NS
   , apInjs_POP
     -- * Destructing sums
   , unZ
+  , refute_NS
   , index_NS
   , index_SOP
     -- * Application
@@ -57,6 +59,7 @@ module Generics.SOP.NS
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 #endif
+import Data.Proxy
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
@@ -128,7 +131,17 @@ deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS
 --
 unZ :: NS f '[x] -> f x
 unZ (Z x) = x
-unZ _     = error "inaccessible" -- needed even in GHC 8.0.1
+unZ (S i) = refute_NS i
+{-# INLINE unZ #-}
+
+-- | It is impossible to produce a non-bottom empty sum.
+-- This function can be used to mark a case where we get hold of
+-- one as impossible.
+--
+refute_NS :: NS f '[] -> a
+refute_NS x =
+  case x of {}
+{-# INLINE refute_NS #-}
 
 -- | Obtain the index from an n-ary sum.
 --
@@ -221,9 +234,13 @@ type Injection (f :: k -> *) (xs :: [k]) = f -.-> K (NS f xs)
 -- Each element of the resulting product contains one of the injections.
 --
 injections :: forall xs f. SListI xs => NP (Injection f xs) xs
-injections = case sList :: SList xs of
-  SNil   -> Nil
-  SCons  -> fn (K . Z) :* liftA_NP shiftInjection injections
+injections =
+  unInjection_ (cataSList (Injection_ Nil) (Injection_ . cons . unInjection_))
+  where
+    cons r = fn (K . Z) :* map_NP shiftInjection r
+{-# INLINE injections #-}
+
+newtype Injection_ f xs = Injection_ { unInjection_ :: NP (Injection f xs) xs }
 
 -- | Shift an injection.
 --
@@ -231,6 +248,7 @@ injections = case sList :: SList xs of
 --
 shiftInjection :: Injection f xs a -> Injection f (x ': xs) a
 shiftInjection (Fn f) = Fn $ K . S . unK . f
+{-# INLINE shiftInjection #-}
 
 {-# DEPRECATED shift "Use 'shiftInjection' instead." #-}
 -- | Shift an injection.
@@ -239,6 +257,7 @@ shiftInjection (Fn f) = Fn $ K . S . unK . f
 --
 shift :: Injection f xs a -> Injection f (x ': xs) a
 shift = shiftInjection
+{-# INLINE shift #-}
 
 -- | Apply injections to a product.
 --
@@ -253,6 +272,7 @@ shift = shiftInjection
 --
 apInjs_NP  :: SListI xs  => NP  f xs  -> [NS  f xs]
 apInjs_NP  = hcollapse . hap injections
+{-# INLINE apInjs_NP #-}
 
 -- | Apply injections to a product of product.
 --
@@ -268,6 +288,7 @@ apInjs_NP  = hcollapse . hap injections
 --
 apInjs_POP :: SListI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
+{-# INLINE apInjs_POP #-}
 
 type instance UnProd NP  = NS
 type instance UnProd POP = SOP
@@ -281,25 +302,30 @@ instance HApInjs SOP where
 -- * Application
 
 -- | Specialization of 'hap'.
-ap_NS :: NP (f -.-> g) xs -> NS f xs -> NS g xs
-ap_NS (Fn f  :* _)   (Z x)   = Z (f x)
-ap_NS (_     :* fs)  (S xs)  = S (ap_NS fs xs)
-ap_NS _ _ = error "inaccessible"
+ap_NS :: SListI xs => NP (f -.-> g) xs -> NS f xs -> NS g xs
+ap_NS =
+  apFn_2 (cataSList (fn_2 nil) (fn_2 . cons . apFn_2))
+  where
+    nil :: NP (f -.-> g) '[] -> NS f '[] -> NS g '[]
+    nil _ x = refute_NS x
+    {-# INLINE nil #-}
+
+    cons ::
+         (NP (f -.-> g) ys -> NS f ys -> NS g ys)
+      -> (NP (f -.-> g) (y ': ys) -> NS f (y ': ys) -> NS g (y ': ys))
+    cons _ (Fn f :* _ ) (Z x ) = Z (f x)
+    cons r (_    :* fs) (S xs) = S (r fs xs)
+    {-# INLINE cons #-}
+{-# INLINE ap_NS #-}
 
 -- | Specialization of 'hap'.
-ap_SOP  :: POP (f -.-> g) xss -> SOP f xss -> SOP g xss
-ap_SOP (POP fss') (SOP xss') = SOP (go fss' xss')
-  where
-    go :: NP (NP (f -.-> g)) xss -> NS (NP f) xss -> NS (NP g) xss
-    go (fs :* _  ) (Z xs ) = Z (ap_NP fs  xs )
-    go (_  :* fss) (S xss) = S (go    fss xss)
-    go _           _       = error "inaccessible"
+ap_SOP :: All SListI xss => POP (t -.-> f) xss -> SOP t xss -> SOP f xss
+ap_SOP (POP fs) (SOP xs) = SOP (cliftA2_NS (Proxy :: Proxy SListI) ap_NP fs xs)
+{-# INLINE ap_SOP #-}
 
 -- The definition of 'ap_SOP' is a more direct variant of
 -- '_ap_SOP_spec'. The direct definition has the advantage
 -- that it avoids the 'SListI' constraint.
-_ap_SOP_spec :: SListI xss => POP (t -.-> f) xss -> SOP t xss -> SOP f xss
-_ap_SOP_spec (POP fs) (SOP xs) = SOP (liftA2_NS ap_NP fs xs)
 
 type instance Prod NS  = NP
 type instance Prod SOP = POP
@@ -318,7 +344,9 @@ liftA_NS  :: SListI     xs  => (forall a. f a -> g a) -> NS  f xs  -> NS  g xs
 liftA_SOP :: All SListI xss => (forall a. f a -> g a) -> SOP f xss -> SOP g xss
 
 liftA_NS  = hliftA
+{-# INLINE liftA_NS #-}
 liftA_SOP = hliftA
+{-# INLINE liftA_SOP #-}
 
 -- | Specialization of 'hliftA2'.
 liftA2_NS  :: SListI     xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS   h xs
@@ -326,7 +354,9 @@ liftA2_NS  :: SListI     xs  => (forall a. f a -> g a -> h a) -> NP  f xs  -> NS
 liftA2_SOP :: All SListI xss => (forall a. f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP  h xss
 
 liftA2_NS  = hliftA2
+{-# INLINE liftA2_NS #-}
 liftA2_SOP = hliftA2
+{-# INLINE liftA2_SOP #-}
 
 -- | Specialization of 'hmap', which is equivalent to 'hliftA'.
 map_NS  :: SListI     xs  => (forall a. f a -> g a) -> NS  f xs  -> NS  g xs
@@ -334,7 +364,9 @@ map_NS  :: SListI     xs  => (forall a. f a -> g a) -> NS  f xs  -> NS  g xs
 map_SOP :: All SListI xss => (forall a. f a -> g a) -> SOP f xss -> SOP g xss
 
 map_NS  = hmap
+{-# INLINE map_NS #-}
 map_SOP = hmap
+{-# INLINE map_SOP #-}
 
 -- | Specialization of 'hcliftA'.
 cliftA_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
@@ -342,7 +374,9 @@ cliftA_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f x
 cliftA_SOP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
 
 cliftA_NS  = hcliftA
+{-# INLINE cliftA_NS #-}
 cliftA_SOP = hcliftA
+{-# INLINE cliftA_SOP #-}
 
 -- | Specialization of 'hcliftA2'.
 cliftA2_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NS  g xs  -> NS  h xs
@@ -350,7 +384,9 @@ cliftA2_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a) -> 
 cliftA2_SOP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> SOP g xss -> SOP h xss
 
 cliftA2_NS  = hcliftA2
+{-# INLINE cliftA2_NS #-}
 cliftA2_SOP = hcliftA2
+{-# INLINE cliftA2_SOP #-}
 
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
 cmap_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
@@ -358,7 +394,9 @@ cmap_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs 
 cmap_SOP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
 
 cmap_NS  = hcmap
+{-# INLINE cmap_NS #-}
 cmap_SOP = hcmap
+{-# INLINE cmap_SOP #-}
 
 -- * Dealing with @'All' c@
 
@@ -371,14 +409,26 @@ cliftA2'_NS = hcliftA2'
 -- * Collapsing
 
 -- | Specialization of 'hcollapse'.
-collapse_NS  ::               NS  (K a) xs  ->   a
+collapse_NS  :: SListI     xs  => NS  (K a) xs  ->   a
 -- | Specialization of 'hcollapse'.
-collapse_SOP :: SListI xss => SOP (K a) xss ->  [a]
+collapse_SOP :: All SListI xss => SOP (K a) xss ->  [a]
 
-collapse_NS (Z (K x)) = x
-collapse_NS (S xs)    = collapse_NS xs
+collapse_NS =
+  unK . apFn
+    (cataSList
+      (fn refute_NS)
+      (fn . cons . apFn)
+    )
+  where
+    cons :: (NS (K a) ys -> K a ys) -> NS (K a) (y ': ys) -> K a (y ': ys)
+    cons _ (Z (K x)) = K x
+    cons r (S xs)    = K (unK (r xs))
+    {-# INLINE cons #-}
+{-# INLINE collapse_NS #-}
 
-collapse_SOP = collapse_NS . hliftA (K . collapse_NP) . unSOP
+collapse_SOP =
+  collapse_NS . hcmap (Proxy :: Proxy SListI) (K . collapse_NP) . unSOP
+{-# INLINE collapse_SOP #-}
 
 type instance CollapseTo NS  a =  a
 type instance CollapseTo SOP a = [a]
@@ -422,16 +472,23 @@ sequence_SOP  = hsequence
 -- @since 0.2.3.0
 --
 cata_NS ::
-     forall r f xs .
-     (forall y ys . f y -> r (y ': ys))
+     forall r f xs . SListI xs
+  => (forall y ys . f y -> r (y ': ys))
   -> (forall y ys . r ys -> r (y ': ys))
   -> NS f xs
   -> r xs
-cata_NS z s = go
+cata_NS z s =
+  apFn
+    (cataSList
+      (fn refute_NS)
+      (fn . cons . apFn)
+    )
   where
-    go :: forall ys . NS f ys -> r ys
-    go (Z x) = z x
-    go (S i) = s (go i)
+    cons :: forall y ys . (NS f ys -> r ys) -> NS f (y ': ys) -> r (y ': ys)
+    cons _ (Z x) = z x
+    cons r (S i) = s (r i)
+    {-# INLINE cons #-}
+{-# INLINE cata_NS #-}
 
 -- | Constrained catamorphism for 'NS'.
 --
@@ -440,15 +497,22 @@ cata_NS z s = go
 ccata_NS ::
      forall c proxy r f xs . (All c xs)
   => proxy c
-  -> (forall y ys . c y => f y -> r (y ': ys))
-  -> (forall y ys . c y => r ys -> r (y ': ys))
+  -> (forall y ys . (c y, All c ys) => f y -> r (y ': ys))
+  -> (forall y ys . (c y, All c ys) => r ys -> r (y ': ys))
   -> NS f xs
   -> r xs
-ccata_NS _ z s = go
+ccata_NS p z s =
+  apFn
+    (ccataSList p
+      (fn refute_NS)
+      (fn . cons . apFn)
+    )
   where
-    go :: forall ys . (All c ys) => NS f ys -> r ys
-    go (Z x) = z x
-    go (S i) = s (go i)
+    cons :: forall y ys . (c y, All c ys) => (NS f ys -> r ys) -> NS f (y ': ys) -> r (y ': ys)
+    cons _ (Z x) = z x
+    cons r (S i) = s (r i)
+    {-# INLINE cons #-}
+{-# INLINE ccata_NS #-}
 
 -- | Anamorphism for 'NS'.
 --
@@ -460,13 +524,20 @@ ana_NS ::
   -> (forall y ys . s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
-ana_NS refute decide = go sList
+ana_NS refute decide =
+  apFn
+    (cataSList
+      (fn refute)
+      (fn . cons . apFn)
+    )
   where
-    go :: forall ys . SList ys -> s ys -> NS f ys
-    go SNil  s = refute s
-    go SCons s = case decide s of
-      Left x   -> Z x
-      Right s' -> S (go sList s')
+    cons :: forall y ys . (s ys -> NS f ys) -> s (y ': ys) -> NS f (y ': ys)
+    cons r s =
+      case decide s of
+        Left x   -> Z x
+        Right s' -> S (r s')
+    {-# INLINE cons #-}
+{-# INLINE ana_NS #-}
 
 -- | Constrained anamorphism for 'NS'.
 --
@@ -476,13 +547,20 @@ cana_NS :: forall c proxy s f xs .
      (All c xs)
   => proxy c
   -> (forall r . s '[] -> r)
-  -> (forall y ys . c y => s (y ': ys) -> Either (f y) (s ys))
+  -> (forall y ys . (c y, All c ys) => s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
-cana_NS _ refute decide = go sList
+cana_NS p refute decide =
+  apFn
+    (ccataSList p
+      (fn refute)
+      (fn . cons . apFn)
+    )
   where
-    go :: forall ys . (All c ys) => SList ys -> s ys -> NS f ys
-    go SNil  s = refute s
-    go SCons s = case decide s of
-      Left x   -> Z x
-      Right s' -> S (go sList s')
+    cons :: forall y ys . (c y, All c ys) => (s ys -> NS f ys) -> s (y ': ys) -> NS f (y ': ys)
+    cons r s =
+      case decide s of
+        Left x   -> Z x
+        Right s' -> S (r s')
+    {-# INLINE cons #-}
+{-# INLINE cana_NS #-}

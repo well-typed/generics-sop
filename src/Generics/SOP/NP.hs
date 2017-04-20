@@ -160,9 +160,8 @@ type instance SListIN POP = SListI2
 --
 pure_NP :: forall f xs. SListI xs => (forall a. f a) -> NP f xs
 pure_NP f =
-  caseSList
-    Nil
-    (f :* pure_NP f)
+  cataSList Nil (f :*)
+{-# INLINE pure_NP #-}
 
 -- | Specialization of 'hpure'.
 --
@@ -183,10 +182,8 @@ sListP = Proxy
 cpure_NP :: forall c xs proxy f. All c xs
          => proxy c -> (forall a. c a => f a) -> NP f xs
 cpure_NP p f =
-  ccaseSList
-    p
-    Nil
-    (f :* cpure_NP p f)
+  ccataSList p Nil (f :*)
+{-# INLINE cpure_NP #-}
 
 -- | Specialization of 'hcpure'.
 --
@@ -215,13 +212,23 @@ instance HPure POP where
 -- Returns 'Nothing' if the length of the list does not exactly match the
 -- expected size of the product.
 --
-fromList :: SListI xs => [a] -> Maybe (NP (K a) xs)
-fromList = go sList
+fromList :: forall xs a . SListI xs => [a] -> Maybe (NP (K a) xs)
+fromList =
+  unComp . unComp $ cataSList
+    (Comp (Comp nil))
+    (Comp . Comp . cons . unComp . unComp)
   where
-    go :: SList xs -> [a] -> Maybe (NP (K a) xs)
-    go SNil  []     = return Nil
-    go SCons (x:xs) = do ys <- go sList xs ; return (K x :* ys)
-    go _     _      = Nothing
+    nil :: [a] -> Maybe (NP (K a) '[])
+    nil [] = Just Nil
+    nil _  = Nothing
+
+    cons ::
+         forall y ys .
+         ([a] -> Maybe (NP (K a) ys))
+      -> ([a] -> Maybe (NP (K a) (y ': ys)))
+    cons _ []       = Nothing
+    cons r (x : xs) = fmap (K x :*) (r xs)
+{-# INLINE fromList #-}
 
 -- * Application
 
@@ -230,33 +237,29 @@ fromList = go sList
 -- Applies a product of (lifted) functions pointwise to a product of
 -- suitable arguments.
 --
-ap_NP :: NP (f -.-> g) xs -> NP f xs -> NP g xs
-ap_NP Nil           Nil        = Nil
-ap_NP (Fn f :* fs)  (x :* xs)  = f x :* ap_NP fs xs
-#if __GLASGOW_HASKELL__ < 800
-ap_NP _ _ = error "inaccessible"
-#endif
+ap_NP :: SListI xs => NP (f -.-> g) xs -> NP f xs -> NP g xs
+ap_NP =
+  apFn_2 (cataSList (fn_2 nil) (fn_2 . cons . apFn_2))
+  where
+    nil :: NP (f -.-> g) '[] -> NP f '[] -> NP g '[]
+    nil Nil Nil = Nil
+
+    cons ::
+         (NP (f -.-> g) ys -> NP f ys -> NP g ys)
+      -> (NP (f -.-> g) (y ': ys) -> NP f (y ': ys) -> NP g (y ': ys))
+    cons r (Fn f :* fs) (x :* xs) = f x :* r fs xs
 
 -- | Specialization of 'hap'.
 --
 -- Applies a product of (lifted) functions pointwise to a product of
 -- suitable arguments.
 --
-ap_POP :: POP (f -.-> g) xss -> POP f xss -> POP g xss
-ap_POP (POP fss') (POP xss') = POP (go fss' xss')
-  where
-    go :: NP (NP (f -.-> g)) xss -> NP (NP f) xss -> NP (NP g) xss
-    go Nil         Nil         = Nil
-    go (fs :* fss) (xs :* xss) = ap_NP fs xs :* go fss xss
-#if __GLASGOW_HASKELL__ < 800
-    go _           _           = error "inaccessible"
-#endif
+ap_POP :: All SListI xss => POP (f -.-> g) xss -> POP  f xss -> POP  g xss
+ap_POP (POP fs) (POP xs) = POP (czipWith_NP (Proxy :: Proxy SListI) ap_NP fs xs)
 
 -- The definition of 'ap_POP' is a more direct variant of
 -- '_ap_POP_spec'. The direct definition has the advantage
 -- that it avoids the 'SListI' constraint.
-_ap_POP_spec :: SListI xss => POP (f -.-> g) xss -> POP  f xss -> POP  g xss
-_ap_POP_spec (POP fs) (POP xs) = POP (liftA2_NP ap_NP fs xs)
 
 type instance Prod NP  = NP
 type instance Prod POP = POP
@@ -289,9 +292,12 @@ type Projection (f :: k -> *) (xs :: [k]) = K (NP f xs) -.-> f
 -- Each element of the resulting product contains one of the projections.
 --
 projections :: forall xs f . SListI xs => NP (Projection f xs) xs
-projections = case sList :: SList xs of
-  SNil  -> Nil
-  SCons -> fn (hd . unK) :* liftA_NP shiftProjection projections
+projections =
+  unProjection_ (cataSList (Projection_ Nil) (Projection_ . cons . unProjection_))
+  where
+    cons r = fn (hd . unK) :* map_NP shiftProjection r
+
+newtype Projection_ f xs = Projection_ { unProjection_ :: NP (Projection f xs) xs }
 
 shiftProjection :: Projection f xs a -> Projection f (x ': xs) a
 shiftProjection (Fn f) = Fn $ f . K . tl . unK
@@ -444,7 +450,7 @@ cliftA2'_NP = hcliftA2'
 -- >>> collapse_NP (K 1 :* K 2 :* K 3 :* Nil)
 -- [1,2,3]
 --
-collapse_NP  ::              NP  (K a) xs  ->  [a]
+collapse_NP  :: SListI xs => NP  (K a) xs  ->  [a]
 
 -- | Specialization of 'hcollapse'.
 --
@@ -455,12 +461,16 @@ collapse_NP  ::              NP  (K a) xs  ->  [a]
 --
 -- (The type signature is only necessary in this case to fix the kind of the type variables.)
 --
-collapse_POP :: SListI xss => POP (K a) xss -> [[a]]
+collapse_POP :: All SListI xss => POP (K a) xss -> [[a]]
 
-collapse_NP Nil         = []
-collapse_NP (K x :* xs) = x : collapse_NP xs
+collapse_NP =
+  unK . apFn
+    (cataSList
+      (fn (\ Nil -> K []))
+      (fn . (\ r (K x :* xs) -> K (x : unK (r xs))) . apFn)
+    )
 
-collapse_POP = collapse_NP . hliftA (K . collapse_NP) . unPOP
+collapse_POP = collapse_NP . hcmap (Proxy :: Proxy SListI) (K . collapse_NP) . unPOP
 
 type instance CollapseTo NP  a = [a]
 type instance CollapseTo POP a = [[a]]
@@ -517,16 +527,17 @@ sequence_POP  = hsequence
 -- @since 0.2.3.0
 --
 cata_NP ::
-     forall r f xs .
-     r '[]
+     forall r f xs . SListI xs
+  => r '[]
   -> (forall y ys . f y -> r ys -> r (y ': ys))
   -> NP f xs
   -> r xs
-cata_NP nil cons = go
-  where
-    go :: forall ys . NP f ys -> r ys
-    go Nil       = nil
-    go (x :* xs) = cons x (go xs)
+cata_NP nil cons =
+  apFn
+    (cataSList
+      (fn (\ Nil -> nil))
+      (fn . (\ r (x :* xs) -> cons x (r xs)) . apFn)
+    )
 
 -- | Constrained catamorphism for 'NP'.
 --
@@ -544,11 +555,12 @@ ccata_NP ::
   -> (forall y ys . c y => f y -> r ys -> r (y ': ys))
   -> NP f xs
   -> r xs
-ccata_NP _ nil cons = go
-  where
-    go :: forall ys . (All c ys) => NP f ys -> r ys
-    go Nil       = nil
-    go (x :* xs) = cons x (go xs)
+ccata_NP p nil cons =
+  apFn
+    (ccataSList p
+      (fn (\ Nil -> nil))
+      (fn . (\ r (x :* xs) -> cons x (r xs)) . apFn)
+    )
 
 -- | Anamorphism for 'NP'.
 --
@@ -568,18 +580,11 @@ ana_NP ::
   -> s xs
   -> NP f xs
 ana_NP uncons =
-  let
-    go :: forall ys . SListI ys => s ys -> NP f ys
-    go =
-      apFn $
-      caseSList
-        (Fn $ \ _ -> Nil)
-        (Fn $ \ s ->
-          case uncons s of
-            (x, s') -> x :* go s'
-        )
-  in
-    go
+  apFn
+    (cataSList
+      (fn (\ _ -> Nil))
+      (fn . (\ r s -> case uncons s of (x, s') -> x :* r s') . apFn)
+    )
 
 -- | Constrained anamorphism for 'NP'.
 --
@@ -592,12 +597,12 @@ ana_NP uncons =
 cana_NP ::
      forall c proxy s f xs . (All c xs)
   => proxy c
-  -> (forall y ys . c y => s (y ': ys) -> (f y, s ys))
+  -> (forall y ys . (c y, All c ys) => s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
-cana_NP _ uncons = go sList
-  where
-    go :: forall ys . (All c ys) => SList ys -> s ys -> NP f ys
-    go SNil  _ = Nil
-    go SCons s = case uncons s of
-      (x, s') -> x :* go sList s'
+cana_NP p uncons =
+  apFn
+    (ccataSList p
+      (fn (const Nil))
+      (fn . (\ r s -> case uncons s of (x, s') -> x :* r s') . apFn)
+    )
