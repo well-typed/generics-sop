@@ -1,4 +1,19 @@
-# 0.2.3.0
+# 0.2.5.0
+
+* Make `:.:` an instance of `Applicative`, `Foldable` and
+  `Traversable`.
+
+* GHC 8.2 compatibility.
+
+# 0.2.4.0 (2017-02-02)
+
+* Add `hindex` (and `index_NS` and `index_SOP`).
+
+* Add `hapInjs` as a generalization of `apInjs_NP` and `apInjs_POP`.
+
+* Make basic functors instances of lifted classes (such as `Eq1` etc).
+
+# 0.2.3.0 (2016-12-04)
 
 * Add various metadata getters
 
@@ -25,7 +40,7 @@
   `Projection` and `projections` as duals of `Injection` and
   `injections`.
 
-# 0.2 (2015-10-23)
+# 0.2.0.0 (2015-10-23)
 
 * Now tested with ghc-7.10
 

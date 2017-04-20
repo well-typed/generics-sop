@@ -1,11 +1,14 @@
-{-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 -- | n-ary sums (and sums of products)
 module Generics.SOP.NS
   ( -- * Datatypes
     NS(..)
   , SOP(..)
-  , unZ
   , unSOP
     -- * Constructing sums
   , Injection
@@ -14,6 +17,10 @@ module Generics.SOP.NS
   , shiftInjection
   , apInjs_NP
   , apInjs_POP
+    -- * Destructing sums
+  , unZ
+  , index_NS
+  , index_SOP
     -- * Application
   , ap_NS
   , ap_SOP
@@ -123,6 +130,31 @@ unZ :: NS f '[x] -> f x
 unZ (Z x) = x
 unZ _     = error "inaccessible" -- needed even in GHC 8.0.1
 
+-- | Obtain the index from an n-ary sum.
+--
+-- An n-nary sum represents a choice between n different options.
+-- This function returns an integer between 0 and n - 1 indicating
+-- the option chosen by the given value.
+--
+-- /Examples:/
+--
+-- >>> index_NS (S (S (Z (I False))))
+-- 2
+-- >>> index_NS (Z (K ()))
+-- 0
+--
+-- @since 0.2.4.0
+--
+index_NS :: forall f xs . NS f xs -> Int
+index_NS = go 0
+  where
+    go :: forall ys . Int -> NS f ys -> Int
+    go !acc (Z _) = acc
+    go !acc (S x) = go (acc + 1) x
+
+instance HIndex NS where
+  hindex = index_NS
+
 -- | A sum of products.
 --
 -- This is a 'newtype' for an 'NS' of an 'NP'. The elements of the
@@ -140,11 +172,36 @@ newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
 
 deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
 deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
-deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss) 
+deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss)
 
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
+
+-- | Obtain the index from an n-ary sum of products.
+--
+-- An n-nary sum represents a choice between n different options.
+-- This function returns an integer between 0 and n - 1 indicating
+-- the option chosen by the given value.
+--
+-- /Specification:/
+--
+-- @
+-- 'index_SOP' = 'index_NS' '.' 'unSOP'
+-- @
+--
+-- /Example:/
+--
+-- >>> index_SOP (SOP (S (Z (I True :* I 'x' :* Nil))))
+-- 1
+--
+-- @since 0.2.4.0
+--
+index_SOP :: SOP f xs -> Int
+index_SOP = index_NS . unSOP
+
+instance HIndex SOP where
+  hindex = index_SOP
 
 -- * Constructing sums
 
@@ -211,6 +268,15 @@ apInjs_NP  = hcollapse . hap injections
 --
 apInjs_POP :: SListI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
+
+type instance UnProd NP  = NS
+type instance UnProd POP = SOP
+
+instance HApInjs NS where
+  hapInjs = apInjs_NP
+
+instance HApInjs SOP where
+  hapInjs = apInjs_POP
 
 -- * Application
 

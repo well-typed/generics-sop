@@ -221,7 +221,6 @@ module Generics.SOP (
     -- * n-ary datatypes
   , NP(..)
   , NS(..)
-  , unZ
   , SOP(..)
   , unSOP
   , POP(..)
@@ -277,8 +276,13 @@ module Generics.SOP (
   , injections
   , shift
   , shiftInjection
-  , apInjs_NP
-  , apInjs_POP
+  , UnProd
+  , HApInjs(..)
+  , apInjs_NP  -- deprecated export
+  , apInjs_POP -- deprecated export
+    -- ** Destructing sums
+  , unZ
+  , HIndex(..)
     -- ** Dealing with @'All' c@
   , hcliftA'
   , hcliftA2'
