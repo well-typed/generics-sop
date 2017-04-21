@@ -71,6 +71,8 @@ import Control.Applicative
 #endif
 import Data.Proxy (Proxy(..))
 
+import Control.DeepSeq (NFData(..))
+
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
 import Generics.SOP.Constraint
@@ -114,6 +116,11 @@ deriving instance All (Show `Compose` f) xs => Show (NP f xs)
 deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
 
+-- | @since 0.2.5.0
+instance All (NFData `Compose` f) xs => NFData (NP f xs) where
+    rnf Nil       = ()
+    rnf (x :* xs) = rnf x `seq` rnf xs
+
 -- | A product of products.
 --
 -- This is a 'newtype' for an 'NP' of an 'NP'. The elements of the
@@ -133,6 +140,10 @@ newtype POP (f :: (k -> *)) (xss :: [[k]]) = POP (NP (NP f) xss)
 deriving instance (Show (NP (NP f) xss)) => Show (POP f xss)
 deriving instance (Eq   (NP (NP f) xss)) => Eq   (POP f xss)
 deriving instance (Ord  (NP (NP f) xss)) => Ord  (POP f xss)
+
+-- | @since 0.2.5.0
+instance (NFData (NP (NP f) xss)) => NFData (POP f xss) where
+    rnf (POP xss) = rnf xss
 
 -- | Unwrap a product of products.
 unPOP :: POP f xss -> NP (NP f) xss

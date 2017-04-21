@@ -66,6 +66,8 @@ import Control.Applicative
 #endif
 import Data.Proxy
 
+import Control.DeepSeq (NFData(..))
+
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
 import Generics.SOP.Constraint
@@ -121,6 +123,11 @@ data NS :: (k -> *) -> [k] -> * where
 deriving instance All (Show `Compose` f) xs => Show (NS f xs)
 deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs)
+
+-- | @since 0.2.5.0
+instance All (NFData `Compose` f) xs => NFData (NS f xs) where
+    rnf (Z x)  = rnf x
+    rnf (S xs) = rnf xs
 
 -- | Extract the payload from a unary sum.
 --
@@ -181,6 +188,10 @@ newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
 deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
 deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
 deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss)
+
+-- | @since 0.2.5.0
+instance (NFData (NS (NP f) xss)) => NFData (SOP f xss) where
+    rnf (SOP xss) = rnf xss
 
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss

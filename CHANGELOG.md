@@ -18,6 +18,9 @@
   functions into different combinations of identity and
   constant functors.
 
+* Add `NFData` (and lifted variants) instances for basic functors,
+  products and sums.
+
 # 0.2.4.0 (2017-02-02)
 
 * Add `hindex` (and `index_NS` and `index_SOP`).

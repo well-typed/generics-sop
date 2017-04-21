@@ -67,6 +67,11 @@ import Data.Functor.Classes
 #endif
 #endif
 
+import Control.DeepSeq (NFData(..))
+#if MIN_VERSION_deepseq(1,4,3)
+import Control.DeepSeq (NFData1(..), NFData2(..))
+#endif
+
 -- * Basic functors
 
 -- | The constant type functor.
@@ -327,6 +332,38 @@ instance (Functor f, Read1 f, Read1 g) => Read1 (f :.: g) where
 -- | @since 0.2.4.0
 instance (Functor f, Show1 f, Show1 g) => Show1 (f :.: g) where
     showsPrec1 = showsPrec
+#endif
+
+-- NFData Instances
+
+-- | @since 0.2.5.0
+instance NFData a => NFData (I a) where
+    rnf (I x) = rnf x
+
+-- | @since 0.2.5.0
+instance NFData a => NFData (K a b) where
+    rnf (K x) = rnf x
+
+-- | @since 0.2.5.0
+instance NFData (f (g a)) => NFData ((f :.: g)  a) where
+    rnf (Comp x) = rnf x
+
+#if MIN_VERSION_deepseq(1,4,3)
+-- | @since 0.2.5.0
+instance NFData1 I where
+    liftRnf r (I x) = r x
+
+-- | @since 0.2.5.0
+instance NFData a => NFData1 (K a) where
+    liftRnf _ (K x) = rnf x
+
+-- | @since 0.2.5.0
+instance NFData2 K where
+    liftRnf2 r _ (K x) = r x
+
+-- | @since 0.2.5.0
+instance (NFData1 f, NFData1 g) => NFData1 (f :.: g) where
+    liftRnf r (Comp x) = liftRnf (liftRnf r) x
 #endif
 
 -- | Extract the contents of a 'Comp' value.
