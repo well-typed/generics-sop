@@ -347,7 +347,7 @@ unComp (Comp x) = x
 -- @since 0.2.5.0
 --
 mapII :: (a -> b) -> I a -> I b
-mapII f (I a) = I (f a)
+mapII = \ f (I a) -> I (f a)
 {-# INLINE mapII #-}
 
 -- | Lift the given function.
@@ -355,7 +355,7 @@ mapII f (I a) = I (f a)
 -- @since 0.2.5.0
 --
 mapIK :: (a -> b) -> I a -> K b c
-mapIK f (I a) = K (f a)
+mapIK = \ f (I a) -> K (f a)
 {-# INLINE mapIK #-}
 
 -- | Lift the given function.
@@ -363,7 +363,7 @@ mapIK f (I a) = K (f a)
 -- @since 0.2.5.0
 --
 mapKI :: (a -> b) -> K a c -> I b
-mapKI f (K a) = I (f a)
+mapKI = \ f (K a) -> I (f a)
 {-# INLINE mapKI #-}
 
 -- | Lift the given function.
@@ -371,7 +371,7 @@ mapKI f (K a) = I (f a)
 -- @since 0.2.5.0
 --
 mapKK :: (a -> b) -> K a c -> K b d
-mapKK f (K a) = K (f a)
+mapKK = \ f (K a) -> K (f a)
 {-# INLINE mapKK #-}
 
 -- | Lift the given function.
@@ -379,7 +379,7 @@ mapKK f (K a) = K (f a)
 -- @since 0.2.5.0
 --
 mapIII :: (a -> b -> c) -> I a -> I b -> I c
-mapIII f (I a) (I b) = I (f a b)
+mapIII = \ f (I a) (I b) -> I (f a b)
 {-# INLINE mapIII #-}
 
 -- | Lift the given function.
@@ -387,7 +387,7 @@ mapIII f (I a) (I b) = I (f a b)
 -- @since 0.2.5.0
 --
 mapIIK :: (a -> b -> c) -> I a -> I b -> K c d
-mapIIK f (I a) (I b) = K (f a b)
+mapIIK = \ f (I a) (I b) -> K (f a b)
 {-# INLINE mapIIK #-}
 
 -- | Lift the given function.
@@ -395,7 +395,7 @@ mapIIK f (I a) (I b) = K (f a b)
 -- @since 0.2.5.0
 --
 mapIKI :: (a -> b -> c) -> I a -> K b d -> I c
-mapIKI f (I a) (K b) = I (f a b)
+mapIKI = \ f (I a) (K b) -> I (f a b)
 {-# INLINE mapIKI #-}
 
 -- | Lift the given function.
@@ -403,7 +403,7 @@ mapIKI f (I a) (K b) = I (f a b)
 -- @since 0.2.5.0
 --
 mapIKK :: (a -> b -> c) -> I a -> K b d -> K c e
-mapIKK f (I a) (K b) = K (f a b)
+mapIKK = \ f (I a) (K b) -> K (f a b)
 {-# INLINE mapIKK #-}
 
 -- | Lift the given function.
@@ -411,7 +411,7 @@ mapIKK f (I a) (K b) = K (f a b)
 -- @since 0.2.5.0
 --
 mapKII :: (a -> b -> c) -> K a d -> I b -> I c
-mapKII f (K a) (I b) = I (f a b)
+mapKII = \ f (K a) (I b) -> I (f a b)
 {-# INLINE mapKII #-}
 
 -- | Lift the given function.
@@ -419,7 +419,7 @@ mapKII f (K a) (I b) = I (f a b)
 -- @since 0.2.5.0
 --
 mapKIK :: (a -> b -> c) -> K a d -> I b -> K c e
-mapKIK f (K a) (I b) = K (f a b)
+mapKIK = \ f (K a) (I b) -> K (f a b)
 {-# INLINE mapKIK #-}
 
 -- | Lift the given function.
@@ -427,7 +427,7 @@ mapKIK f (K a) (I b) = K (f a b)
 -- @since 0.2.5.0
 --
 mapKKI :: (a -> b -> c) -> K a d -> K b e -> I c
-mapKKI f (K a) (K b) = I (f a b)
+mapKKI = \ f (K a) (K b) -> I (f a b)
 {-# INLINE mapKKI #-}
 
 -- | Lift the given function.
@@ -435,5 +435,5 @@ mapKKI f (K a) (K b) = I (f a b)
 -- @since 0.2.5.0
 --
 mapKKK :: (a -> b -> c) -> K a d -> K b e -> K c f
-mapKKK f (K a) (K b) = K (f a b)
+mapKKK = \ f (K a) (K b) -> K (f a b)
 {-# INLINE mapKKK #-}
