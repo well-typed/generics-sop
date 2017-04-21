@@ -68,6 +68,9 @@ import Data.Functor.Classes
 #endif
 
 import Control.DeepSeq (NFData(..))
+#if MIN_VERSION_deepseq(1,4,3)
+import Control.DeepSeq (NFData1(..), NFData2(..))
+#endif
 
 -- * Basic functors
 
@@ -344,6 +347,24 @@ instance NFData a => NFData (K a b) where
 -- | @since 0.2.5.0
 instance NFData (f (g a)) => NFData ((f :.: g)  a) where
     rnf (Comp x) = rnf x
+
+#if MIN_VERSION_deepseq(1,4,3)
+-- | @since 0.2.5.0
+instance NFData1 I where
+    liftRnf r (I x) = r x
+
+-- | @since 0.2.5.0
+instance NFData a => NFData1 (K a) where
+    liftRnf _ (K x) = rnf x
+
+-- | @since 0.2.5.0
+instance NFData2 K where
+    liftRnf2 r _ (K x) = r x
+
+-- | @since 0.2.5.0
+instance (NFData1 f, NFData1 g) => NFData1 (f :.: g) where
+    liftRnf r (Comp x) = liftRnf (liftRnf r) x
+#endif
 
 -- | Extract the contents of a 'Comp' value.
 unComp :: (f :.: g) p -> f (g p)
