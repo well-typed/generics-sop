@@ -1,5 +1,7 @@
 # 0.2.5.0
 
+* GHC 8.2 compatibility.
+
 * Make `:.:` an instance of `Applicative`, `Foldable` and
   `Traversable`.
 
@@ -12,7 +14,9 @@
   functions expand sums into products, given a default value
   to fill the other slots.
 
-* GHC 8.2 compatibility.
+* Add utility functions such as `mapII` or `mapIK` that lift
+  functions into different combinations of identity and
+  constant functors.
 
 # 0.2.4.0 (2017-02-02)
 
