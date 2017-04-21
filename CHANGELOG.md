@@ -3,6 +3,15 @@
 * Make `:.:` an instance of `Applicative`, `Foldable` and
   `Traversable`.
 
+* Add functions `apInjs'_NP` and `apInjs'_POP`. These are
+  variants of `apInjs_NP` and `apInjs'_POP` that return their
+  result as an n-ary product, rather than collapsing it into
+  a list.
+
+* Add `hexpand` (and `expand_NS` and `expand_SOP`). These
+  functions expand sums into products, given a default value
+  to fill the other slots.
+
 * GHC 8.2 compatibility.
 
 # 0.2.4.0 (2017-02-02)
