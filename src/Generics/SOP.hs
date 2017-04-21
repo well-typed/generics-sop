@@ -294,6 +294,8 @@ module Generics.SOP (
   , HSequence(..)
   , hsequence
   , hsequenceK
+    -- ** Expanding sums to products
+  , HExpand(..)
     -- ** Partial operations
   , fromList
     -- * Utilities
