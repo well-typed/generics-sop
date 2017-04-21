@@ -16,7 +16,9 @@ module Generics.SOP.NS
   , shift
   , shiftInjection
   , apInjs_NP
+  , apInjs'_NP
   , apInjs_POP
+  , apInjs'_POP
     -- * Destructing sums
   , unZ
   , index_NS
@@ -258,7 +260,15 @@ shift = shiftInjection
 -- [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
 --
 apInjs_NP  :: SListI xs  => NP  f xs  -> [NS  f xs]
-apInjs_NP  = hcollapse . hap injections
+apInjs_NP  = hcollapse . apInjs'_NP
+
+-- | `apInjs_NP` without `hcollapse`.
+--
+-- >>> apInjs'_NP (I 'x' :* I True :* I 2 :* Nil)
+-- K (Z (I 'x')) :* K (S (Z (I True))) :* K (S (S (Z (I 2)))) :* Nil
+--
+apInjs'_NP :: SListI xss => NP f xss -> NP (K (NS f xss)) xss
+apInjs'_NP = hap injections
 
 -- | Apply injections to a product of product.
 --
@@ -274,6 +284,16 @@ apInjs_NP  = hcollapse . hap injections
 --
 apInjs_POP :: SListI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
+
+-- | `apInjs_POP` without `hcollapse`.
+--
+-- /Example:/
+--
+-- >>> apInjs'_POP (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil))
+-- K (SOP (Z (I 'x' :* Nil))) :* K (SOP (S (Z (I True :* I 2 :* Nil)))) :* Nil
+--
+apInjs'_POP :: SListI xss => POP f xss -> NP (K (SOP f xss)) xss
+apInjs'_POP = hmap (\(K xss) -> K (SOP xss)) . hap injections . unPOP
 
 type instance UnProd NP  = NS
 type instance UnProd POP = SOP
