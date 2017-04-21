@@ -67,6 +67,8 @@ import Data.Functor.Classes
 #endif
 #endif
 
+import Control.DeepSeq (NFData(..))
+
 -- * Basic functors
 
 -- | The constant type functor.
@@ -328,6 +330,20 @@ instance (Functor f, Read1 f, Read1 g) => Read1 (f :.: g) where
 instance (Functor f, Show1 f, Show1 g) => Show1 (f :.: g) where
     showsPrec1 = showsPrec
 #endif
+
+-- NFData Instances
+
+-- | @since 0.2.5.0
+instance NFData a => NFData (I a) where
+    rnf (I x) = rnf x
+
+-- | @since 0.2.5.0
+instance NFData a => NFData (K a b) where
+    rnf (K x) = rnf x
+
+-- | @since 0.2.5.0
+instance NFData (f (g a)) => NFData ((f :.: g)  a) where
+    rnf (Comp x) = rnf x
 
 -- | Extract the contents of a 'Comp' value.
 unComp :: (f :.: g) p -> f (g p)
