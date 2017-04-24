@@ -1,4 +1,30 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
+-- | Type-level metadata
+--
+-- This module provides datatypes (to be used promoted) that can represent the
+-- metadata of Haskell datatypes on the type level.
+--
+-- We do not reuse the term-level metadata types, because these are GADTs that
+-- incorporate additional invariants. We could (at least in GHC 8) impose the
+-- same invariants on the type level as well, but some tests have revealed that
+-- the resulting type are rather inconvenient to work with.
+--
+-- So we use simple datatypes to represent the type-level metadata, even if
+-- this means that some invariants are not explicitly captured.
+--
+-- We establish a relation between the term- and type-level versions of the
+-- metadata by automatically computing the term-level version from the type-level
+-- version.
+--
+-- As we now have two versions of metadata (term-level and type-level)
+-- with very similar, yet slightly different datatype definitions, the names
+-- between the modules clash, and this module is recommended to be imported
+-- qualified when needed.
+--
+-- The interface exported by this module is still somewhat experimental.
+--
+-- @since 0.3.0.0
+--
 module Generics.SOP.Type.Metadata
   ( module Generics.SOP.Type.Metadata
     -- * re-exports
@@ -32,7 +58,7 @@ import Generics.SOP.Sing
 -- The constructor indicates whether the datatype has been declared using @newtype@
 -- or not.
 --
--- @since 0.3
+-- @since 0.3.0.0
 --
 data DatatypeInfo =
 #if __GLASGOW_HASKELL__ >= 800
@@ -49,7 +75,7 @@ data DatatypeInfo =
 
 -- | Metadata for a single constructors (to be used promoted).
 --
--- @since 0.3
+-- @since 0.3.0.0
 --
 data ConstructorInfo =
 #if __GLASGOW_HASKELL__ >= 800
@@ -70,7 +96,7 @@ data ConstructorInfo =
 
 -- | Metadata for a single record field (to be used promoted).
 --
--- @since 0.3
+-- @since 0.3.0.0
 --
 data FieldInfo =
 #if __GLASGOW_HASKELL__ >= 800
@@ -101,7 +127,17 @@ type Fixity          = Nat
 -- The following classes are concerned with computing the
 -- term-level metadata from the type-level metadata.
 
+-- | Class for computing term-level datatype information from
+-- type-level datatype information.
+--
+-- @since 0.3.0.0
+--
 class DemoteDatatypeInfo (x :: DatatypeInfo) (xss :: [[*]]) where
+  -- | Given a proxy of some type-level datatype information,
+  -- return the corresponding term-level information.
+  --
+  -- @since 0.3.0.0
+  --
   demoteDatatypeInfo :: proxy x -> M.DatatypeInfo xss
 
 instance
@@ -122,7 +158,17 @@ instance
       (symbolVal (Proxy :: Proxy d))
       (demoteConstructorInfo (Proxy :: Proxy c))
 
+-- | Class for computing term-level constructor information from
+-- type-level constructor information.
+--
+-- @since 0.3.0.0
+--
 class DemoteConstructorInfos (cs :: [ConstructorInfo]) (xss :: [[*]]) where
+  -- | Given a proxy of some type-level constructor information,
+  -- return the corresponding term-level information as a product.
+  --
+  -- @since 0.3.0.0
+  --
   demoteConstructorInfos :: proxy cs -> NP M.ConstructorInfo xss
 
 instance DemoteConstructorInfos '[] '[] where
@@ -134,7 +180,17 @@ instance
   demoteConstructorInfos _ =
     demoteConstructorInfo (Proxy :: Proxy c) :* demoteConstructorInfos (Proxy :: Proxy cs)
 
+-- | Class for computing term-level constructor information from
+-- type-level constructor information.
+--
+-- @since 0.3.0.0
+--
 class DemoteConstructorInfo (x :: ConstructorInfo) (xs :: [*]) where
+  -- | Given a proxy of some type-level constructor information,
+  -- return the corresponding term-level information.
+  --
+  -- @since 0.3.0.0
+  --
   demoteConstructorInfo :: proxy x -> M.ConstructorInfo xs
 
 instance (KnownSymbol s, SListI xs) => DemoteConstructorInfo ('Constructor s) xs where
@@ -153,7 +209,17 @@ instance (KnownSymbol s, DemoteFieldInfos fs xs) => DemoteConstructorInfo ('Reco
   demoteConstructorInfo _ =
     M.Record (symbolVal (Proxy :: Proxy s)) (demoteFieldInfos (Proxy :: Proxy fs))
 
+-- | Class for computing term-level field information from
+-- type-level field information.
+--
+-- @since 0.3.0.0
+--
 class SListI xs => DemoteFieldInfos (fs :: [FieldInfo]) (xs :: [*]) where
+  -- | Given a proxy of some type-level field information,
+  -- return the corresponding term-level information as a product.
+  --
+  -- @since 0.3.0.0
+  --
   demoteFieldInfos :: proxy fs -> NP M.FieldInfo xs
 
 instance DemoteFieldInfos '[] '[] where
@@ -164,10 +230,33 @@ instance
   => DemoteFieldInfos (f ': fs) (x ': xs) where
   demoteFieldInfos _ = demoteFieldInfo (Proxy :: Proxy f) :* demoteFieldInfos (Proxy :: Proxy fs)
 
+-- | Class for computing term-level field information from
+-- type-level field information.
+--
+-- @since 0.3.0.0
+--
 class DemoteFieldInfo (x :: FieldInfo) (a :: *) where
+  -- | Given a proxy of some type-level field information,
+  -- return the corresponding term-level information.
+  --
+  -- @since 0.3.0.0
+  --
   demoteFieldInfo :: proxy x -> M.FieldInfo a
 
+instance KnownSymbol s => DemoteFieldInfo ('FieldInfo s) a where
+  demoteFieldInfo _ = M.FieldInfo (symbolVal (Proxy :: Proxy s))
+
+-- | Class for computing term-level associativity information
+-- from type-level associativity information.
+--
+-- @since 0.3.0.0
+--
 class DemoteAssociativity (a :: Associativity) where
+  -- | Given a proxy of some type-level associativity information,
+  -- return the corresponding term-level information.
+  --
+  -- @since 0.3.0.0
+  --
   demoteAssociativity :: proxy a -> M.Associativity
 
 instance DemoteAssociativity 'LeftAssociative where
@@ -178,7 +267,4 @@ instance DemoteAssociativity 'RightAssociative where
 
 instance DemoteAssociativity 'NotAssociative where
   demoteAssociativity _ = M.NotAssociative
-
-instance KnownSymbol s => DemoteFieldInfo ('FieldInfo s) a where
-  demoteFieldInfo _ = M.FieldInfo (symbolVal (Proxy :: Proxy s))
 

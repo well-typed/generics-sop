@@ -155,7 +155,7 @@ deriveMetadataValue n codeName datatypeInfoName = do
 -- >   T.ADT "Main" "Tree"
 -- >     [ T.Constructor "Leaf", T.Constructor "Node" ]
 --
--- @since 0.3
+-- @since 0.3.0.0
 --
 deriveMetadataType :: Name -> String -> Q [Dec]
 deriveMetadataType n datatypeInfoName = do

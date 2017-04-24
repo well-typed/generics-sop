@@ -261,6 +261,9 @@ type GDatatypeInfo a = GDatatypeInfo' (GHC.Rep a)
 
 #if MIN_VERSION_base(4,9,0)
 -- | Compute the datatype info of a datatype.
+--
+-- @since 0.3.0.0
+--
 type GDatatypeInfoOf (a :: *) = ToInfo (GHC.Rep a)
 #endif
 

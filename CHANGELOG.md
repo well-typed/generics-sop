@@ -1,4 +1,4 @@
-# 0.3
+# 0.3.0.0
 
 * Support type-level metadata. This is provided by the
   `Generics.SOP.Type.Metadata` module. The two modules
