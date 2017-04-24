@@ -1,5 +1,5 @@
 name:                generics-sop
-version:             0.2.5.0
+version:             0.3
 synopsis:            Generic Programming using True Sums of Products
 description:
   A library to support the definition of generic functions.
@@ -48,6 +48,7 @@ library
                        Generics.SOP.GGP
                        Generics.SOP.TH
                        Generics.SOP.Dict
+                       Generics.SOP.Type.Metadata
                        -- exposed via Generics.SOP:
                        Generics.SOP.BasicFunctors
                        Generics.SOP.Classes

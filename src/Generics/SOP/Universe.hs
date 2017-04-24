@@ -13,6 +13,7 @@ import Generics.SOP.NS
 import Generics.SOP.Sing
 import Generics.SOP.GGP
 import Generics.SOP.Metadata
+import qualified Generics.SOP.Type.Metadata as T
 
 -- | The (generic) representation of a datatype.
 --
@@ -137,7 +138,17 @@ class (All SListI (Code a)) => Generic (a :: *) where
 -- of 'Generic' for the options.
 --
 class HasDatatypeInfo a where
+  -- | Type-level datatype info
+  type DatatypeInfoOf a :: T.DatatypeInfo
+#if MIN_VERSION_base(4,9,0)
+  type DatatypeInfoOf a = GDatatypeInfoOf a
+#else
+  type DatatypeInfoOf a = DatatypeInfoOf a
+#endif
+
+  -- | Term-level datatype info; by default, the term-level datatype info is produced
+  -- from the type-level info.
+  --
   datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
-  default datatypeInfo :: (GDatatypeInfo a, Code a ~ GCode a)
-                       => proxy a -> DatatypeInfo (Code a)
+  default datatypeInfo :: (GDatatypeInfo a, GCode a ~ Code a) => proxy a -> DatatypeInfo (Code a)
   datatypeInfo = gdatatypeInfo

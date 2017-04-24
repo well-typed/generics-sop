@@ -1,3 +1,33 @@
+# 0.3
+
+* Support type-level metadata. This is provided by the
+  `Generics.SOP.Type.Metadata` module. The two modules
+  `Generics.SOP.Metadata` and `Generics.SOP.Type.Metadata`
+  export nearly the same names, so for backwards compatibility,
+  we keep exporting `Generics.SOP.Metadata` directly from
+  `Generics.SOP`, whereas `Generics.SOP.Type.Metadata` is
+  supposed to be imported explicitly (and qualified).
+
+  Term-level metadata is still available, but is now usually
+  computed automatically from the type-level metadata which
+  contains the same information, using the function
+  `demoteDatatypeInfo`. Term-level metadata is unchanged
+  from generics-sop-0.2, so if your code does not use
+  type-level metadata, you should not need to change
+  anything.
+
+  If you use TH deriving, then both type-level metadata and
+  term-level metadata is generated for you automatically,
+  for all supported GHC versions.
+
+  If you use GGP deriving, then type-level metadata is
+  available if you use GHC 8.0 or newer. If you use GHC 7.x,
+  then GHC.Generics supports only term-level metadata, so
+  we cannot translate that into type-level metadata. In
+  this combination, you cannot use code that relies on
+  type-level metadata, so you should either upgrade GHC or
+  switch to TH-based deriving.
+
 # 0.2.5.0 (2017-04-21)
 
 * GHC 8.2 compatibility.
