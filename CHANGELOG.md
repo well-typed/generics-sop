@@ -1,5 +1,8 @@
 # 0.3.0.0 (2017-04-29)
 
+* No longer compatible with GHC 7.6, due to the lack of
+  support for type-level literals.
+
 * Support type-level metadata. This is provided by the
   `Generics.SOP.Type.Metadata` module. The two modules
   `Generics.SOP.Metadata` and `Generics.SOP.Type.Metadata`
