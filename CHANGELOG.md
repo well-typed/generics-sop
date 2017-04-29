@@ -1,4 +1,4 @@
-# 0.3.0.0
+# 0.3.0.0 (2017-04-29)
 
 * Support type-level metadata. This is provided by the
   `Generics.SOP.Type.Metadata` module. The two modules
@@ -12,8 +12,8 @@
   computed automatically from the type-level metadata which
   contains the same information, using the function
   `demoteDatatypeInfo`. Term-level metadata is unchanged
-  from generics-sop-0.2, so if your code does not use
-  type-level metadata, you should not need to change
+  from generics-sop-0.2, so in most cases, even if your
+  code makes use of metadata, you should not need to change
   anything.
 
   If you use TH deriving, then both type-level metadata and
