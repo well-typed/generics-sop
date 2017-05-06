@@ -59,12 +59,23 @@ module Generics.SOP.NS
   , cexpand_NS
   , expand_SOP
   , cexpand_SOP
+    -- * Transformations and coercions
+  , trans_NS
+  , trans_SOP
+  , coerce_NS
+  , coerce_SOP
+  , fromI_NS
+  , fromI_SOP
+  , toI_NS
+  , toI_SOP
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 #endif
+import Data.Coerce
 import Data.Proxy
+import Unsafe.Coerce
 
 import Control.DeepSeq (NFData(..))
 
@@ -591,3 +602,79 @@ instance HExpand NS where
 instance HExpand SOP where
   hexpand  = expand_SOP
   hcexpand = cexpand_SOP
+
+-- | Transform an 'NS' into a related 'NS' given a conversion
+-- function for the elements.
+--
+-- @since 0.3.1.0
+--
+trans_NS ::
+     AllZip c xs ys
+  => proxy c
+  -> (forall x y . c x y => f x -> g y)
+  -> NS f xs -> NS g ys
+trans_NS _ t (Z x)      = Z (t x)
+trans_NS p t (S x)      = S (trans_NS p t x)
+
+trans_SOP ::
+     AllZip2 c xss yss
+  => proxy c
+  -> (forall x y . c x y => f x -> g y)
+  -> SOP f xss -> SOP g yss
+trans_SOP p t =
+  SOP . trans_NS (allZipP p) (trans_NP p t) . unSOP
+
+allZipP :: proxy c -> Proxy (AllZip c)
+allZipP _ = Proxy
+
+coerce_NS ::
+     forall f g xs ys .
+     AllZip (LiftedCoercible f g) xs ys
+  => NS f xs -> NS g ys
+coerce_NS =
+  unsafeCoerce
+
+_safe_coerce_NS ::
+     forall f g xs ys .
+     AllZip (LiftedCoercible f g) xs ys
+  => NS f xs -> NS g ys
+_safe_coerce_NS =
+  trans_NS (Proxy :: Proxy (LiftedCoercible f g)) coerce
+
+coerce_SOP ::
+     forall f g xss yss .
+     AllZip2 (LiftedCoercible f g) xss yss
+  => SOP f xss -> SOP g yss
+coerce_SOP =
+  unsafeCoerce
+
+_safe_coerce_SOP ::
+     forall f g xss yss .
+     AllZip2 (LiftedCoercible f g) xss yss
+  => SOP f xss -> SOP g yss
+_safe_coerce_SOP =
+  trans_SOP (Proxy :: Proxy (LiftedCoercible f g)) coerce
+
+fromI_NS ::
+     forall f xs ys .
+     AllZip (LiftedCoercible I f) xs ys
+  => NS I xs -> NS f ys
+fromI_NS = coerce_NS
+
+toI_NS ::
+     forall f xs ys .
+     AllZip (LiftedCoercible f I) xs ys
+  => NS f xs -> NS I ys
+toI_NS = coerce_NS
+
+fromI_SOP ::
+     forall f xss yss .
+     AllZip2 (LiftedCoercible I f) xss yss
+  => SOP I xss -> SOP f yss
+fromI_SOP = coerce_SOP
+
+toI_SOP ::
+     forall f xss yss .
+     AllZip2 (LiftedCoercible f I) xss yss
+  => SOP f xss -> SOP I yss
+toI_SOP = coerce_SOP
