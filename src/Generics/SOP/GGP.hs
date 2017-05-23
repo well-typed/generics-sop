@@ -28,6 +28,7 @@ import GHC.Generics as GHC
 import Generics.SOP.NP as SOP
 import Generics.SOP.NS as SOP
 import Generics.SOP.BasicFunctors as SOP
+import Generics.SOP.Constraint (NP_List, cons_NP_List)
 #if !(MIN_VERSION_base(4,9,0))
 import Generics.SOP.Constraint as SOP
 #endif

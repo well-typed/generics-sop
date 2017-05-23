@@ -1,4 +1,7 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE UndecidableSuperClasses #-}
+#endif
 -- | Type-level metadata
 --
 -- This module provides datatypes (to be used promoted) that can represent the

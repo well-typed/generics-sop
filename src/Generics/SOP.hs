@@ -273,8 +273,6 @@ module Generics.SOP (
     -- ** Constructing sums
   , Injection
   , injections
-  , shift
-  , shiftInjection
   , UnProd
   , HApInjs(..)
   , apInjs_NP  -- deprecated export
