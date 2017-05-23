@@ -634,12 +634,21 @@ coerce_NS ::
 coerce_NS =
   unsafeCoerce
 
+-- There is a bug in the way coerce works for higher-kinded
+-- type variables that seems to occur only in GHC 7.10.
+--
+-- Therefore, the safe versions of the coercion functions
+-- are excluded below. This is harmless because they're only
+-- present for documentation purposes and not exported.
+
+#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
 _safe_coerce_NS ::
      forall f g xs ys .
      AllZip (LiftedCoercible f g) xs ys
   => NS f xs -> NS g ys
 _safe_coerce_NS =
   trans_NS (Proxy :: Proxy (LiftedCoercible f g)) coerce
+#endif
 
 coerce_SOP ::
      forall f g xss yss .
@@ -648,12 +657,14 @@ coerce_SOP ::
 coerce_SOP =
   unsafeCoerce
 
+#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
 _safe_coerce_SOP ::
      forall f g xss yss .
      AllZip2 (LiftedCoercible f g) xss yss
   => SOP f xss -> SOP g yss
 _safe_coerce_SOP =
   trans_SOP (Proxy :: Proxy (LiftedCoercible f g)) coerce
+#endif
 
 fromI_NS ::
      forall f xs ys .
