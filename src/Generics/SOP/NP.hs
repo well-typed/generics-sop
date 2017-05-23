@@ -266,7 +266,7 @@ fromList xs =
   if length xs == lengthSList (Proxy :: Proxy xs)
     then Just (NP (V.fromList (unsafeCoerce xs)))
     else Nothing
-    
+
 {-
 fromList = go sList
   where
@@ -284,7 +284,7 @@ fromList = go sList
 -- suitable arguments.
 --
 ap_NP :: NP (f -.-> g) xs -> NP f xs -> NP g xs
-ap_NP (NP fs) (NP xs) = NP (V.zipWith unsafeApply fs xs) 
+ap_NP (NP fs) (NP xs) = NP (V.zipWith unsafeApply fs xs)
   where
     unsafeApply f x = unsafeCoerce f x
 
