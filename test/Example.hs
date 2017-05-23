@@ -10,6 +10,7 @@ module Main (main, toTreeC) where
 import qualified GHC.Generics as GHC
 import Generics.SOP
 import Generics.SOP.TH
+import qualified Generics.SOP.Type.Metadata as T
 
 -- Generic show, kind of
 gshow :: (Generic a, All2 Show (Code a)) => a -> String
@@ -43,7 +44,7 @@ data TreeB = LeafB Int | NodeB TreeB TreeB
 treeB :: TreeB
 treeB = NodeB (LeafB 1) (LeafB 2)
 
-deriveGenericOnly ''TreeB
+deriveGeneric ''TreeB
 
 instance Show TreeB where
   show = gshow
@@ -56,6 +57,10 @@ treeC = NodeC (LeafC 1) (LeafC 2)
 
 deriveGenericFunctions ''TreeC "TreeCCode" "fromTreeC" "toTreeC"
 deriveMetadataValue ''TreeC "TreeCCode" "treeDatatypeInfo"
+deriveMetadataType ''TreeC "TreeDatatypeInfo"
+
+demotedTreeDatatypeInfo :: DatatypeInfo TreeCCode
+demotedTreeDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy TreeDatatypeInfo)
 
 instance Show TreeC where
   show x = gshowS (fromTreeC x)
@@ -66,5 +71,8 @@ main = do
   print tree
   print $ datatypeInfo (Proxy :: Proxy Tree)
   print treeB
+  print $ datatypeInfo (Proxy :: Proxy TreeB)
   print treeC
   print treeDatatypeInfo
+  print demotedTreeDatatypeInfo
+  print (treeDatatypeInfo == demotedTreeDatatypeInfo)

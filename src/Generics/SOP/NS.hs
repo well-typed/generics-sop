@@ -1,17 +1,28 @@
-{-# LANGUAGE PatternSynonyms, PolyKinds, StandaloneDeriving, UndecidableInstances, ViewPatterns #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 -- | n-ary sums (and sums of products)
 module Generics.SOP.NS
   ( -- * Datatypes
     NS(.., Z, S)
   , SOP(..)
-  , unZ
   , unSOP
     -- * Constructing sums
   , Injection
   , injections
   , apInjs_NP
+  , apInjs'_NP
   , apInjs_POP
+  , apInjs'_POP
+    -- * Destructing sums
+  , unZ
+  , index_NS
+  , index_SOP
     -- * Application
   , ap_NS
   , ap_SOP
@@ -43,6 +54,11 @@ module Generics.SOP.NS
   , ccata_NS
   , ana_NS
   , cana_NS
+    -- * Expanding sums to products
+  , expand_NS
+  , cexpand_NS
+  , expand_SOP
+  , cexpand_SOP
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
@@ -52,6 +68,8 @@ import Data.Proxy
 import qualified Data.Vector as V
 import GHC.Exts (Any)
 import Unsafe.Coerce
+
+import Control.DeepSeq (NFData(..))
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
@@ -162,6 +180,11 @@ instance All (Eq `Compose` f) xs => Eq (NS f xs) where
 instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs) where
   compare = ccompareNS (Proxy :: Proxy (Ord `Compose` f)) LT compare GT
 
+-- | @since 0.2.5.0
+instance All (NFData `Compose` f) xs => NFData (NS f xs) where
+    rnf (Z x)  = rnf x
+    rnf (S xs) = rnf xs
+
 -- | Extract the payload from a unary sum.
 --
 -- For larger sums, this function would be partial, so it is only
@@ -176,6 +199,31 @@ instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs) wh
 --
 unZ :: NS f '[x] -> f x
 unZ (NS _ x) = unsafeCoerce x
+
+-- | Obtain the index from an n-ary sum.
+--
+-- An n-nary sum represents a choice between n different options.
+-- This function returns an integer between 0 and n - 1 indicating
+-- the option chosen by the given value.
+--
+-- /Examples:/
+--
+-- >>> index_NS (S (S (Z (I False))))
+-- 2
+-- >>> index_NS (Z (K ()))
+-- 0
+--
+-- @since 0.2.4.0
+--
+index_NS :: forall f xs . NS f xs -> Int
+index_NS = go 0
+  where
+    go :: forall ys . Int -> NS f ys -> Int
+    go !acc (Z _) = acc
+    go !acc (S x) = go (acc + 1) x
+
+instance HIndex NS where
+  hindex = index_NS
 
 -- | A sum of products.
 --
@@ -194,11 +242,40 @@ newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
 
 deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
 deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
-deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss) 
+deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss)
+
+-- | @since 0.2.5.0
+instance (NFData (NS (NP f) xss)) => NFData (SOP f xss) where
+    rnf (SOP xss) = rnf xss
 
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
+
+-- | Obtain the index from an n-ary sum of products.
+--
+-- An n-nary sum represents a choice between n different options.
+-- This function returns an integer between 0 and n - 1 indicating
+-- the option chosen by the given value.
+--
+-- /Specification:/
+--
+-- @
+-- 'index_SOP' = 'index_NS' '.' 'unSOP'
+-- @
+--
+-- /Example:/
+--
+-- >>> index_SOP (SOP (S (Z (I True :* I 'x' :* Nil))))
+-- 1
+--
+-- @since 0.2.4.0
+--
+index_SOP :: SOP f xs -> Int
+index_SOP = index_NS . unSOP
+
+instance HIndex SOP where
+  hindex = index_SOP
 
 -- * Constructing sums
 
@@ -232,7 +309,17 @@ injections = ana_NP (\ (K i) -> (Fn (\ x -> K (NS i (unsafeCoerce x))), K (i + 1
 -- [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
 --
 apInjs_NP  :: SListI xs  => NP  f xs  -> [NS  f xs]
-apInjs_NP  = hcollapse . hap injections
+apInjs_NP  = hcollapse . apInjs'_NP
+
+-- | `apInjs_NP` without `hcollapse`.
+--
+-- >>> apInjs'_NP (I 'x' :* I True :* I 2 :* Nil)
+-- K (Z (I 'x')) :* K (S (Z (I True))) :* K (S (S (Z (I 2)))) :* Nil
+--
+-- @since 0.2.5.0
+--
+apInjs'_NP :: SListI xs => NP f xs -> NP (K (NS f xs)) xs
+apInjs'_NP = hap injections
 
 -- | Apply injections to a product of product.
 --
@@ -248,6 +335,27 @@ apInjs_NP  = hcollapse . hap injections
 --
 apInjs_POP :: SListI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
+
+-- | `apInjs_POP` without `hcollapse`.
+--
+-- /Example:/
+--
+-- >>> apInjs'_POP (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil))
+-- K (SOP (Z (I 'x' :* Nil))) :* K (SOP (S (Z (I True :* I 2 :* Nil)))) :* Nil
+--
+-- @since 0.2.5.0
+--
+apInjs'_POP :: SListI xss => POP f xss -> NP (K (SOP f xss)) xss
+apInjs'_POP = hmap (K . SOP . unK) . hap injections . unPOP
+
+type instance UnProd NP  = NS
+type instance UnProd POP = SOP
+
+instance HApInjs NS where
+  hapInjs = apInjs_NP
+
+instance HApInjs SOP where
+  hapInjs = apInjs_POP
 
 -- * Application
 
@@ -448,3 +556,67 @@ cana_NS _ refute decide = go sList
     go SCons s = case decide s of
       Left x   -> Z x
       Right s' -> S (go sList s')
+
+-- * Expanding sums to products
+
+-- | Specialization of 'hexpand'.
+--
+-- @since 0.2.5.0
+--
+expand_NS :: forall f xs .
+     (SListI xs)
+  => (forall x . f x)
+  -> NS f xs -> NP f xs
+expand_NS d = go sList
+  where
+    go :: forall ys . SList ys -> NS f ys -> NP f ys
+    go SCons (Z x) = x :* hpure d
+    go SCons (S i) = d :* go sList i
+    go SNil  _     = error "inaccessible" -- still required in ghc-8.0.*
+
+-- | Specialization of 'hcexpand'.
+--
+-- @since 0.2.5.0
+--
+cexpand_NS :: forall c proxy f xs .
+     (All c xs)
+  => proxy c -> (forall x . c x => f x)
+  -> NS f xs -> NP f xs
+cexpand_NS p d = go
+  where
+    go :: forall ys . All c ys => NS f ys -> NP f ys
+    go (Z x) = x :* hcpure p d
+    go (S i) = d :* go i
+
+-- | Specialization of 'hexpand'.
+--
+-- @since 0.2.5.0
+--
+expand_SOP :: forall f xss .
+     (All SListI xss)
+  => (forall x . f x)
+  -> SOP f xss -> POP f xss
+expand_SOP d =
+  POP . cexpand_NS (Proxy :: Proxy SListI) (hpure d) . unSOP
+
+-- | Specialization of 'hcexpand'.
+--
+-- @since 0.2.5.0
+--
+cexpand_SOP :: forall c proxy f xss .
+     (All2 c xss)
+  => proxy c -> (forall x . c x => f x)
+  -> SOP f xss -> POP f xss
+cexpand_SOP p d =
+  POP . cexpand_NS (allP p) (hcpure p d) . unSOP
+
+allP :: proxy c -> Proxy (All c)
+allP _ = Proxy
+
+instance HExpand NS where
+  hexpand  = expand_NS
+  hcexpand = cexpand_NS
+
+instance HExpand SOP where
+  hexpand  = expand_SOP
+  hcexpand = cexpand_SOP

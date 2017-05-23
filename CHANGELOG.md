@@ -1,4 +1,68 @@
-# 0.2.3.0
+# 0.3.0.0 (2017-04-29)
+
+* No longer compatible with GHC 7.6, due to the lack of
+  support for type-level literals.
+
+* Support type-level metadata. This is provided by the
+  `Generics.SOP.Type.Metadata` module. The two modules
+  `Generics.SOP.Metadata` and `Generics.SOP.Type.Metadata`
+  export nearly the same names, so for backwards compatibility,
+  we keep exporting `Generics.SOP.Metadata` directly from
+  `Generics.SOP`, whereas `Generics.SOP.Type.Metadata` is
+  supposed to be imported explicitly (and qualified).
+
+  Term-level metadata is still available, but is now usually
+  computed automatically from the type-level metadata which
+  contains the same information, using the function
+  `demoteDatatypeInfo`. Term-level metadata is unchanged
+  from generics-sop-0.2, so in most cases, even if your
+  code makes use of metadata, you should not need to change
+  anything.
+
+  If you use TH deriving, then both type-level metadata and
+  term-level metadata is generated for you automatically,
+  for all supported GHC versions.
+
+  If you use GGP deriving, then type-level metadata is
+  available if you use GHC 8.0 or newer. If you use GHC 7.x,
+  then GHC.Generics supports only term-level metadata, so
+  we cannot translate that into type-level metadata. In
+  this combination, you cannot use code that relies on
+  type-level metadata, so you should either upgrade GHC or
+  switch to TH-based deriving.
+
+# 0.2.5.0 (2017-04-21)
+
+* GHC 8.2 compatibility.
+
+* Make `:.:` an instance of `Applicative`, `Foldable` and
+  `Traversable`.
+
+* Add functions `apInjs'_NP` and `apInjs'_POP`. These are
+  variants of `apInjs_NP` and `apInjs'_POP` that return their
+  result as an n-ary product, rather than collapsing it into
+  a list.
+
+* Add `hexpand` (and `expand_NS` and `expand_SOP`). These
+  functions expand sums into products, given a default value
+  to fill the other slots.
+
+* Add utility functions such as `mapII` or `mapIK` that lift
+  functions into different combinations of identity and
+  constant functors.
+
+* Add `NFData` (and lifted variants) instances for basic functors,
+  products and sums.
+
+# 0.2.4.0 (2017-02-02)
+
+* Add `hindex` (and `index_NS` and `index_SOP`).
+
+* Add `hapInjs` as a generalization of `apInjs_NP` and `apInjs_POP`.
+
+* Make basic functors instances of lifted classes (such as `Eq1` etc).
+
+# 0.2.3.0 (2016-12-04)
 
 * Add various metadata getters
 
@@ -25,7 +89,7 @@
   `Projection` and `projections` as duals of `Injection` and
   `injections`.
 
-# 0.2 (2015-10-23)
+# 0.2.0.0 (2015-10-23)
 
 * Now tested with ghc-7.10
 

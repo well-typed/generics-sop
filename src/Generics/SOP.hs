@@ -221,7 +221,6 @@ module Generics.SOP (
     -- * n-ary datatypes
   , NP(..)
   , NS(..)
-  , unZ
   , SOP(..)
   , unSOP
   , POP(..)
@@ -274,8 +273,15 @@ module Generics.SOP (
     -- ** Constructing sums
   , Injection
   , injections
-  , apInjs_NP
-  , apInjs_POP
+  , shift
+  , shiftInjection
+  , UnProd
+  , HApInjs(..)
+  , apInjs_NP  -- deprecated export
+  , apInjs_POP -- deprecated export
+    -- ** Destructing sums
+  , unZ
+  , HIndex(..)
     -- ** Dealing with @'All' c@
   , hcliftA'
   , hcliftA2'
@@ -287,6 +293,8 @@ module Generics.SOP (
   , HSequence(..)
   , hsequence
   , hsequenceK
+    -- ** Expanding sums to products
+  , HExpand(..)
     -- ** Partial operations
   , fromList
     -- * Utilities
@@ -297,6 +305,19 @@ module Generics.SOP (
   , unI
   , (:.:)(..)
   , unComp
+    -- *** Mapping functions
+  , mapII
+  , mapIK
+  , mapKI
+  , mapKK
+  , mapIII
+  , mapIIK
+  , mapIKI
+  , mapIKK
+  , mapKII
+  , mapKIK
+  , mapKKI
+  , mapKKK
     -- ** Mapping constraints
   , All
   , All2

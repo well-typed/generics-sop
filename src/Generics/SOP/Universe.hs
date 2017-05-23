@@ -12,6 +12,7 @@ import Generics.SOP.Constraint
 import Generics.SOP.NS
 import Generics.SOP.GGP
 import Generics.SOP.Metadata
+import qualified Generics.SOP.Type.Metadata as T
 
 -- | The (generic) representation of a datatype.
 --
@@ -114,13 +115,15 @@ class (All SListI (Code a)) => Generic (a :: *) where
 
   -- | Converts from a value to its structural representation.
   from         :: a -> Rep a
-  default from :: (GFrom a, GHC.Generic a) => a -> SOP I (GCode a)
+  default from :: (GFrom a, GHC.Generic a, Rep a ~ SOP I (GCode a))
+               => a -> Rep a
   from = gfrom
 
   -- | Converts from a structural representation back to the
   -- original value.
   to         :: Rep a -> a
-  default to :: (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
+  default to :: (GTo a, GHC.Generic a, Rep a ~ SOP I (GCode a))
+             => Rep a -> a
   to = gto
 
 -- | A class of datatypes that have associated metadata.
@@ -134,6 +137,17 @@ class (All SListI (Code a)) => Generic (a :: *) where
 -- of 'Generic' for the options.
 --
 class HasDatatypeInfo a where
+  -- | Type-level datatype info
+  type DatatypeInfoOf a :: T.DatatypeInfo
+#if MIN_VERSION_base(4,9,0)
+  type DatatypeInfoOf a = GDatatypeInfoOf a
+#else
+  type DatatypeInfoOf a = DatatypeInfoOf a
+#endif
+
+  -- | Term-level datatype info; by default, the term-level datatype info is produced
+  -- from the type-level info.
+  --
   datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
-  default datatypeInfo :: GDatatypeInfo a => proxy a -> DatatypeInfo (GCode a)
+  default datatypeInfo :: (GDatatypeInfo a, GCode a ~ Code a) => proxy a -> DatatypeInfo (Code a)
   datatypeInfo = gdatatypeInfo
