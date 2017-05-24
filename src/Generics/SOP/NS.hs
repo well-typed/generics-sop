@@ -41,6 +41,9 @@ module Generics.SOP.NS
   , cmap_SOP
     -- * Dealing with @'All' c@
   , cliftA2'_NS
+    -- * Comparison
+  , compare_NS
+  , ccompare_NS
     -- * Collapsing
   , collapse_NS
   , collapse_SOP
@@ -408,6 +411,40 @@ cmap_SOP = hcmap
 cliftA2'_NS :: All2 c xss => proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
 
 cliftA2'_NS = hcliftA2'
+
+-- * Comparison
+
+compare_NS ::
+     forall r f g xs .
+     r                             -- LT
+  -> (forall x . f x -> g x -> r)  -- EQ
+  -> r                             -- GT
+  -> NS f xs -> NS g xs
+  -> r
+compare_NS lt eq gt = go
+  where
+    go :: forall ys . NS f ys -> NS g ys -> r
+    go (Z x)  (Z y)  = eq x y
+    go (Z _)  (S _)  = lt
+    go (S _)  (Z _)  = gt
+    go (S xs) (S ys) = go xs ys
+
+ccompare_NS ::
+     forall c proxy r f g xs .
+     (All c xs)
+  => proxy c
+  -> r                                    -- LT
+  -> (forall x . c x => f x -> g x -> r)  -- EQ
+  -> r                                    -- GT
+  -> NS f xs -> NS g xs
+  -> r
+ccompare_NS _ lt eq gt = go
+  where
+    go :: forall ys . (All c ys) => NS f ys -> NS g ys -> r
+    go (Z x)  (Z y)  = eq x y
+    go (Z _)  (S _)  = lt
+    go (S _)  (Z _)  = gt
+    go (S xs) (S ys) = go xs ys
 
 -- * Collapsing
 
