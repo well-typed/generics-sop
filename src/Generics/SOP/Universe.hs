@@ -5,6 +5,7 @@
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
+import Data.Coerce (Coercible)
 import qualified GHC.Generics as GHC
 
 import Generics.SOP.BasicFunctors
@@ -152,3 +153,34 @@ class HasDatatypeInfo a where
   datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
   default datatypeInfo :: (GDatatypeInfo a, GCode a ~ Code a) => proxy a -> DatatypeInfo (Code a)
   datatypeInfo = gdatatypeInfo
+
+-- | Constraint that captures that a datatype is a product type,
+-- i.e., a type with a single constructor.
+--
+-- It also gives access to the code for the arguments of that
+-- constructor.
+--
+type IsProductType (a :: *) (xs :: [*]) =
+  (Generic a, Code a ~ '[ xs ])
+
+-- | Constraint that captures that a datatype is an enumeration type,
+-- i.e., none of the constructors have any arguments.
+--
+type IsEnumType (a :: *) =
+  (Generic a, All ((~) '[]) (Code a))
+
+-- | Constraint that captures that a datatype is a single-constructor,
+-- single-field datatype. This always holds for newtype-defined types,
+-- but it can also be true for data-defined types.
+--
+-- The constraint also gives access to the type that is wrapped.
+--
+type IsWrappedType (a :: *) (x :: *) =
+  (Generic a, Code a ~ '[ '[ x ] ])
+
+-- | Constraint that captures that a datatype is a newtype.
+-- This makes use of the fact that newtypes are always coercible
+-- to the type they wrap, whereas datatypes are not.
+--
+type IsNewtype (a :: *) (x :: *) =
+  (IsWrappedType a x, Coercible a x)
