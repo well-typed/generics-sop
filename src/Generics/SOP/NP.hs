@@ -163,6 +163,9 @@ unPOP (POP xss) = xss
 type instance AllN NP  c = All  c
 type instance AllN POP c = All2 c
 
+type instance AllZipN NP  c = AllZip  c
+type instance AllZipN POP c = AllZip2 c
+
 type instance SListIN NP  = SListI
 type instance SListIN POP = SListI2
 
@@ -276,6 +279,9 @@ ap_POP (POP fss') (POP xss') = POP (go fss' xss')
 -- that it avoids the 'SListI' constraint.
 _ap_POP_spec :: SListI xss => POP (f -.-> g) xss -> POP  f xss -> POP  g xss
 _ap_POP_spec (POP fs) (POP xs) = POP (liftA2_NP ap_NP fs xs)
+
+type instance Same NP  = NP
+type instance Same POP = POP
 
 type instance Prod NP  = NP
 type instance Prod POP = POP
@@ -681,22 +687,29 @@ fromI_NP ::
      forall f xs ys .
      AllZip (LiftedCoercible I f) xs ys
   => NP I xs -> NP f ys
-fromI_NP = coerce_NP
+fromI_NP = hfromI
 
 toI_NP ::
      forall f xs ys .
      AllZip (LiftedCoercible f I) xs ys
   => NP f xs -> NP I ys
-toI_NP = coerce_NP
+toI_NP = htoI
 
 fromI_POP ::
      forall f xss yss .
      AllZip2 (LiftedCoercible I f) xss yss
   => POP I xss -> POP f yss
-fromI_POP = coerce_POP
+fromI_POP = hfromI
 
 toI_POP ::
      forall f xss yss .
      AllZip2 (LiftedCoercible f I) xss yss
   => POP f xss -> POP I yss
-toI_POP = coerce_POP
+toI_POP = htoI
+
+instance HTrans NP NP where
+  htrans  = trans_NP
+  hcoerce = coerce_NP
+instance HTrans POP POP where
+  htrans  = trans_POP
+  hcoerce = coerce_POP

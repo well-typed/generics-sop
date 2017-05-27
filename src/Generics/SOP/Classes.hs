@@ -39,6 +39,7 @@ module Generics.SOP.Classes
   , fn_2
   , fn_3
   , fn_4
+  , Same
   , Prod
   , HAp(..)
     -- ** Derived functions
@@ -69,6 +70,10 @@ module Generics.SOP.Classes
   , HApInjs(..)
     -- * Expanding sums to products
   , HExpand(..)
+    -- * Transforming index lists
+  , HTrans(..)
+  , hfromI
+  , htoI
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
@@ -146,6 +151,9 @@ fn   f = Fn $ \x -> f x
 fn_2 f = Fn $ \x -> Fn $ \x' -> f x x'
 fn_3 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> f x x' x''
 fn_4 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> Fn $ \x''' -> f x x' x'' x'''
+
+-- | Maps a structure to the same structure.
+type family Same (h :: (k1 -> *) -> (l1 -> *)) :: (k2 -> *) -> (l2 -> *)
 
 -- | Maps a structure containing sums to the corresponding
 -- product structure.
@@ -518,6 +526,27 @@ class HExpand (h :: (k -> *) -> (l -> *)) where
   -- @since 0.2.5.0
   --
   hcexpand :: (AllN (Prod h) c xs) => proxy c -> (forall x . c x => f x) -> h f xs -> Prod h f xs
+
+class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> *) -> (l1 -> *)) (h2 :: (k2 -> *) -> (l2 -> *)) where
+  htrans ::
+       AllZipN (Prod h1) c xs ys
+    => proxy c
+    -> (forall x y . c x y => f x -> g y)
+    -> h1 f xs -> h2 g ys
+
+  hcoerce ::
+       (AllZipN (Prod h1) (LiftedCoercible f g) xs ys, HTrans h1 h2)
+    => h1 f xs -> h2 g ys
+
+hfromI ::
+       (AllZipN (Prod h1) (LiftedCoercible I f) xs ys, HTrans h1 h2)
+    => h1 I xs -> h2 f ys
+hfromI = hcoerce
+
+htoI ::
+       (AllZipN (Prod h1) (LiftedCoercible f I) xs ys, HTrans h1 h2)
+    => h1 f xs -> h2 I ys
+htoI = hcoerce
 
 -- $setup
 -- >>> import Generics.SOP

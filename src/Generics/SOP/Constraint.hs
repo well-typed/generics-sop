@@ -206,6 +206,13 @@ instance Top x
 --
 type family AllN (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) :: l -> Constraint
 
+-- | A generalization of 'AllZip' and 'AllZip2'.
+--
+-- The family 'AllZipN' expands to 'AllZip' or 'AllZip2' depending on
+-- whther the argument is indexed by a list or a list of lists.
+--
+type family AllZipN (h :: (k -> *) -> (l -> *)) (c :: k1 -> k2 -> Constraint) :: l1 -> l2 -> Constraint
+
 -- | A generalization of 'SListI'.
 --
 -- The family 'SListIN' expands to 'SListI' or 'SListI2' depending

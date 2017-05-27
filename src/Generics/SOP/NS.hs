@@ -353,6 +353,9 @@ ap_SOP (POP fss') (SOP xss') = SOP (go fss' xss')
 _ap_SOP_spec :: SListI xss => POP (t -.-> f) xss -> SOP t xss -> SOP f xss
 _ap_SOP_spec (POP fs) (SOP xs) = SOP (liftA2_NS ap_NP fs xs)
 
+type instance Same NS  = NS
+type instance Same SOP = SOP
+
 type instance Prod NS  = NP
 type instance Prod SOP = POP
 
@@ -670,22 +673,30 @@ fromI_NS ::
      forall f xs ys .
      AllZip (LiftedCoercible I f) xs ys
   => NS I xs -> NS f ys
-fromI_NS = coerce_NS
+fromI_NS = hfromI
 
 toI_NS ::
      forall f xs ys .
      AllZip (LiftedCoercible f I) xs ys
   => NS f xs -> NS I ys
-toI_NS = coerce_NS
+toI_NS = htoI
 
 fromI_SOP ::
      forall f xss yss .
      AllZip2 (LiftedCoercible I f) xss yss
   => SOP I xss -> SOP f yss
-fromI_SOP = coerce_SOP
+fromI_SOP = hfromI
 
 toI_SOP ::
      forall f xss yss .
      AllZip2 (LiftedCoercible f I) xss yss
   => SOP f xss -> SOP I yss
-toI_SOP = coerce_SOP
+toI_SOP = htoI
+
+instance HTrans NS NS where
+  htrans  = trans_NS
+  hcoerce = coerce_NS
+
+instance HTrans SOP SOP where
+  htrans  = trans_SOP
+  hcoerce = coerce_SOP
