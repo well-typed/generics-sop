@@ -300,6 +300,10 @@ module Generics.SOP (
   , hsequenceK
     -- ** Expanding sums to products
   , HExpand(..)
+    -- ** Transformation of index lists and coercions
+  , HTrans(..)
+  , hfromI
+  , htoI
     -- ** Partial operations
   , fromList
     -- * Utilities
@@ -326,10 +330,16 @@ module Generics.SOP (
     -- ** Mapping constraints
   , All
   , All2
+  , AllZip
+  , AllZip2
+  , AllN
+  , AllZipN
+    -- ** Other constraints
   , Compose
   , And
   , Top
-  , AllN
+  , LiftedCoercible
+  , SameShapeAs
     -- ** Singletons
   , SList(..)
   , SListI(..)

@@ -101,9 +101,10 @@ library
   if impl (ghc < 7.10)
     other-extensions:    OverlappingInstances
 
-test-suite generic-sop-examples
+test-suite generics-sop-examples
   type:                exitcode-stdio-1.0
   main-is:             Example.hs
+  other-modules:       HTransExample
   hs-source-dirs:      test
   default-language:    Haskell2010
   ghc-options:         -Wall

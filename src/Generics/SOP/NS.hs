@@ -59,12 +59,23 @@ module Generics.SOP.NS
   , cexpand_NS
   , expand_SOP
   , cexpand_SOP
+    -- * Transformation of index lists and coercions
+  , trans_NS
+  , trans_SOP
+  , coerce_NS
+  , coerce_SOP
+  , fromI_NS
+  , fromI_SOP
+  , toI_NS
+  , toI_SOP
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 #endif
+import Data.Coerce
 import Data.Proxy
+import Unsafe.Coerce
 
 import Control.DeepSeq (NFData(..))
 
@@ -342,6 +353,9 @@ ap_SOP (POP fss') (SOP xss') = SOP (go fss' xss')
 _ap_SOP_spec :: SListI xss => POP (t -.-> f) xss -> SOP t xss -> SOP f xss
 _ap_SOP_spec (POP fs) (SOP xs) = SOP (liftA2_NS ap_NP fs xs)
 
+type instance Same NS  = NS
+type instance Same SOP = SOP
+
 type instance Prod NS  = NP
 type instance Prod SOP = POP
 
@@ -591,3 +605,125 @@ instance HExpand NS where
 instance HExpand SOP where
   hexpand  = expand_SOP
   hcexpand = cexpand_SOP
+
+-- | Specialization of 'htrans'.
+--
+-- @since 0.3.1.0
+--
+trans_NS ::
+     AllZip c xs ys
+  => proxy c
+  -> (forall x y . c x y => f x -> g y)
+  -> NS f xs -> NS g ys
+trans_NS _ t (Z x)      = Z (t x)
+trans_NS p t (S x)      = S (trans_NS p t x)
+
+-- | Specialization of 'htrans'.
+--
+-- @since 0.3.1.0
+--
+trans_SOP ::
+     AllZip2 c xss yss
+  => proxy c
+  -> (forall x y . c x y => f x -> g y)
+  -> SOP f xss -> SOP g yss
+trans_SOP p t =
+  SOP . trans_NS (allZipP p) (trans_NP p t) . unSOP
+
+allZipP :: proxy c -> Proxy (AllZip c)
+allZipP _ = Proxy
+
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
+coerce_NS ::
+     forall f g xs ys .
+     AllZip (LiftedCoercible f g) xs ys
+  => NS f xs -> NS g ys
+coerce_NS =
+  unsafeCoerce
+
+-- There is a bug in the way coerce works for higher-kinded
+-- type variables that seems to occur only in GHC 7.10.
+--
+-- Therefore, the safe versions of the coercion functions
+-- are excluded below. This is harmless because they're only
+-- present for documentation purposes and not exported.
+
+#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+_safe_coerce_NS ::
+     forall f g xs ys .
+     AllZip (LiftedCoercible f g) xs ys
+  => NS f xs -> NS g ys
+_safe_coerce_NS =
+  trans_NS (Proxy :: Proxy (LiftedCoercible f g)) coerce
+#endif
+
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
+coerce_SOP ::
+     forall f g xss yss .
+     AllZip2 (LiftedCoercible f g) xss yss
+  => SOP f xss -> SOP g yss
+coerce_SOP =
+  unsafeCoerce
+
+#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+_safe_coerce_SOP ::
+     forall f g xss yss .
+     AllZip2 (LiftedCoercible f g) xss yss
+  => SOP f xss -> SOP g yss
+_safe_coerce_SOP =
+  trans_SOP (Proxy :: Proxy (LiftedCoercible f g)) coerce
+#endif
+
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
+fromI_NS ::
+     forall f xs ys .
+     AllZip (LiftedCoercible I f) xs ys
+  => NS I xs -> NS f ys
+fromI_NS = hfromI
+
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
+toI_NS ::
+     forall f xs ys .
+     AllZip (LiftedCoercible f I) xs ys
+  => NS f xs -> NS I ys
+toI_NS = htoI
+
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
+fromI_SOP ::
+     forall f xss yss .
+     AllZip2 (LiftedCoercible I f) xss yss
+  => SOP I xss -> SOP f yss
+fromI_SOP = hfromI
+
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
+toI_SOP ::
+     forall f xss yss .
+     AllZip2 (LiftedCoercible f I) xss yss
+  => SOP f xss -> SOP I yss
+toI_SOP = htoI
+
+instance HTrans NS NS where
+  htrans  = trans_NS
+  hcoerce = coerce_NS
+
+instance HTrans SOP SOP where
+  htrans  = trans_SOP
+  hcoerce = coerce_SOP

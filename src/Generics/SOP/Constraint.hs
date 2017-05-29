@@ -17,7 +17,9 @@ module Generics.SOP.Constraint
   , Constraint
   ) where
 
+import Data.Coerce
 import GHC.Exts (Constraint)
+
 import Generics.SOP.Sing
 
 -- | Require a constraint for every element of a list.
@@ -46,9 +48,10 @@ instance (AllF f xs, SListI xs) => All f xs
 
 -- | Type family used to implement 'All'.
 --
-type family AllF (c :: k -> Constraint) (xs :: [k]) :: Constraint
-type instance AllF _c '[]       = ()
-type instance AllF  c (x ': xs) = (c x, All c xs)
+type family
+  AllF (c :: k -> Constraint) (xs :: [k]) :: Constraint where
+  AllF _c '[]       = ()
+  AllF  c (x ': xs) = (c x, All c xs)
 
 -- | Require a singleton for every inner list in a list of lists.
 type SListI2 = All SListI
@@ -86,6 +89,83 @@ instance (AllF (All f) xss, SListI xss) => All2 f xss
 -- is more direct, but has the unfortunate disadvantage the
 -- it triggers GHC's superclass cycle check when used in a
 -- class context.
+
+-- | Require a constraint for pointwise for every pair of
+-- elements from two lists.
+--
+-- /Example:/ The constraint
+--
+-- > All (~) '[ Int, Bool, Char ] '[ a, b, c ]
+--
+-- is equivalent to the constraint
+--
+-- > (Int ~ a, Bool ~ b, Char ~ c)
+--
+-- @since 0.3.1.0
+--
+class
+  ( SListI xs, SListI ys
+  , SameShapeAs xs ys, SameShapeAs ys xs
+  , AllZipF c xs ys
+  ) => AllZip (c :: a -> b -> Constraint) (xs :: [a]) (ys :: [b])
+instance
+  ( SListI xs, SListI ys
+  , SameShapeAs xs ys, SameShapeAs ys xs
+  , AllZipF c xs ys
+  ) => AllZip c xs ys
+
+-- | Type family used to implement 'AllZip'.
+--
+-- @since 0.3.1.0
+--
+type family
+  AllZipF (c :: a -> b -> Constraint) (xs :: [a]) (ys :: [b])
+    :: Constraint where
+  AllZipF _c '[]      '[]        = ()
+  AllZipF  c (x ': xs) (y ': ys) = (c x y, AllZip c xs ys)
+
+-- | Type family that forces a type-level list to be of the same
+-- shape as the given type-level list.
+--
+-- The main use of this constraint is to help type inference to
+-- learn something about otherwise unknown type-level lists.
+--
+-- @since 0.3.1.0
+--
+type family
+  SameShapeAs (xs :: [a]) (ys :: [b]) :: Constraint where
+  SameShapeAs '[]       ys = (ys ~ '[])
+  SameShapeAs (x ': xs) ys =
+    (ys ~ (Head ys ': Tail ys), SameShapeAs xs (Tail ys))
+
+-- | Utility function to compute the head of a type-level list.
+--
+-- @since 0.3.1.0
+--
+type family Head (xs :: [a]) :: a where
+  Head (x ': xs) = x
+
+-- | Utility function to compute the tail of a type-level list.
+--
+-- @since 0.3.1.0
+--
+type family Tail (xs :: [a]) :: [a] where
+  Tail (x ': xs) = xs
+
+-- | The constraint @LiftedCoercible f g x y@ is equivalent
+-- to @Coercible (f x) (g y)@.
+--
+-- @since 0.3.1.0
+--
+class Coercible (f x) (g y) => LiftedCoercible f g x y
+instance Coercible (f x) (g y) => LiftedCoercible f g x y
+
+-- | Require a constraint for pointwise for every pair of
+-- elements from two lists of lists.
+--
+--
+class (AllZipF (AllZip f) xss yss, SListI xss, SListI yss, SameShapeAs xss yss, SameShapeAs yss xss) => AllZip2 f xss yss
+instance (AllZipF (AllZip f) xss yss, SListI xss, SListI yss, SameShapeAs xss yss, SameShapeAs yss xss) => AllZip2 f xss yss
 
 -- | Composition of constraints.
 --
@@ -125,6 +205,13 @@ instance Top x
 -- the argument is indexed by a list or a list of lists.
 --
 type family AllN (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) :: l -> Constraint
+
+-- | A generalization of 'AllZip' and 'AllZip2'.
+--
+-- The family 'AllZipN' expands to 'AllZip' or 'AllZip2' depending on
+-- whther the argument is indexed by a list or a list of lists.
+--
+type family AllZipN (h :: (k -> *) -> (l -> *)) (c :: k1 -> k2 -> Constraint) :: l1 -> l2 -> Constraint
 
 -- | A generalization of 'SListI'.
 --

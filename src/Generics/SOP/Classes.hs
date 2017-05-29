@@ -39,6 +39,7 @@ module Generics.SOP.Classes
   , fn_2
   , fn_3
   , fn_4
+  , Same
   , Prod
   , HAp(..)
     -- ** Derived functions
@@ -69,6 +70,10 @@ module Generics.SOP.Classes
   , HApInjs(..)
     -- * Expanding sums to products
   , HExpand(..)
+    -- * Transformation of index lists and coercions
+  , HTrans(..)
+  , hfromI
+  , htoI
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
@@ -146,6 +151,9 @@ fn   f = Fn $ \x -> f x
 fn_2 f = Fn $ \x -> Fn $ \x' -> f x x'
 fn_3 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> f x x' x''
 fn_4 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> Fn $ \x''' -> f x x' x'' x'''
+
+-- | Maps a structure to the same structure.
+type family Same (h :: (k1 -> *) -> (l1 -> *)) :: (k2 -> *) -> (l2 -> *)
 
 -- | Maps a structure containing sums to the corresponding
 -- product structure.
@@ -518,6 +526,57 @@ class HExpand (h :: (k -> *) -> (l -> *)) where
   -- @since 0.2.5.0
   --
   hcexpand :: (AllN (Prod h) c xs) => proxy c -> (forall x . c x => f x) -> h f xs -> Prod h f xs
+
+-- | A class for transforming structures into related structures with
+-- a different index list, as long as the index lists have the same shape
+-- and the elements and interpretation functions are suitably related.
+--
+-- @since 0.3.1.0
+--
+class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> *) -> (l1 -> *)) (h2 :: (k2 -> *) -> (l2 -> *)) where
+
+  -- | Transform a structure into a related structure given a conversion
+  -- function for the elements.
+  --
+  -- @since 0.3.1.0
+  --
+  htrans ::
+       AllZipN (Prod h1) c xs ys
+    => proxy c
+    -> (forall x y . c x y => f x -> g y)
+    -> h1 f xs -> h2 g ys
+
+  -- | Coerce a structure into a representationally equal structure.
+  --
+  -- /Examples:/
+  --
+  -- >>> hcoerce (I (Just LT) :* I (Just 'x') :* I (Just True) :* Nil) :: NP Maybe '[Ordering, Char, Bool]
+  -- Just LT :* (Just 'x' :* (Just True :* Nil))
+  -- >>> hcoerce (SOP (Z (K True :* K False :* Nil))) :: SOP I '[ '[Bool, Bool], '[Bool] ]
+  -- SOP (Z (I True :* (I False :* Nil)))
+  --
+  -- @since 0.3.1.0
+  hcoerce ::
+       (AllZipN (Prod h1) (LiftedCoercible f g) xs ys, HTrans h1 h2)
+    => h1 f xs -> h2 g ys
+
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
+hfromI ::
+       (AllZipN (Prod h1) (LiftedCoercible I f) xs ys, HTrans h1 h2)
+    => h1 I xs -> h2 f ys
+hfromI = hcoerce
+
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
+htoI ::
+       (AllZipN (Prod h1) (LiftedCoercible f I) xs ys, HTrans h1 h2)
+    => h1 f xs -> h2 I ys
+htoI = hcoerce
 
 -- $setup
 -- >>> import Generics.SOP

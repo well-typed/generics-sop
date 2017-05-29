@@ -12,6 +12,8 @@ import Generics.SOP
 import Generics.SOP.TH
 import qualified Generics.SOP.Type.Metadata as T
 
+import HTransExample
+
 -- Generic show, kind of
 gshow :: (Generic a, All2 Show (Code a)) => a -> String
 gshow x = gshowS (from x)
@@ -76,3 +78,4 @@ main = do
   print treeDatatypeInfo
   print demotedTreeDatatypeInfo
   print (treeDatatypeInfo == demotedTreeDatatypeInfo)
+  print $ convertFull tree
