@@ -160,11 +160,15 @@ class HasDatatypeInfo a where
 -- It also gives access to the code for the arguments of that
 -- constructor.
 --
+-- @since 0.3.1.0
+--
 type IsProductType (a :: *) (xs :: [*]) =
   (Generic a, Code a ~ '[ xs ])
 
 -- | Constraint that captures that a datatype is an enumeration type,
 -- i.e., none of the constructors have any arguments.
+--
+-- @since 0.3.1.0
 --
 type IsEnumType (a :: *) =
   (Generic a, All ((~) '[]) (Code a))
@@ -175,12 +179,16 @@ type IsEnumType (a :: *) =
 --
 -- The constraint also gives access to the type that is wrapped.
 --
+-- @since 0.3.1.0
+--
 type IsWrappedType (a :: *) (x :: *) =
   (Generic a, Code a ~ '[ '[ x ] ])
 
 -- | Constraint that captures that a datatype is a newtype.
 -- This makes use of the fact that newtypes are always coercible
 -- to the type they wrap, whereas datatypes are not.
+--
+-- @since 0.3.1.0
 --
 type IsNewtype (a :: *) (x :: *) =
   (IsWrappedType a x, Coercible a x)
