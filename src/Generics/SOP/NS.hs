@@ -606,8 +606,7 @@ instance HExpand SOP where
   hexpand  = expand_SOP
   hcexpand = cexpand_SOP
 
--- | Transform an 'NS' into a related 'NS' given a conversion
--- function for the elements.
+-- | Specialization of 'htrans'.
 --
 -- @since 0.3.1.0
 --
@@ -619,6 +618,10 @@ trans_NS ::
 trans_NS _ t (Z x)      = Z (t x)
 trans_NS p t (S x)      = S (trans_NS p t x)
 
+-- | Specialization of 'htrans'.
+--
+-- @since 0.3.1.0
+--
 trans_SOP ::
      AllZip2 c xss yss
   => proxy c
@@ -630,6 +633,10 @@ trans_SOP p t =
 allZipP :: proxy c -> Proxy (AllZip c)
 allZipP _ = Proxy
 
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
 coerce_NS ::
      forall f g xs ys .
      AllZip (LiftedCoercible f g) xs ys
@@ -653,6 +660,10 @@ _safe_coerce_NS =
   trans_NS (Proxy :: Proxy (LiftedCoercible f g)) coerce
 #endif
 
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
 coerce_SOP ::
      forall f g xss yss .
      AllZip2 (LiftedCoercible f g) xss yss
@@ -669,24 +680,40 @@ _safe_coerce_SOP =
   trans_SOP (Proxy :: Proxy (LiftedCoercible f g)) coerce
 #endif
 
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
 fromI_NS ::
      forall f xs ys .
      AllZip (LiftedCoercible I f) xs ys
   => NS I xs -> NS f ys
 fromI_NS = hfromI
 
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
 toI_NS ::
      forall f xs ys .
      AllZip (LiftedCoercible f I) xs ys
   => NS f xs -> NS I ys
 toI_NS = htoI
 
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
 fromI_SOP ::
      forall f xss yss .
      AllZip2 (LiftedCoercible I f) xss yss
   => SOP I xss -> SOP f yss
 fromI_SOP = hfromI
 
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
 toI_SOP ::
      forall f xss yss .
      AllZip2 (LiftedCoercible f I) xss yss

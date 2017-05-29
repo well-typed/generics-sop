@@ -620,8 +620,7 @@ cana_NP _ uncons = go sList
     go SCons s = case uncons s of
       (x, s') -> x :* go sList s'
 
--- | Transform an 'NP' into a related 'NP' given a conversion
--- function for the elements.
+-- | Specialization of 'htrans'.
 --
 -- @since 0.3.1.0
 --
@@ -633,6 +632,10 @@ trans_NP ::
 trans_NP _ _t Nil       = Nil
 trans_NP p  t (x :* xs) = t x :* trans_NP p t xs
 
+-- | Specialization of 'htrans'.
+--
+-- @since 0.3.1.0
+--
 trans_POP ::
      AllZip2 c xss yss
   => proxy c
@@ -644,6 +647,10 @@ trans_POP p t =
 allZipP :: proxy c -> Proxy (AllZip c)
 allZipP _ = Proxy
 
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
 coerce_NP ::
      forall f g xs ys .
      AllZip (LiftedCoercible f g) xs ys
@@ -667,6 +674,10 @@ _safe_coerce_NP =
   trans_NP (Proxy :: Proxy (LiftedCoercible f g)) coerce
 #endif
 
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
 coerce_POP ::
      forall f g xss yss .
      AllZip2 (LiftedCoercible f g) xss yss
@@ -683,24 +694,40 @@ _safe_coerce_POP =
   trans_POP (Proxy :: Proxy (LiftedCoercible f g)) coerce
 #endif
 
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
 fromI_NP ::
      forall f xs ys .
      AllZip (LiftedCoercible I f) xs ys
   => NP I xs -> NP f ys
 fromI_NP = hfromI
 
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
 toI_NP ::
      forall f xs ys .
      AllZip (LiftedCoercible f I) xs ys
   => NP f xs -> NP I ys
 toI_NP = htoI
 
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
 fromI_POP ::
      forall f xss yss .
      AllZip2 (LiftedCoercible I f) xss yss
   => POP I xss -> POP f yss
 fromI_POP = hfromI
 
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
 toI_POP ::
      forall f xss yss .
      AllZip2 (LiftedCoercible f I) xss yss
