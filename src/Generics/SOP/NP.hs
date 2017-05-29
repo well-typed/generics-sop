@@ -64,7 +64,7 @@ module Generics.SOP.NP
   , ccata_NP
   , ana_NP
   , cana_NP
-    -- * Transformations and coercions
+    -- * Transformation of index lists and coercions
   , trans_NP
   , trans_POP
   , coerce_NP

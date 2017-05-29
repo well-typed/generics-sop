@@ -70,7 +70,7 @@ module Generics.SOP.Classes
   , HApInjs(..)
     -- * Expanding sums to products
   , HExpand(..)
-    -- * Transforming index lists
+    -- * Transformation of index lists and coercions
   , HTrans(..)
   , hfromI
   , htoI

@@ -59,7 +59,7 @@ module Generics.SOP.NS
   , cexpand_NS
   , expand_SOP
   , cexpand_SOP
-    -- * Transformations and coercions
+    -- * Transformation of index lists and coercions
   , trans_NS
   , trans_SOP
   , coerce_NS
