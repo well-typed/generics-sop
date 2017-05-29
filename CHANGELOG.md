@@ -112,8 +112,8 @@
 
       hcliftA' p = hcliftA (allP p)
         where
-	      allP :: proxy c -> Proxy (All c)
-		  allP _ = Proxy
+          allP :: proxy c -> Proxy (All c)
+          allP _ = Proxy
 
 * Because `All` and `All2` are now type classes, they now have
   superclass constraints implying that the type-level lists they
@@ -132,7 +132,7 @@
 
   For one-dimensional type-level lists, replace
 
-      SingI xs => ... 
+      SingI xs => ...
 
   by
 
