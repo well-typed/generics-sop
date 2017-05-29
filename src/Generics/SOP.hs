@@ -218,6 +218,10 @@ module Generics.SOP (
     -- * Codes and interpretations
     Generic(..)
   , Rep
+  , IsProductType
+  , IsEnumType
+  , IsWrappedType
+  , IsNewtype
     -- * n-ary datatypes
   , NP(..)
   , NS(..)
