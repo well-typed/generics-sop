@@ -110,3 +110,31 @@ test-suite generic-sop-examples
   ghc-options:         -Wall
   build-depends:       base                 >= 4.6  && < 5,
                        generics-sop
+  default-extensions:  CPP
+                       ScopedTypeVariables
+                       TypeFamilies
+                       RankNTypes
+                       TypeOperators
+                       GADTs
+                       ConstraintKinds
+                       MultiParamTypeClasses
+                       TypeSynonymInstances
+                       FlexibleInstances
+                       FlexibleContexts
+                       DeriveFunctor
+                       DeriveFoldable
+                       DeriveTraversable
+                       DefaultSignatures
+                       KindSignatures
+                       DataKinds
+                       FunctionalDependencies
+  if impl (ghc >= 7.8)
+    default-extensions:  AutoDeriveTypeable
+  other-extensions:    OverloadedStrings
+                       PolyKinds
+                       UndecidableInstances
+                       TemplateHaskell
+                       DeriveGeneric
+                       StandaloneDeriving
+  if impl (ghc < 7.10)
+    other-extensions:    OverlappingInstances
