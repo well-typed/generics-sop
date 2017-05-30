@@ -1,3 +1,21 @@
+# 0.3.1.0
+
+* Add AllZip, htrans, hcoerce, hfromI, htoI.
+  These functions are for converting between related
+  structures that do not have common signatures.
+
+  The most common application of these functions seems
+  to be the scenario where a datatype has components
+  that are all wrapped in a common type constructor
+  application, e.g. a datatype where every component
+  is a `Maybe`. Then we can use `hfromI` after `from`
+  to turn the generically derived `SOP` of `I`s into
+  an `SOP` of `Maybe`s (and back).
+
+* Add `IsProductType`, `IsEnumType`, `IsWrappedType`
+  and `IsNewtype` constraint synonyms capturing
+  specific classes of datypes.
+
 # 0.3.0.0 (2017-04-29)
 
 * No longer compatible with GHC 7.6, due to the lack of
