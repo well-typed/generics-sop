@@ -131,12 +131,12 @@ isNS (NS i x)
   | i == 0    = unsafeCoerce (IsZ x)
   | otherwise = unsafeCoerce (IsS (NS (i - 1) x))
 
-pattern Z :: () => (xs' ~ (x ': xs)) => f x -> NS f xs'
+pattern Z :: forall f xs' . () => forall x xs . (xs' ~ (x ': xs)) => f x -> NS f xs'
 pattern Z x <- (isNS -> IsZ x)
   where
     Z x = NS 0 (unsafeCoerce x)
 
-pattern S :: () => (xs' ~ (x ': xs)) => NS f xs -> NS f xs'
+pattern S :: forall f xs' . () => forall x xs . (xs' ~ (x ': xs)) => NS f xs -> NS f xs'
 pattern S p <- (isNS -> IsS p)
   where
     S (NS i x) = NS (i + 1) x

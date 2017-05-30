@@ -125,12 +125,12 @@ isNP (NP xs) =
     then unsafeCoerce IsNil
     else unsafeCoerce (IsCons (V.unsafeHead xs) (NP (V.unsafeTail xs)))
 
-pattern Nil :: () => (xs ~ '[]) => NP f xs
+pattern Nil :: forall f xs . () => (xs ~ '[]) => NP f xs
 pattern Nil <- (isNP -> IsNil)
   where
     Nil = NP V.empty
 
-pattern (:*) :: () => (xs' ~ (x ': xs)) => f x -> NP f xs -> NP f xs'
+pattern (:*) :: forall f xs' . () => forall x xs . (xs' ~ (x ': xs)) => f x -> NP f xs -> NP f xs'
 pattern x :* xs <- (isNP -> IsCons x xs)
   where
     x :* NP xs = NP (V.cons (unsafeCoerce x) xs)
