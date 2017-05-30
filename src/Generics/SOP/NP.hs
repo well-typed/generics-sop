@@ -136,6 +136,10 @@ pattern x :* xs <- (isNP -> IsCons x xs)
     x :* NP xs = NP (V.cons (unsafeCoerce x) xs)
 infixr 5 :*
 
+#if __GLASGOW_HASKELL__ >= 802
+{-# COMPLETE Nil, (:*) #-}
+#endif
+
 instance All (Show `Compose` f) xs => Show (NP f xs) where
   show xs =
     show (hcollapse (hcmap (Proxy :: Proxy (Show `Compose` f)) (K . Showable . show) xs))

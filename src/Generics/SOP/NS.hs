@@ -141,6 +141,10 @@ pattern S p <- (isNS -> IsS p)
   where
     S (NS i x) = NS (i + 1) x
 
+#if __GLASGOW_HASKELL__ >= 802
+{-# COMPLETE Z, S #-}
+#endif
+
 getDictByIndex :: forall xs c . (All c xs) => K (Int -> Dict c Any) xs
 getDictByIndex =
   cpara_All
