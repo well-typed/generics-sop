@@ -464,11 +464,13 @@ class (UnProd (Prod h) ~ h) => HApInjs (h :: (k -> *) -> (l -> *)) where
   --
   -- /Examples:/
   --
-  -- >>> hapInjs (I 'x' :* I True :* I 2 :* Nil)
-  -- [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
+  -- >>> hapInjs (I 'x' :* I True :* I 2 :* Nil) :: [NS I '[Char, Bool, Int]]
+  -- [Z (I 'x'),S (Z (I True)),S (S (Z (I 2)))]
   --
-  -- >>> hapInjs (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil)
-  -- [SOP (Z (I 'x' :* Nil)), SOP (S (Z (I True :* (I 2 :* Nil))))]
+  -- >>> hapInjs (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil)) :: [SOP I '[ '[Char], '[Bool, Int]]]
+  -- [SOP (Z (I 'x' :* Nil)),SOP (S (Z (I True :* I 2 :* Nil)))]
+  --
+  -- Unfortunately the type-signatures are required in GHC-7.10 and older.
   --
   -- @since 0.2.4.0
   --
@@ -551,9 +553,9 @@ class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> *) -> (l1 -> *)) (h2 
   -- /Examples:/
   --
   -- >>> hcoerce (I (Just LT) :* I (Just 'x') :* I (Just True) :* Nil) :: NP Maybe '[Ordering, Char, Bool]
-  -- Just LT :* (Just 'x' :* (Just True :* Nil))
+  -- Just LT :* Just 'x' :* Just True :* Nil
   -- >>> hcoerce (SOP (Z (K True :* K False :* Nil))) :: SOP I '[ '[Bool, Bool], '[Bool] ]
-  -- SOP (Z (I True :* (I False :* Nil)))
+  -- SOP (Z (I True :* I False :* Nil))
   --
   -- @since 0.3.1.0
   hcoerce ::

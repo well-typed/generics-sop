@@ -484,7 +484,7 @@ collapse_NP  ::              NP  (K a) xs  ->  [a]
 -- /Example:/
 --
 -- >>> collapse_POP (POP ((K 'a' :* Nil) :* (K 'b' :* K 'c' :* Nil) :* Nil) :: POP (K Char) '[ '[(a :: *)], '[b, c] ])
--- ["a", "bc"]
+-- ["a","bc"]
 --
 -- (The type signature is only necessary in this case to fix the kind of the type variables.)
 --
@@ -531,7 +531,7 @@ sequence_NP  :: (SListI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 -- /Example:/
 --
 -- >>> sequence_POP (POP ((Just 1 :* Nil) :* (Just 2 :* Just 3 :* Nil) :* Nil))
--- Just (POP ((I 1 :* Nil) :* ((I 2 :* (I 3 :* Nil)) :* Nil)))
+-- Just (POP ((I 1 :* Nil) :* (I 2 :* I 3 :* Nil) :* Nil))
 --
 sequence_POP :: (All SListI xss, Applicative f) => POP f xss -> f (POP I xss)
 
