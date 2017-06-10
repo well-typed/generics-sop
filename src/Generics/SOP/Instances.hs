@@ -16,6 +16,15 @@
 --
 module Generics.SOP.Instances () where
 
+-- GHC versions and base versions:
+--
+-- 7.6.3:  4.6.0.1
+-- 7.8.3:  4.7.0.1
+-- 7.8.4:  4.7.0.2
+-- 7.10.3: 4.8.2.0
+-- 8.0.2:  4.9.1.0
+-- 8.2.1:  4.10.?.?
+
 import Control.Applicative -- new
 import Control.Arrow -- new
 import Control.Exception
@@ -25,8 +34,8 @@ import Data.Data
 import Data.Fixed
 #if MIN_VERSION_base(4,9,0)
 import Data.Functor.Compose -- new
-#endif
 import qualified Data.Functor.Const -- new
+#endif
 #if MIN_VERSION_base(4,8,0)
 import Data.Functor.Identity -- new
 #endif
@@ -131,7 +140,9 @@ deriveGeneric ''NonTermination
 deriveGeneric ''NestedAtomically
 deriveGeneric ''BlockedIndefinitelyOnMVar
 deriveGeneric ''BlockedIndefinitelyOnSTM
+#if MIN_VERSION_base(4,8,0)
 deriveGeneric ''AllocationLimitExceeded -- new
+#endif
 deriveGeneric ''Deadlock
 deriveGeneric ''NoMethodError
 deriveGeneric ''PatternMatchFail
@@ -139,7 +150,9 @@ deriveGeneric ''RecConError
 deriveGeneric ''RecSelError
 deriveGeneric ''RecUpdError
 deriveGeneric ''ErrorCall
+#if MIN_VERSION_base(4,9,0)
 deriveGeneric ''TypeError -- new
+#endif
 deriveGeneric ''MaskingState
 
 -- From Data.Char:
@@ -163,7 +176,9 @@ deriveGeneric ''Compose -- new
 #endif
 
 -- From Data.Functor.Const
+#if MIN_VERSION_base(4,9,0)
 deriveGeneric ''Data.Functor.Const.Const -- new
+#endif
 
 -- From Data.Functor.Identity
 #if MIN_VERSION_base(4,8,0)
