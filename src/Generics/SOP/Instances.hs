@@ -59,6 +59,26 @@ import Data.Void -- new
 #endif
 import Foreign.C.Error
 import Foreign.C.Types
+import GHC.Conc -- new
+#if MIN_VERSION_base(4,9,0)
+import GHC.ExecutionStack -- new
+#endif
+import GHC.Exts -- new
+import GHC.IO.Buffer -- new
+import GHC.IO.Device -- new
+import GHC.IO.Encoding -- new
+import GHC.IO.Encoding.Failure -- new
+import GHC.IO.Handle -- new
+#if MIN_VERSION_base(4,8,0)
+import GHC.RTS.Flags -- new
+#endif
+#if MIN_VERSION_base(4,9,0)
+import qualified GHC.Stack -- new
+#endif
+#if MIN_VERSION_base(4,8,0)
+import GHC.StaticPtr -- new
+#endif
+import GHC.Stats -- new
 import System.Console.GetOpt
 import System.Exit
 import System.IO
@@ -272,6 +292,71 @@ deriveGeneric ''CSUSeconds
 deriveGeneric ''CFloat
 deriveGeneric ''CDouble
 
+-- From GHC.Conc:
+deriveGeneric ''ThreadStatus -- new
+deriveGeneric ''BlockReason -- new
+
+-- From GHC.ExecutionStack:
+#if MIN_VERSION_base(4,9,0)
+deriveGeneric ''Location -- new
+deriveGeneric ''SrcLoc -- new
+#endif
+
+-- From GHC.Exts:
+#if MIN_VERSION_base(4,9,0)
+deriveGeneric ''RuntimeRep -- new
+deriveGeneric ''VecCount -- new
+deriveGeneric ''VecElem -- new
+#endif
+deriveGeneric ''SpecConstrAnnotation -- new
+
+-- From GHC.IO.Buffer:
+deriveGeneric ''Buffer -- new
+deriveGeneric ''BufferState -- new
+
+-- From GHC.IO.Device:
+deriveGeneric ''IODeviceType -- new
+
+-- From GHC.IO.Encoding:
+deriveGeneric ''BufferCodec -- new
+deriveGeneric ''CodingProgress -- new
+
+-- From GHC.IO.Encoding.Failure:
+deriveGeneric ''CodingFailureMode -- new
+
+-- From GHC.IO.Handle:
+deriveGeneric ''HandlePosn -- new
+
+-- From GHC.RTS.Flags:
+#if MIN_VERSION_base(4,8,0)
+deriveGeneric ''RTSFlags -- new
+deriveGeneric ''GiveGCStats -- new
+deriveGeneric ''GCFlags -- new
+deriveGeneric ''ConcFlags -- new
+deriveGeneric ''MiscFlags -- new
+deriveGeneric ''DebugFlags -- new
+deriveGeneric ''DoCostCentres -- new
+deriveGeneric ''CCFlags -- new
+deriveGeneric ''DoHeapProfile -- new
+deriveGeneric ''ProfFlags -- new
+deriveGeneric ''DoTrace -- new
+deriveGeneric ''TraceFlags -- new
+deriveGeneric ''TickyFlags -- new
+#endif
+
+-- From GHC.Stack:
+#if MIN_VERSION_base(4,9,0)
+deriveGeneric ''GHC.Stack.SrcLoc -- new
+#endif
+
+-- From GHC.StaticPtr:
+#if MIN_VERSION_base(4,8,0)
+deriveGeneric ''StaticPtrInfo -- new
+#endif
+
+-- From GHC.Stats:
+deriveGeneric ''GCStats -- new
+
 -- From System.Console.GetOpt:
 
 deriveGeneric ''ArgOrder
@@ -359,6 +444,9 @@ deriveGeneric ''Number
 -- Weak
 -- ReadP
 -- ReadPrec
+-- STM
+-- TVar
+-- Natural
 --
 -- Datatypes we cannot currently handle:
 --
