@@ -16,17 +16,38 @@
 --
 module Generics.SOP.Instances () where
 
+import Control.Applicative -- new
+import Control.Arrow -- new
 import Control.Exception
 import Data.Char
 import Data.Complex
 import Data.Data
 import Data.Fixed
-import Data.Monoid
+#if MIN_VERSION_base(4,9,0)
+import Data.Functor.Compose -- new
+#endif
+import qualified Data.Functor.Const -- new
+#if MIN_VERSION_base(4,8,0)
+import Data.Functor.Identity -- new
+#endif
+#if MIN_VERSION_base(4,9,0)
+import Data.Functor.Product -- new
+import Data.Functor.Sum -- new
+import Data.List.NonEmpty -- new
+#endif
+import qualified Data.Monoid
 import Data.Ord
 #if !(MIN_VERSION_base(4,7,0))
 import Data.Proxy
 #endif
+#if MIN_VERSION_base(4,9,0)
+import qualified Data.Semigroup -- new
+#endif
+import Data.Typeable.Internal -- new
 import Data.Version
+#if MIN_VERSION_base(4,8,0)
+import Data.Void -- new
+#endif
 import Foreign.C.Error
 import Foreign.C.Types
 import System.Console.GetOpt
@@ -91,6 +112,15 @@ deriveGeneric ''[]
 
 -- Other types from base:
 
+-- From Control.Applicative:
+deriveGeneric ''WrappedMonad -- new
+deriveGeneric ''WrappedArrow -- new
+deriveGeneric ''ZipList -- new
+
+-- From Control.Arrow:
+deriveGeneric ''Kleisli -- new
+deriveGeneric ''ArrowMonad -- new
+
 -- From Control.Exception:
 deriveGeneric ''IOException
 deriveGeneric ''ArithException
@@ -101,6 +131,7 @@ deriveGeneric ''NonTermination
 deriveGeneric ''NestedAtomically
 deriveGeneric ''BlockedIndefinitelyOnMVar
 deriveGeneric ''BlockedIndefinitelyOnSTM
+deriveGeneric ''AllocationLimitExceeded -- new
 deriveGeneric ''Deadlock
 deriveGeneric ''NoMethodError
 deriveGeneric ''PatternMatchFail
@@ -108,6 +139,7 @@ deriveGeneric ''RecConError
 deriveGeneric ''RecSelError
 deriveGeneric ''RecUpdError
 deriveGeneric ''ErrorCall
+deriveGeneric ''TypeError -- new
 deriveGeneric ''MaskingState
 
 -- From Data.Char:
@@ -123,16 +155,48 @@ deriveGeneric ''ConstrRep
 
 -- From Data.Fixed:
 deriveGeneric ''Fixed
+-- TODO: What about empty types? E0, E1, ..., E12
+
+-- From Data.Functor.Compose
+#if MIN_VERSION_base(4,9,0)
+deriveGeneric ''Compose -- new
+#endif
+
+-- From Data.Functor.Const
+deriveGeneric ''Data.Functor.Const.Const -- new
+
+-- From Data.Functor.Identity
+#if MIN_VERSION_base(4,8,0)
+deriveGeneric ''Identity -- new
+#endif
+
+-- From Data.Functor.Product
+#if MIN_VERSION_base(4,9,0)
+deriveGeneric ''Product -- new
+#endif
+
+-- From Data.Functor.Sum
+#if MIN_VERSION_base(4,9,0)
+deriveGeneric ''Sum -- new
+#endif
+
+-- From Data.List.NonEmpty
+#if MIN_VERSION_base(4,9,0)
+deriveGeneric ''NonEmpty -- new
+#endif
 
 -- From Data.Monoid:
-deriveGeneric ''Dual
-deriveGeneric ''Endo
-deriveGeneric ''All
-deriveGeneric ''Any
-deriveGeneric ''Sum
-deriveGeneric ''Product
-deriveGeneric ''First
-deriveGeneric ''Last
+deriveGeneric ''Data.Monoid.Dual
+deriveGeneric ''Data.Monoid.Endo
+deriveGeneric ''Data.Monoid.All
+deriveGeneric ''Data.Monoid.Any
+deriveGeneric ''Data.Monoid.Sum
+deriveGeneric ''Data.Monoid.Product
+deriveGeneric ''Data.Monoid.First
+deriveGeneric ''Data.Monoid.Last
+#if MIN_VERSION_base(4,8,0)
+deriveGeneric ''Data.Monoid.Alt -- new
+#endif
 
 -- From Data.Ord:
 deriveGeneric ''Down
@@ -140,8 +204,28 @@ deriveGeneric ''Down
 -- From Data.Proxy:
 deriveGeneric ''Proxy
 
+-- From Data.Semigroup:
+#if MIN_VERSION_base(4,9,0)
+deriveGeneric ''Data.Semigroup.Min -- new
+deriveGeneric ''Data.Semigroup.Max -- new
+deriveGeneric ''Data.Semigroup.First -- new
+deriveGeneric ''Data.Semigroup.Last -- new
+deriveGeneric ''Data.Semigroup.WrappedMonoid -- new
+deriveGeneric ''Data.Semigroup.Option -- new
+deriveGeneric ''Data.Semigroup.Arg -- new
+#endif
+
+-- From Data.Typeable.Internal
+deriveGeneric ''Fingerprint -- new
+
 -- From Data.Version:
 deriveGeneric ''Version
+
+-- From Data.Void:
+#if MIN_VERSION_base(4,8,0)
+-- TODO: Another empty type
+-- deriveGeneric ''Void -- new
+#endif
 
 -- From Foreign.C.Error:
 deriveGeneric ''Errno
@@ -217,6 +301,7 @@ deriveGeneric ''Number
 -- QSem
 -- QSemN
 -- DataType
+-- Constr
 -- Dynamic
 -- IORef
 -- TypeRep
