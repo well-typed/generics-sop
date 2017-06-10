@@ -1,3 +1,4 @@
+{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 #if __GLASGOW_HASKELL__ >= 800
@@ -188,7 +189,13 @@ deriveGeneric ''ConstrRep
 
 -- From Data.Fixed:
 deriveGeneric ''Fixed
--- TODO: What about empty types? E0, E1, ..., E12
+deriveGeneric ''E0
+deriveGeneric ''E1
+deriveGeneric ''E2
+deriveGeneric ''E3
+deriveGeneric ''E6
+deriveGeneric ''E9
+deriveGeneric ''E12
 
 -- From Data.Functor.Compose
 #if MIN_VERSION_base(4,9,0)
@@ -258,8 +265,7 @@ deriveGeneric ''Version
 
 -- From Data.Void:
 #if MIN_VERSION_base(4,8,0)
--- TODO: Another empty type
--- deriveGeneric ''Void -- new
+deriveGeneric ''Void -- new
 #endif
 
 -- From Foreign.C.Error:
