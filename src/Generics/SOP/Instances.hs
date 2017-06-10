@@ -53,7 +53,6 @@ import Data.Proxy
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup -- new
 #endif
-import Data.Typeable.Internal -- new
 import Data.Version
 #if MIN_VERSION_base(4,8,0)
 import Data.Void -- new
@@ -65,6 +64,7 @@ import GHC.Conc -- new
 import GHC.ExecutionStack -- new
 #endif
 import GHC.Exts -- new
+import GHC.Fingerprint -- new
 import GHC.IO.Buffer -- new
 import GHC.IO.Device -- new
 import GHC.IO.Encoding -- new
@@ -257,9 +257,6 @@ deriveGeneric ''Data.Semigroup.Option -- new
 deriveGeneric ''Data.Semigroup.Arg -- new
 #endif
 
--- From Data.Typeable.Internal
-deriveGeneric ''Fingerprint -- new
-
 -- From Data.Version:
 deriveGeneric ''Version
 
@@ -329,6 +326,9 @@ deriveGeneric ''CodingProgress -- new
 
 -- From GHC.IO.Encoding.Failure:
 deriveGeneric ''CodingFailureMode -- new
+
+-- From GHC.Fingerprint
+deriveGeneric ''Fingerprint -- new
 
 -- From GHC.IO.Handle:
 deriveGeneric ''HandlePosn -- new
