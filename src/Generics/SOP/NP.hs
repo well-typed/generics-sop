@@ -123,7 +123,15 @@ data NP :: (k -> *) -> [k] -> * where
 
 infixr 5 :*
 
-deriving instance All (Show `Compose` f) xs => Show (NP f xs)
+-- This is written manually,
+-- because built-in deriving doesn't use associativity information!
+instance All (Show `Compose` f) xs => Show (NP f xs) where
+  showsPrec _ Nil       = showString "Nil"
+  showsPrec d (f :* fs) = showParen (d > 5)
+    $ showsPrec (5 + 1) f
+    . showString " :* "
+    . showsPrec 5 fs
+
 deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
 
