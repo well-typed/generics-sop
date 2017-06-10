@@ -5,11 +5,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
-#if __GLASGOW_HASKELL__ >= 802
-{-# OPTIONS_GHC -fno-specialize #-}
--- The -fno-specialize option is required with GHC 8.2 and 8.3
--- to prevent a segfault. See GHC #13750.
-#endif
 module Main (main, toTreeC) where
 
 import qualified GHC.Generics as GHC
