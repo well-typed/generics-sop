@@ -1,4 +1,4 @@
-# 0.3.1.0
+# 0.3.1.0 (2017-06-11)
 
 * Add AllZip, htrans, hcoerce, hfromI, htoI.
   These functions are for converting between related
