@@ -211,8 +211,14 @@ codeFor = promotedTypeList . map go
 -------------------------------------------------------------------------------}
 
 embedding :: Name -> [Con] -> Q Dec
-embedding fromName = funD fromName . go (\e -> [| Z $e |])
+embedding fromName = funD fromName . go' (\e -> [| Z $e |])
   where
+    go' :: (Q Exp -> Q Exp) -> [Con] -> [Q Clause]
+    go' _ [] = (:[]) $ do
+      x <- newName "x"
+      clause [varP x] (normalB (caseE (varE x) [])) []
+    go' br cs = go br cs
+
     go :: (Q Exp -> Q Exp) -> [Con] -> [Q Clause]
     go _  []     = []
     go br (c:cs) = mkClause br c : go (\e -> [| S $(br e) |]) cs
@@ -226,8 +232,14 @@ embedding fromName = funD fromName . go (\e -> [| Z $e |])
              []
 
 projection :: Name -> [Con] -> Q Dec
-projection toName = funD toName . go (\p -> conP 'Z [p])
+projection toName = funD toName . go' (\p -> conP 'Z [p])
   where
+    go' :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
+    go' _ [] = (:[]) $ do
+      x <- newName "x"
+      clause [varP x] (normalB (caseE (varE x) [])) []
+    go' br cs = go br cs
+
     go :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
     go _ [] = [unreachable]
     go br (c:cs) = mkClause br c : go (\p -> conP 'S [br p]) cs
