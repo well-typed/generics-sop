@@ -110,10 +110,11 @@ library
 test-suite doctests
   type:                exitcode-stdio-1.0
   main-is:             doctests.hs
+  x-doctest-options:   --preserve-it
   hs-source-dirs:      test
   default-language:    Haskell2010
   build-depends:       base,
-                       doctest >= 0.12 && <0.13
+                       doctest >= 0.13 && <0.14
   ghc-options:         -Wall -threaded
 
 test-suite generics-sop-examples
