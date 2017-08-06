@@ -122,6 +122,23 @@ type FieldName       = Symbol
 type Fixity          = Nat
 #endif
 
+type family ModuleNameOf (x :: DatatypeInfo) where
+  ModuleNameOf ('ADT     m _d _cs) = m
+  ModuleNameOf ('Newtype m _d _c ) = m
+
+type family DatatypeNameOf (x :: DatatypeInfo) where
+  DatatypeNameOf ('ADT     _m d _cs) = d
+  DatatypeNameOf ('Newtype _m d _c ) = d
+
+type family ConstructorInfoOf (x :: DatatypeInfo) :: [ConstructorInfo] where
+  ConstructorInfoOf ('ADT     _m _d cs) = cs
+  ConstructorInfoOf ('Newtype _m _d c ) = '[ c ]
+
+type family ConstructorNameOf (x :: ConstructorInfo) where
+  ConstructorNameOf ('Constructor c      ) = c
+  ConstructorNameOf ('Infix       c _a _f) = c
+  ConstructorNameOf ('Record      c _fs  ) = c
+
 -- Demotion
 --
 -- The following classes are concerned with computing the

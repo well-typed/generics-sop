@@ -165,6 +165,25 @@ class HasDatatypeInfo a where
 type IsProductType (a :: *) (xs :: [*]) =
   (Generic a, Code a ~ '[ xs ])
 
+-- | Constraint that captures that a datatype is a record type,
+-- which means that it is a product type (has only a single
+-- constructor) and is defined with record labels.
+--
+-- Note that this requires type-level metadata, so the remarks
+-- given in the CHANGELOG file about support for type-level
+-- metadata with older GHC versions apply.
+--
+-- @since 0.3.2.0
+--
+type IsRecordType (a :: *) (xs :: [*]) fields =
+  ( Generic a
+  , Code a ~ '[ xs ]
+  , DatatypeInfoOf a
+    ~ 'T.ADT (T.ModuleNameOf (DatatypeInfoOf a)) (T.DatatypeNameOf (DatatypeInfoOf a))
+      '[ 'T.Record (T.ConstructorNameOf (Head (T.ConstructorInfoOf (DatatypeInfoOf a)))) fields ]
+  ,  T.DemoteFieldInfos fields xs
+  )
+
 -- | Constraint that captures that a datatype is an enumeration type,
 -- i.e., none of the constructors have any arguments.
 --
