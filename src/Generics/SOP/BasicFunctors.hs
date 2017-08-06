@@ -48,7 +48,7 @@ import Data.Monoid ((<>))
 #else
 import Control.Applicative
 import Data.Foldable (Foldable(..))
-import Data.Monoid (Monoid, mempty, (<>))
+import Data.Monoid (Monoid(..), (<>))
 import Data.Traversable (Traversable(..))
 #endif
 import qualified GHC.Generics as GHC
@@ -155,6 +155,10 @@ instance (Show a) => Show (K a b) where
     showsPrec d (K x) = showsUnary "K" d x
 #endif
 
+instance Monoid a => Monoid (K a b) where
+  mempty              = K mempty
+  mappend (K x) (K y) = K (mappend x y)
+
 instance Monoid a => Applicative (K a) where
   pure _      = K mempty
   K x <*> K y = K (x <> y)
@@ -183,6 +187,10 @@ instance Foldable I where
 instance Traversable I where
   traverse f (I x) = fmap I (f x)
 #endif
+
+instance Monoid a => Monoid (I a) where
+  mempty              = I mempty
+  mappend (I x) (I y) = I (mappend x y)
 
 instance Applicative I where
   pure = I
@@ -240,6 +248,10 @@ newtype (:.:) (f :: l -> *) (g :: k -> l) (p :: k) = Comp (f (g p))
   deriving (GHC.Generic)
 
 infixr 7 :.:
+
+instance (Monoid (f (g x))) => Monoid ((f :.: g) x) where
+  mempty                    = Comp mempty
+  mappend (Comp x) (Comp y) = Comp (mappend x y)
 
 instance (Functor f, Functor g) => Functor (f :.: g) where
   fmap f (Comp x) = Comp (fmap (fmap f) x)
