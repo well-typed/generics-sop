@@ -145,8 +145,12 @@
 --
 -- @
 -- grnf :: ('Generic' a, 'All2' NFData ('Code' a)) => a -> ()
--- grnf = 'rnf' . 'hcollapse' . 'hcliftA' ('Proxy' :: 'Proxy' NFData) (\\ ('I' x) -> 'K' (rnf x)) . 'from'
+-- grnf = 'rnf' . 'hcollapse' . 'hcliftA' ('Proxy' :: 'Proxy' NFData) ('mapIK' rnf) . 'from'
 -- @
+--
+-- 'mapIK' and friends ('mapII', 'mapKI', etc.) are small helpers for working
+-- with 'I' and 'K' functors, for example 'mapIK' is defined as
+-- @'mapIK' f = \\ ('I' x) -> 'K' (f x)@
 --
 -- The following interaction should provide an idea of the individual
 -- transformation steps:
@@ -154,7 +158,7 @@
 -- >>> let x = G 2.5 'A' False :: B Double
 -- >>> from x
 -- SOP (S (Z (I 2.5 :* I 'A' :* I False :* Nil)))
--- >>> hcliftA (Proxy :: Proxy NFData) (\ (I x) -> K (rnf x)) it
+-- >>> hcliftA (Proxy :: Proxy NFData) (mapIK rnf) it
 -- SOP (S (Z (K () :* K () :* K () :* Nil)))
 -- >>> hcollapse it
 -- [(),(),()]
