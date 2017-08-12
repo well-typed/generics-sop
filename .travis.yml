@@ -99,6 +99,7 @@ script:
   # build & run tests, build benchmarks
   - cabal new-build -w ${HC} ${TEST} ${BENCH} all
   - if [ "x$TEST" = "x--enable-tests" ]; then cabal new-test -w ${HC} ${TEST} all; fi
+  - if [ "x$BENCH" = "x--enable-benchmarks" ]; then cabal new-bench -w ${HC} ${BENCH} all; fi
 
   # doctest
   - if $(echo $HC | grep -q "^ghc-8."); then (cd generics-sop-*; sh doctest.sh); fi
