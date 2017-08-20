@@ -8,75 +8,40 @@ module Main where
 import Control.DeepSeq
 import Criterion
 import Criterion.Main
-import qualified GHC.Generics as GHC
 import Generics.SOP
-import Generics.SOP.TH
+import TestInstances
 
 
 main :: IO ()
 main = do
   defaultMainWith defaultConfig
-    [ bgroup "GHC.Generics"
-      [ bench "generic-show" $ nf gshow testGI
-      , bench "show" $ nf show testGI
-      ]
-    , bgroup "Template Haskell"
-      [ bench "generic-show" $ nf gshow testGI
-      , bench "show" $ nf show testGI
+    [ bgroup "Show"
+      [ bench "GHC.Generics"     $ nf show tree
+      , bench "Template Haskell" $ nf show treeB
+      , bench "Orphan approach"  $ nf show treeC
+      , bench "Deriving Show"    $ nf show treeD
       ]
     ]
 
--- * GShow
+-- * NFData
 
-class GShow a where
-  show_ :: a -> String
+grnf :: (Generic a, All2 NFData (Code a)) => a -> ()
+grnf = grnfS . from
 
-instance GShow Int where
-  show_ = show
+grnfS :: (All2 NFData xss) => SOP I xss -> ()
+grnfS (SOP (Z xs))  = grnfP xs
+grnfS (SOP (S xss)) = grnfS (SOP xss)
 
--- Generic show, kind of
-gshow :: (Generic a, All2 GShow (Code a)) => a -> String
-gshow x = gshowS (from x)
-
-gshowS :: (All2 GShow xss) => SOP I xss -> String
-gshowS (SOP (Z xs))  = gshowP xs
-gshowS (SOP (S xss)) = gshowS (SOP xss)
-
-gshowP :: (All GShow xs) => NP I xs -> String
-gshowP Nil         = ""
-gshowP (I x :* xs) = show_ x ++ (gshowP xs)
-
--- * List with derive generic instance
-
-data ListGI = NilGI | ConsGI Int ListGI
-  deriving (GHC.Generic, Show)
-
-testGI :: ListGI
-testGI = ConsGI 1 (ConsGI 2 (ConsGI 3 NilGI))
-
-instance Generic ListGI
-instance HasDatatypeInfo ListGI
-
-instance NFData ListGI where
-  rnf NilGI = ()
-  rnf (ConsGI x ls) = rnf x `seq` rnf ls `seq` ()
-
-instance GShow ListGI where
-  show_ = gshow
-
--- * List with template haskell generic instance
-
-data ListTHI = NilTHI | ConsTHI Int ListTHI
-  deriving (Show)
+grnfP :: (All NFData xs) => NP I xs -> ()
+grnfP Nil         = ()
+grnfP (I x :* xs) = rnf x `seq` (grnfP xs)
 
 
-deriveGenericFunctions ''ListTHI "ListTHITree" "fromListTHI" "toListTHI"
-deriveMetadataValue ''ListTHI "ListTHITree" "listTHIDatatypeInfo"
-deriveMetadataType ''ListTHI "ListTHIDatatypeInfo"
+instance NFData Tree  where rnf = grnf
+instance NFData TreeB where rnf = grnf
+instance NFData TreeC where rnf = grnfS . fromTreeC
+instance NFData TreeD where rnf = grnf
 
-instance NFData ListTHI where
-  rnf NilTHI = ()
-  rnf (ConsTHI x ls) = rnf x `seq` rnf ls `seq` ()
 
 --instance GShow ListTHI where
 --  show_ = gshow

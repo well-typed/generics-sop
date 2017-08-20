@@ -105,6 +105,7 @@ test-suite generics-sop-examples
   type:                exitcode-stdio-1.0
   main-is:             Example.hs
   other-modules:       HTransExample
+                       TestInstances
   hs-source-dirs:      test
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -115,6 +116,7 @@ benchmark generics-sop-benchmark
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Benchmark.hs
+  other-modules:       TestInstances
   build-depends:       base
                      , generics-sop
                      , criterion
