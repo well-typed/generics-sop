@@ -64,12 +64,25 @@ module Generics.SOP.NP
   , ccata_NP
   , ana_NP
   , cana_NP
+    -- * Transformation of index lists and coercions
+  , trans_NP
+  , trans_POP
+  , coerce_NP
+  , coerce_POP
+  , fromI_NP
+  , fromI_POP
+  , toI_NP
+  , toI_POP
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 #endif
+import Data.Coerce
 import Data.Proxy (Proxy(..))
+import Unsafe.Coerce
+
+import Control.DeepSeq (NFData(..))
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
@@ -114,6 +127,11 @@ deriving instance All (Show `Compose` f) xs => Show (NP f xs)
 deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
 
+-- | @since 0.2.5.0
+instance All (NFData `Compose` f) xs => NFData (NP f xs) where
+    rnf Nil       = ()
+    rnf (x :* xs) = rnf x `seq` rnf xs
+
 -- | A product of products.
 --
 -- This is a 'newtype' for an 'NP' of an 'NP'. The elements of the
@@ -134,12 +152,19 @@ deriving instance (Show (NP (NP f) xss)) => Show (POP f xss)
 deriving instance (Eq   (NP (NP f) xss)) => Eq   (POP f xss)
 deriving instance (Ord  (NP (NP f) xss)) => Ord  (POP f xss)
 
+-- | @since 0.2.5.0
+instance (NFData (NP (NP f) xss)) => NFData (POP f xss) where
+    rnf (POP xss) = rnf xss
+
 -- | Unwrap a product of products.
 unPOP :: POP f xss -> NP (NP f) xss
 unPOP (POP xss) = xss
 
 type instance AllN NP  c = All  c
 type instance AllN POP c = All2 c
+
+type instance AllZipN NP  c = AllZip  c
+type instance AllZipN POP c = AllZip2 c
 
 type instance SListIN NP  = SListI
 type instance SListIN POP = SListI2
@@ -260,6 +285,9 @@ ap_POP (POP fs) (POP xs) = POP (czipWith_NP (Proxy :: Proxy SListI) ap_NP fs xs)
 -- The definition of 'ap_POP' is a more direct variant of
 -- '_ap_POP_spec'. The direct definition has the advantage
 -- that it avoids the 'SListI' constraint.
+
+type instance Same NP  = NP
+type instance Same POP = POP
 
 type instance Prod NP  = NP
 type instance Prod POP = POP
@@ -606,3 +634,124 @@ cana_NP p uncons =
       (fn (const Nil))
       (fn . (\ r s -> case uncons s of (x, s') -> x :* r s') . apFn)
     )
+
+-- | Specialization of 'htrans'.
+--
+-- @since 0.3.1.0
+--
+trans_NP ::
+     AllZip c xs ys
+  => proxy c
+  -> (forall x y . c x y => f x -> g y)
+  -> NP f xs -> NP g ys
+trans_NP _ _t Nil       = Nil
+trans_NP p  t (x :* xs) = t x :* trans_NP p t xs
+
+-- | Specialization of 'htrans'.
+--
+-- @since 0.3.1.0
+--
+trans_POP ::
+     AllZip2 c xss yss
+  => proxy c
+  -> (forall x y . c x y => f x -> g y)
+  -> POP f xss -> POP g yss
+trans_POP p t =
+  POP . trans_NP (allZipP p) (trans_NP p t) . unPOP
+
+allZipP :: proxy c -> Proxy (AllZip c)
+allZipP _ = Proxy
+
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
+coerce_NP ::
+     forall f g xs ys .
+     AllZip (LiftedCoercible f g) xs ys
+  => NP f xs -> NP g ys
+coerce_NP =
+  unsafeCoerce
+
+-- There is a bug in the way coerce works for higher-kinded
+-- type variables that seems to occur only in GHC 7.10.
+--
+-- Therefore, the safe versions of the coercion functions
+-- are excluded below. This is harmless because they're only
+-- present for documentation purposes and not exported.
+
+#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+_safe_coerce_NP ::
+     forall f g xs ys .
+     AllZip (LiftedCoercible f g) xs ys
+  => NP f xs -> NP g ys
+_safe_coerce_NP =
+  trans_NP (Proxy :: Proxy (LiftedCoercible f g)) coerce
+#endif
+
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
+coerce_POP ::
+     forall f g xss yss .
+     AllZip2 (LiftedCoercible f g) xss yss
+  => POP f xss -> POP g yss
+coerce_POP =
+  unsafeCoerce
+
+#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+_safe_coerce_POP ::
+     forall f g xss yss .
+     AllZip2 (LiftedCoercible f g) xss yss
+  => POP f xss -> POP g yss
+_safe_coerce_POP =
+  trans_POP (Proxy :: Proxy (LiftedCoercible f g)) coerce
+#endif
+
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
+fromI_NP ::
+     forall f xs ys .
+     AllZip (LiftedCoercible I f) xs ys
+  => NP I xs -> NP f ys
+fromI_NP = hfromI
+
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
+toI_NP ::
+     forall f xs ys .
+     AllZip (LiftedCoercible f I) xs ys
+  => NP f xs -> NP I ys
+toI_NP = htoI
+
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
+fromI_POP ::
+     forall f xss yss .
+     AllZip2 (LiftedCoercible I f) xss yss
+  => POP I xss -> POP f yss
+fromI_POP = hfromI
+
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
+toI_POP ::
+     forall f xss yss .
+     AllZip2 (LiftedCoercible f I) xss yss
+  => POP f xss -> POP I yss
+toI_POP = htoI
+
+instance HTrans NP NP where
+  htrans  = trans_NP
+  hcoerce = coerce_NP
+instance HTrans POP POP where
+  htrans  = trans_POP
+  hcoerce = coerce_POP

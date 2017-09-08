@@ -1,4 +1,7 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE PolyKinds, UndecidableInstances #-}
+#if __GLASGOW_HASKELL__ >= 780
+{-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
+#endif
 -- | Derive @generics-sop@ boilerplate instances from GHC's 'GHC.Generic'.
 --
 -- The technique being used here is described in the following paper:
@@ -12,6 +15,9 @@ module Generics.SOP.GGP
   , GFrom
   , GTo
   , GDatatypeInfo
+#if MIN_VERSION_base(4,9,0)
+  , GDatatypeInfoOf
+#endif
   , gfrom
   , gto
   , gdatatypeInfo
@@ -22,9 +28,16 @@ import GHC.Generics as GHC
 import Generics.SOP.NP as SOP
 import Generics.SOP.NS as SOP
 import Generics.SOP.BasicFunctors as SOP
+#if !(MIN_VERSION_base(4,9,0))
 import Generics.SOP.Constraint as SOP
+#endif
+#if MIN_VERSION_base(4,9,0)
+import qualified Generics.SOP.Type.Metadata as SOP.T
+#endif
 import Generics.SOP.Metadata as SOP
+#if !(MIN_VERSION_base(4,9,0))
 import Generics.SOP.Sing
+#endif
 
 type family ToSingleCode (a :: * -> *) :: *
 type instance ToSingleCode (K1 _i a) = a
@@ -46,6 +59,7 @@ data InfoProxy (c :: Meta) (f :: * -> *) (x :: *) = InfoProxy
 data InfoProxy (c :: *) (f :: * -> *) (x :: *) = InfoProxy
 #endif
 
+#if !(MIN_VERSION_base(4,9,0))
 class GDatatypeInfo' (a :: * -> *) where
   gDatatypeInfo' :: proxy a -> DatatypeInfo (ToSumCode a '[])
 
@@ -105,6 +119,36 @@ instance (Constructor c, GFieldInfos a, SListI (ToProductCode a '[])) => GConstr
     where
       p :: InfoProxy c a x
       p = InfoProxy
+#endif
+
+#if MIN_VERSION_base(4,9,0)
+type family ToInfo (a :: * -> *) :: SOP.T.DatatypeInfo
+type instance ToInfo (M1 D (MetaData n m p False) a) =
+  SOP.T.ADT m n (ToSumInfo a '[])
+type instance ToInfo (M1 D (MetaData n m p True) a) =
+  SOP.T.Newtype m n (ToSingleConstructorInfo a)
+
+type family ToSumInfo (a :: * -> *) (xs :: [SOP.T.ConstructorInfo]) :: [SOP.T.ConstructorInfo]
+type instance ToSumInfo (a :+: b)  xs = ToSumInfo a (ToSumInfo b xs)
+type instance ToSumInfo V1         xs = xs
+type instance ToSumInfo (M1 C c a) xs = ToSingleConstructorInfo (M1 C c a) ': xs
+
+type family ToSingleConstructorInfo (a :: * -> *) :: SOP.T.ConstructorInfo
+type instance ToSingleConstructorInfo (M1 C (MetaCons n PrefixI False) a) =
+  SOP.T.Constructor n
+type instance ToSingleConstructorInfo (M1 C (MetaCons n (InfixI assoc fix) False) a) =
+  SOP.T.Infix n assoc fix
+type instance ToSingleConstructorInfo (M1 C (MetaCons n f True) a) =
+  SOP.T.Record n (ToProductInfo a '[])
+
+type family ToProductInfo (a :: * -> *) (xs :: [SOP.T.FieldInfo]) :: [SOP.T.FieldInfo]
+type instance ToProductInfo (a :*: b)  xs = ToProductInfo a (ToProductInfo b xs)
+type instance ToProductInfo U1         xs = xs
+type instance ToProductInfo (M1 S c a) xs = ToSingleInfo (M1 S c a) ': xs
+
+type family ToSingleInfo (a :: * -> *) :: SOP.T.FieldInfo
+type instance ToSingleInfo (M1 S (MetaSel (Just n) _su _ss _ds) a) = 'SOP.T.FieldInfo n
+#endif
 
 class GFieldInfos (a :: * -> *) where
   gFieldInfos :: proxy a -> NP FieldInfo xs -> NP FieldInfo (ToProductCode a xs)
@@ -209,7 +253,19 @@ type GFrom a = GSumFrom (GHC.Rep a)
 type GTo a = GSumTo (GHC.Rep a)
 
 -- | Constraint for the class that computes 'gdatatypeInfo'.
+#if MIN_VERSION_base(4,9,0)
+type GDatatypeInfo a = SOP.T.DemoteDatatypeInfo (GDatatypeInfoOf a) (GCode a)
+#else
 type GDatatypeInfo a = GDatatypeInfo' (GHC.Rep a)
+#endif
+
+#if MIN_VERSION_base(4,9,0)
+-- | Compute the datatype info of a datatype.
+--
+-- @since 0.3.0.0
+--
+type GDatatypeInfoOf (a :: *) = ToInfo (GHC.Rep a)
+#endif
 
 -- | An automatically computed version of 'Generics.SOP.from'.
 --
@@ -242,5 +298,9 @@ gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.
 -- For more info, see 'Generics.SOP.HasDatatypeInfo'.
 --
 gdatatypeInfo :: forall proxy a. (GDatatypeInfo a) => proxy a -> DatatypeInfo (GCode a)
+#if MIN_VERSION_base(4,9,0)
+gdatatypeInfo _ = SOP.T.demoteDatatypeInfo (Proxy :: Proxy (GDatatypeInfoOf a))
+#else
 gdatatypeInfo _ = gDatatypeInfo' (Proxy :: Proxy (GHC.Rep a))
+#endif
 

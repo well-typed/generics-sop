@@ -5,6 +5,7 @@
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
+import Data.Coerce (Coercible)
 import qualified GHC.Generics as GHC
 
 import Generics.SOP.BasicFunctors
@@ -13,6 +14,7 @@ import Generics.SOP.NS
 import Generics.SOP.Sing
 import Generics.SOP.GGP
 import Generics.SOP.Metadata
+import qualified Generics.SOP.Type.Metadata as T
 
 -- | The (generic) representation of a datatype.
 --
@@ -137,7 +139,56 @@ class (All SListI (Code a)) => Generic (a :: *) where
 -- of 'Generic' for the options.
 --
 class HasDatatypeInfo a where
+  -- | Type-level datatype info
+  type DatatypeInfoOf a :: T.DatatypeInfo
+#if MIN_VERSION_base(4,9,0)
+  type DatatypeInfoOf a = GDatatypeInfoOf a
+#else
+  type DatatypeInfoOf a = DatatypeInfoOf a
+#endif
+
+  -- | Term-level datatype info; by default, the term-level datatype info is produced
+  -- from the type-level info.
+  --
   datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
-  default datatypeInfo :: (GDatatypeInfo a, Code a ~ GCode a)
-                       => proxy a -> DatatypeInfo (Code a)
+  default datatypeInfo :: (GDatatypeInfo a, GCode a ~ Code a) => proxy a -> DatatypeInfo (Code a)
   datatypeInfo = gdatatypeInfo
+
+-- | Constraint that captures that a datatype is a product type,
+-- i.e., a type with a single constructor.
+--
+-- It also gives access to the code for the arguments of that
+-- constructor.
+--
+-- @since 0.3.1.0
+--
+type IsProductType (a :: *) (xs :: [*]) =
+  (Generic a, Code a ~ '[ xs ])
+
+-- | Constraint that captures that a datatype is an enumeration type,
+-- i.e., none of the constructors have any arguments.
+--
+-- @since 0.3.1.0
+--
+type IsEnumType (a :: *) =
+  (Generic a, All ((~) '[]) (Code a))
+
+-- | Constraint that captures that a datatype is a single-constructor,
+-- single-field datatype. This always holds for newtype-defined types,
+-- but it can also be true for data-defined types.
+--
+-- The constraint also gives access to the type that is wrapped.
+--
+-- @since 0.3.1.0
+--
+type IsWrappedType (a :: *) (x :: *) =
+  (Generic a, Code a ~ '[ '[ x ] ])
+
+-- | Constraint that captures that a datatype is a newtype.
+-- This makes use of the fact that newtypes are always coercible
+-- to the type they wrap, whereas datatypes are not.
+--
+-- @since 0.3.1.0
+--
+type IsNewtype (a :: *) (x :: *) =
+  (IsWrappedType a x, Coercible a x)

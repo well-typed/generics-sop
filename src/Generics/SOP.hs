@@ -218,6 +218,10 @@ module Generics.SOP (
     -- * Codes and interpretations
     Generic(..)
   , Rep
+  , IsProductType
+  , IsEnumType
+  , IsWrappedType
+  , IsNewtype
     -- * n-ary datatypes
   , NP(..)
   , NS(..)
@@ -294,6 +298,12 @@ module Generics.SOP (
   , HSequence(..)
   , hsequence
   , hsequenceK
+    -- ** Expanding sums to products
+  , HExpand(..)
+    -- ** Transformation of index lists and coercions
+  , HTrans(..)
+  , hfromI
+  , htoI
     -- ** Partial operations
   , fromList
     -- * Utilities
@@ -304,13 +314,32 @@ module Generics.SOP (
   , unI
   , (:.:)(..)
   , unComp
+    -- *** Mapping functions
+  , mapII
+  , mapIK
+  , mapKI
+  , mapKK
+  , mapIII
+  , mapIIK
+  , mapIKI
+  , mapIKK
+  , mapKII
+  , mapKIK
+  , mapKKI
+  , mapKKK
     -- ** Mapping constraints
   , All
   , All2
+  , AllZip
+  , AllZip2
+  , AllN
+  , AllZipN
+    -- ** Other constraints
   , Compose
   , And
   , Top
-  , AllN
+  , LiftedCoercible
+  , SameShapeAs
     -- ** Singletons
   , SList(..)
   , SListI(..)

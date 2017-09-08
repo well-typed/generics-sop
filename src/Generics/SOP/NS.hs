@@ -17,7 +17,9 @@ module Generics.SOP.NS
   , shift
   , shiftInjection
   , apInjs_NP
+  , apInjs'_NP
   , apInjs_POP
+  , apInjs'_POP
     -- * Destructing sums
   , unZ
   , refute_NS
@@ -54,12 +56,30 @@ module Generics.SOP.NS
   , ccata_NS
   , ana_NS
   , cana_NS
+    -- * Expanding sums to products
+  , expand_NS
+  , cexpand_NS
+  , expand_SOP
+  , cexpand_SOP
+    -- * Transformation of index lists and coercions
+  , trans_NS
+  , trans_SOP
+  , coerce_NS
+  , coerce_SOP
+  , fromI_NS
+  , fromI_SOP
+  , toI_NS
+  , toI_SOP
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
 #endif
+import Data.Coerce
 import Data.Proxy
+import Unsafe.Coerce
+
+import Control.DeepSeq (NFData(..))
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
@@ -116,6 +136,11 @@ data NS :: (k -> *) -> [k] -> * where
 deriving instance All (Show `Compose` f) xs => Show (NS f xs)
 deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs)
+
+-- | @since 0.2.5.0
+instance All (NFData `Compose` f) xs => NFData (NS f xs) where
+    rnf (Z x)  = rnf x
+    rnf (S xs) = rnf xs
 
 -- | Extract the payload from a unary sum.
 --
@@ -186,6 +211,10 @@ newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
 deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
 deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
 deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss)
+
+-- | @since 0.2.5.0
+instance (NFData (NS (NP f) xss)) => NFData (SOP f xss) where
+    rnf (SOP xss) = rnf xss
 
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
@@ -271,8 +300,19 @@ shift = shiftInjection
 -- [Z (I 'x'), S (Z (I True)), S (S (Z (I 2)))]
 --
 apInjs_NP  :: SListI xs  => NP  f xs  -> [NS  f xs]
-apInjs_NP  = hcollapse . hap injections
+apInjs_NP  = hcollapse . apInjs'_NP
 {-# INLINE apInjs_NP #-}
+
+-- | `apInjs_NP` without `hcollapse`.
+--
+-- >>> apInjs'_NP (I 'x' :* I True :* I 2 :* Nil)
+-- K (Z (I 'x')) :* K (S (Z (I True))) :* K (S (S (Z (I 2)))) :* Nil
+--
+-- @since 0.2.5.0
+--
+apInjs'_NP :: SListI xs => NP f xs -> NP (K (NS f xs)) xs
+apInjs'_NP = hap injections
+{-# INLINE apInjs'_NP #-}
 
 -- | Apply injections to a product of product.
 --
@@ -289,6 +329,19 @@ apInjs_NP  = hcollapse . hap injections
 apInjs_POP :: SListI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
 {-# INLINE apInjs_POP #-}
+
+-- | `apInjs_POP` without `hcollapse`.
+--
+-- /Example:/
+--
+-- >>> apInjs'_POP (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil))
+-- K (SOP (Z (I 'x' :* Nil))) :* K (SOP (S (Z (I True :* I 2 :* Nil)))) :* Nil
+--
+-- @since 0.2.5.0
+--
+apInjs'_POP :: SListI xss => POP f xss -> NP (K (SOP f xss)) xss
+apInjs'_POP = hmap (K . SOP . unK) . hap injections . unPOP
+{-# INLINE apInjs'_POP #-}
 
 type instance UnProd NP  = NS
 type instance UnProd POP = SOP
@@ -326,6 +379,9 @@ ap_SOP (POP fs) (SOP xs) = SOP (cliftA2_NS (Proxy :: Proxy SListI) ap_NP fs xs)
 -- The definition of 'ap_SOP' is a more direct variant of
 -- '_ap_SOP_spec'. The direct definition has the advantage
 -- that it avoids the 'SListI' constraint.
+
+type instance Same NS  = NS
+type instance Same SOP = SOP
 
 type instance Prod NS  = NP
 type instance Prod SOP = POP
@@ -564,3 +620,189 @@ cana_NS p refute decide =
         Right s' -> S (r s')
     {-# INLINE cons #-}
 {-# INLINE cana_NS #-}
+
+-- * Expanding sums to products
+
+-- | Specialization of 'hexpand'.
+--
+-- @since 0.2.5.0
+--
+expand_NS :: forall f xs .
+     (SListI xs)
+  => (forall x . f x)
+  -> NS f xs -> NP f xs
+expand_NS d = go sList
+  where
+    go :: forall ys . SList ys -> NS f ys -> NP f ys
+    go SCons (Z x) = x :* hpure d
+    go SCons (S i) = d :* go sList i
+    go SNil  _     = error "inaccessible" -- still required in ghc-8.0.*
+
+-- | Specialization of 'hcexpand'.
+--
+-- @since 0.2.5.0
+--
+cexpand_NS :: forall c proxy f xs .
+     (All c xs)
+  => proxy c -> (forall x . c x => f x)
+  -> NS f xs -> NP f xs
+cexpand_NS p d = go
+  where
+    go :: forall ys . All c ys => NS f ys -> NP f ys
+    go (Z x) = x :* hcpure p d
+    go (S i) = d :* go i
+
+-- | Specialization of 'hexpand'.
+--
+-- @since 0.2.5.0
+--
+expand_SOP :: forall f xss .
+     (All SListI xss)
+  => (forall x . f x)
+  -> SOP f xss -> POP f xss
+expand_SOP d =
+  POP . cexpand_NS (Proxy :: Proxy SListI) (hpure d) . unSOP
+
+-- | Specialization of 'hcexpand'.
+--
+-- @since 0.2.5.0
+--
+cexpand_SOP :: forall c proxy f xss .
+     (All2 c xss)
+  => proxy c -> (forall x . c x => f x)
+  -> SOP f xss -> POP f xss
+cexpand_SOP p d =
+  POP . cexpand_NS (allP p) (hcpure p d) . unSOP
+
+allP :: proxy c -> Proxy (All c)
+allP _ = Proxy
+
+instance HExpand NS where
+  hexpand  = expand_NS
+  hcexpand = cexpand_NS
+
+instance HExpand SOP where
+  hexpand  = expand_SOP
+  hcexpand = cexpand_SOP
+
+-- | Specialization of 'htrans'.
+--
+-- @since 0.3.1.0
+--
+trans_NS ::
+     AllZip c xs ys
+  => proxy c
+  -> (forall x y . c x y => f x -> g y)
+  -> NS f xs -> NS g ys
+trans_NS _ t (Z x)      = Z (t x)
+trans_NS p t (S x)      = S (trans_NS p t x)
+
+-- | Specialization of 'htrans'.
+--
+-- @since 0.3.1.0
+--
+trans_SOP ::
+     AllZip2 c xss yss
+  => proxy c
+  -> (forall x y . c x y => f x -> g y)
+  -> SOP f xss -> SOP g yss
+trans_SOP p t =
+  SOP . trans_NS (allZipP p) (trans_NP p t) . unSOP
+
+allZipP :: proxy c -> Proxy (AllZip c)
+allZipP _ = Proxy
+
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
+coerce_NS ::
+     forall f g xs ys .
+     AllZip (LiftedCoercible f g) xs ys
+  => NS f xs -> NS g ys
+coerce_NS =
+  unsafeCoerce
+
+-- There is a bug in the way coerce works for higher-kinded
+-- type variables that seems to occur only in GHC 7.10.
+--
+-- Therefore, the safe versions of the coercion functions
+-- are excluded below. This is harmless because they're only
+-- present for documentation purposes and not exported.
+
+#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+_safe_coerce_NS ::
+     forall f g xs ys .
+     AllZip (LiftedCoercible f g) xs ys
+  => NS f xs -> NS g ys
+_safe_coerce_NS =
+  trans_NS (Proxy :: Proxy (LiftedCoercible f g)) coerce
+#endif
+
+-- | Specialization of 'hcoerce'.
+--
+-- @since 0.3.1.0
+--
+coerce_SOP ::
+     forall f g xss yss .
+     AllZip2 (LiftedCoercible f g) xss yss
+  => SOP f xss -> SOP g yss
+coerce_SOP =
+  unsafeCoerce
+
+#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+_safe_coerce_SOP ::
+     forall f g xss yss .
+     AllZip2 (LiftedCoercible f g) xss yss
+  => SOP f xss -> SOP g yss
+_safe_coerce_SOP =
+  trans_SOP (Proxy :: Proxy (LiftedCoercible f g)) coerce
+#endif
+
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
+fromI_NS ::
+     forall f xs ys .
+     AllZip (LiftedCoercible I f) xs ys
+  => NS I xs -> NS f ys
+fromI_NS = hfromI
+
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
+toI_NS ::
+     forall f xs ys .
+     AllZip (LiftedCoercible f I) xs ys
+  => NS f xs -> NS I ys
+toI_NS = htoI
+
+-- | Specialization of 'hfromI'.
+--
+-- @since 0.3.1.0
+--
+fromI_SOP ::
+     forall f xss yss .
+     AllZip2 (LiftedCoercible I f) xss yss
+  => SOP I xss -> SOP f yss
+fromI_SOP = hfromI
+
+-- | Specialization of 'htoI'.
+--
+-- @since 0.3.1.0
+--
+toI_SOP ::
+     forall f xss yss .
+     AllZip2 (LiftedCoercible f I) xss yss
+  => SOP f xss -> SOP I yss
+toI_SOP = htoI
+
+instance HTrans NS NS where
+  htrans  = trans_NS
+  hcoerce = coerce_NS
+
+instance HTrans SOP SOP where
+  htrans  = trans_SOP
+  hcoerce = coerce_SOP

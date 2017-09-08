@@ -5,15 +5,18 @@ module Generics.SOP.TH
   , deriveGenericOnly
   , deriveGenericFunctions
   , deriveMetadataValue
+  , deriveMetadataType
   ) where
 
 import Control.Monad (replicateM)
 import Data.Maybe (fromMaybe)
+import Data.Proxy
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
 
 import Generics.SOP.BasicFunctors
 import qualified Generics.SOP.Metadata as SOP
+import qualified Generics.SOP.Type.Metadata as SOP.T
 import Generics.SOP.NP
 import Generics.SOP.NS
 import Generics.SOP.Universe
@@ -51,8 +54,12 @@ import Generics.SOP.Universe
 -- >   to _ = error "unreachable" -- to avoid GHC warnings
 -- >
 -- > instance HasDatatypeInfo Tree where
--- >   datatypeInfo _ = ADT "Main" "Tree"
--- >     (Constructor "Leaf" :* Constructor "Node" :* Nil)
+-- >   type DatatypeInfoOf Tree =
+-- >     T.ADT "Main" "Tree"
+-- >       '[ T.Constructor "Leaf", T.Constructor "Node" ]
+-- >
+-- >   datatypeInfo _ =
+-- >     T.demoteDatatypeInfo (Proxy :: Proxy (DatatypeInfoOf Tree))
 --
 -- /Limitations:/ Generation does not work for GADTs, for
 -- datatypes that involve existential quantification, for
@@ -134,6 +141,29 @@ deriveMetadataValue n codeName datatypeInfoName = do
     sequence [ sigD datatypeInfoName' [t| SOP.DatatypeInfo $(conT codeName') |]                    -- treeDatatypeInfo :: DatatypeInfo TreeCode
              , funD datatypeInfoName' [clause [] (normalB $ metadata' isNewtype name cons) []] -- treeDatatypeInfo = ...
              ]
+{-# DEPRECATED deriveMetadataValue "Use 'deriveMetadataType' and 'demoteDatatypeInfo' instead." #-}
+
+-- | Derive @DatatypeInfo@ type for the type.
+--
+-- /Example:/ If you say
+--
+-- > deriveMetadataType ''Tree "TreeDatatypeInfo"
+--
+-- then you get code that is equivalent to:
+--
+-- > type TreeDatatypeInfo =
+-- >   T.ADT "Main" "Tree"
+-- >     [ T.Constructor "Leaf", T.Constructor "Node" ]
+--
+-- @since 0.3.0.0
+--
+deriveMetadataType :: Name -> String -> Q [Dec]
+deriveMetadataType n datatypeInfoName = do
+  let datatypeInfoName' = mkName datatypeInfoName
+  dec <- reifyDec n
+  withDataDec dec $ \ isNewtype _ctx name _bndrs cons _derivs ->
+    sequence
+      [ tySynD datatypeInfoName' [] (metadataType' isNewtype name cons) ]
 
 deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
 deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
@@ -154,7 +184,14 @@ deriveMetadataForDataDec isNewtype _cxt name bndrs cons _derivs = do
   let typ = appTyVars name bndrs
   md   <- instanceD (cxt [])
             [t| HasDatatypeInfo $typ |]
-            [metadata isNewtype name cons]
+            [ metadataType typ isNewtype name cons
+            , funD 'datatypeInfo
+                [ clause [wildP]
+                  (normalB [| SOP.T.demoteDatatypeInfo (Proxy :: Proxy (DatatypeInfoOf $typ)) |])
+                  []
+                ]
+            ]
+            -- [metadata isNewtype name cons]
   return [md]
 
 
@@ -174,8 +211,14 @@ codeFor = promotedTypeList . map go
 -------------------------------------------------------------------------------}
 
 embedding :: Name -> [Con] -> Q Dec
-embedding fromName = funD fromName . go (\e -> [| Z $e |])
+embedding fromName = funD fromName . go' (\e -> [| Z $e |])
   where
+    go' :: (Q Exp -> Q Exp) -> [Con] -> [Q Clause]
+    go' _ [] = (:[]) $ do
+      x <- newName "x"
+      clause [varP x] (normalB (caseE (varE x) [])) []
+    go' br cs = go br cs
+
     go :: (Q Exp -> Q Exp) -> [Con] -> [Q Clause]
     go _  []     = []
     go br (c:cs) = mkClause br c : go (\e -> [| S $(br e) |]) cs
@@ -189,8 +232,14 @@ embedding fromName = funD fromName . go (\e -> [| Z $e |])
              []
 
 projection :: Name -> [Con] -> Q Dec
-projection toName = funD toName . go (\p -> conP 'Z [p])
+projection toName = funD toName . go' (\p -> conP 'Z [p])
   where
+    go' :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
+    go' _ [] = (:[]) $ do
+      x <- newName "x"
+      clause [varP x] (normalB (caseE (varE x) [])) []
+    go' br cs = go br cs
+
     go :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
     go _ [] = [unreachable]
     go br (c:cs) = mkClause br c : go (\p -> conP 'S [br p]) cs
@@ -212,10 +261,11 @@ unreachable = clause [wildP]
   Compute metadata
 -------------------------------------------------------------------------------}
 
-metadata :: Bool -> Name -> [Con] -> Q Dec
-metadata isNewtype typeName cs =
-    funD 'datatypeInfo [clause [wildP] (normalB $ metadata' isNewtype typeName cs) []]
+metadataType :: Q Type -> Bool -> Name -> [Con] -> Q Dec
+metadataType typ isNewtype typeName cs =
+  tySynInstD ''DatatypeInfoOf (tySynEqn [typ] (metadataType' isNewtype typeName cs))
 
+-- | Derive term-level metadata.
 metadata' :: Bool -> Name -> [Con] -> Q Exp
 metadata' isNewtype typeName cs = md
   where
@@ -263,6 +313,54 @@ metadata' isNewtype typeName cs = md
     mdAssociativity InfixR = [| SOP.RightAssociative |]
     mdAssociativity InfixN = [| SOP.NotAssociative   |]
 
+-- | Derive type-level metadata.
+metadataType' :: Bool -> Name -> [Con] -> Q Type
+metadataType' isNewtype typeName cs = md
+  where
+    md :: Q Type
+    md | isNewtype = [t| 'SOP.T.Newtype $(stringT (nameModule' typeName))
+                                        $(stringT (nameBase typeName))
+                                        $(mdCon (head cs))
+                       |]
+       | otherwise = [t| 'SOP.T.ADT     $(stringT (nameModule' typeName))
+                                        $(stringT (nameBase typeName))
+                                        $(promotedTypeList $ map mdCon cs)
+                       |]
+
+
+    mdCon :: Con -> Q Type
+    mdCon (NormalC n _)   = [t| 'SOP.T.Constructor $(stringT (nameBase n)) |]
+    mdCon (RecC n ts)     = [t| 'SOP.T.Record      $(stringT (nameBase n))
+                                                   $(promotedTypeList (map mdField ts))
+                              |]
+    mdCon (InfixC _ n _)  = do
+#if MIN_VERSION_template_haskell(2,11,0)
+      fixity <- reifyFixity n
+      case fromMaybe defaultFixity fixity of
+        Fixity f a ->
+#else
+      i <- reify n
+      case i of
+        DataConI _ _ _ (Fixity f a) ->
+#endif
+                            [t| 'SOP.T.Infix       $(stringT (nameBase n)) $(mdAssociativity a) $(natT f) |]
+#if !MIN_VERSION_template_haskell(2,11,0)
+        _                -> fail "Strange infix operator"
+#endif
+    mdCon (ForallC _ _ _) = fail "Existentials not supported"
+#if MIN_VERSION_template_haskell(2,11,0)
+    mdCon (GadtC _ _ _)    = fail "GADTs not supported"
+    mdCon (RecGadtC _ _ _) = fail "GADTs not supported"
+#endif
+
+    mdField :: VarStrictType -> Q Type
+    mdField (n, _, _) = [t| 'SOP.T.FieldInfo $(stringT (nameBase n)) |]
+
+    mdAssociativity :: FixityDirection -> Q Type
+    mdAssociativity InfixL = [t| 'SOP.T.LeftAssociative  |]
+    mdAssociativity InfixR = [t| 'SOP.T.RightAssociative |]
+    mdAssociativity InfixN = [t| 'SOP.T.NotAssociative   |]
+
 nameModule' :: Name -> String
 nameModule' = fromMaybe "" . nameModule
 
@@ -299,6 +397,12 @@ conInfo (ForallC _ _ _) = fail "Existentials not supported"
 conInfo (GadtC _ _ _)    = fail "GADTs not supported"
 conInfo (RecGadtC _ _ _) = fail "GADTs not supported"
 #endif
+
+stringT :: String -> Q Type
+stringT = litT . strTyLit
+
+natT :: Int -> Q Type
+natT = litT . numTyLit . fromIntegral
 
 promotedTypeList :: [Q Type] -> Q Type
 promotedTypeList []     = promotedNilT
