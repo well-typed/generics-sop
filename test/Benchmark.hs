@@ -20,6 +20,7 @@ main = do
       , bench "Template Haskell" $ nf show treeB
       , bench "Orphan approach"  $ nf show treeC
       , bench "Deriving Show"    $ nf show treeD
+      , bench "Hand-written"     $ nf show treeE
       ]
     ]
 

@@ -75,3 +75,13 @@ treeD :: TreeD
 treeD = NodeD (LeafD 1) (LeafD 2)
 
 instance Generic TreeD
+
+-- hand-written
+data TreeE = LeafE Int | NodeE TreeE TreeE
+
+treeE :: TreeE
+treeE = NodeE (LeafE 1) (LeafE 2)
+
+instance Show TreeE where
+  show (LeafE n) = show n
+  show (NodeE t1 t2) = show t1 ++ show t2
