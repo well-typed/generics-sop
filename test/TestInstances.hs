@@ -25,6 +25,13 @@ gshowP :: (All Show xs) => NP I xs -> String
 gshowP Nil         = ""
 gshowP (I x :* xs) = show x ++ (gshowP xs)
 
+-- Combinator version
+gshow' :: (Generic a, All2 Show (Code a)) => a -> String
+gshow' =
+    concat
+  . hcollapse
+  . hcmap (Proxy :: Proxy Show) (mapIK show)
+  . from
 
 -- GHC.Generics
 data Tree = Leaf Int | Node Tree Tree
@@ -38,6 +45,17 @@ instance HasDatatypeInfo Tree
 
 instance Show Tree where
   show = gshow
+
+-- Template Haskell / combinator
+data TreeA = LeafA Int | NodeA TreeA TreeA
+
+treeA :: TreeA
+treeA = NodeA (LeafA 1) (LeafA 2)
+
+deriveGeneric ''TreeA
+
+instance Show TreeA where
+  show = gshow'
 
 -- Template Haskell
 data TreeB = LeafB Int | NodeB TreeB TreeB

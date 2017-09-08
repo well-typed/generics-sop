@@ -17,6 +17,7 @@ main = do
   defaultMainWith defaultConfig
     [ bgroup "Show"
       [ bench "GHC.Generics"     $ nf show tree
+      , bench "Template Haskell / combinator" $ nf show treeA
       , bench "Template Haskell" $ nf show treeB
       , bench "Orphan approach"  $ nf show treeC
       , bench "Deriving Show"    $ nf show treeD
