@@ -123,7 +123,15 @@ data NP :: (k -> *) -> [k] -> * where
 
 infixr 5 :*
 
-deriving instance All (Show `Compose` f) xs => Show (NP f xs)
+-- This is written manually,
+-- because built-in deriving doesn't use associativity information!
+instance All (Show `Compose` f) xs => Show (NP f xs) where
+  showsPrec _ Nil       = showString "Nil"
+  showsPrec d (f :* fs) = showParen (d > 5)
+    $ showsPrec (5 + 1) f
+    . showString " :* "
+    . showsPrec 5 fs
+
 deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
 
@@ -485,7 +493,7 @@ collapse_NP  :: SListI xs => NP  (K a) xs  ->  [a]
 -- /Example:/
 --
 -- >>> collapse_POP (POP ((K 'a' :* Nil) :* (K 'b' :* K 'c' :* Nil) :* Nil) :: POP (K Char) '[ '[(a :: *)], '[b, c] ])
--- ["a", "bc"]
+-- ["a","bc"]
 --
 -- (The type signature is only necessary in this case to fix the kind of the type variables.)
 --
@@ -536,7 +544,7 @@ sequence_NP  :: (SListI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 -- /Example:/
 --
 -- >>> sequence_POP (POP ((Just 1 :* Nil) :* (Just 2 :* Just 3 :* Nil) :* Nil))
--- Just (POP ((I 1 :* Nil) :* ((I 2 :* (I 3 :* Nil)) :* Nil)))
+-- Just (POP ((I 1 :* Nil) :* (I 2 :* I 3 :* Nil) :* Nil))
 --
 sequence_POP :: (All SListI xss, Applicative f) => POP f xss -> f (POP I xss)
 

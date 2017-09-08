@@ -179,6 +179,7 @@
 -- ()
 -- >>> grnf (G 2.5 undefined False)
 -- *** Exception: Prelude.undefined
+-- ...
 --
 -- Note that the type of 'grnf' requires that all components of the
 -- type are in the 'Control.DeepSeq.NFData' class. For a recursive
@@ -376,3 +377,15 @@ import Generics.SOP.NS
 import Generics.SOP.Universe
 import Generics.SOP.Sing
 
+-- $setup
+--
+-- >>> :set -XDeriveGeneric
+-- >>> import qualified GHC.Generics as GHC
+-- >>> import Generics.SOP
+-- >>> import Control.DeepSeq
+-- >>> data B a = F | G a Char Bool deriving (Show, GHC.Generic)
+-- >>> data A   = C Bool | D A Int | E (B ()) deriving (Show, GHC.Generic)
+-- >>> instance Generic A     -- empty
+-- >>> instance Generic (B a) -- empty
+--
+-- >>> let grnf = rnf . hcollapse . hcliftA (Proxy :: Proxy NFData) (\ (I x) -> K (rnf x)) . from

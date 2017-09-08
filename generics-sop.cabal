@@ -34,10 +34,16 @@ license-file:        LICENSE
 author:              Edsko de Vries <edsko@well-typed.com>, Andres Löh <andres@well-typed.com>
 maintainer:          andres@well-typed.com
 category:            Generics
-build-type:          Simple
+build-type:          Custom
 cabal-version:       >=1.10
 extra-source-files:  CHANGELOG.md
-tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1, GHC == 8.0.2, GHC == 8.1.*
+tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1, GHC == 8.0.2, GHC == 8.2.1, GHC == 8.3.*
+
+custom-setup
+  setup-depends:
+    base,
+    Cabal,
+    cabal-doctest >= 1.0.2 && <1.1
 
 source-repository head
   type:                git
@@ -101,12 +107,35 @@ library
   if impl (ghc < 7.10)
     other-extensions:    OverlappingInstances
 
+test-suite doctests
+  type:                exitcode-stdio-1.0
+  main-is:             doctests.hs
+  x-doctest-options:   --preserve-it
+  hs-source-dirs:      test
+  default-language:    Haskell2010
+  build-depends:       base,
+                       doctest >= 0.13 && <0.14
+  ghc-options:         -Wall -threaded
+
 test-suite generics-sop-examples
   type:                exitcode-stdio-1.0
   main-is:             Example.hs
   other-modules:       HTransExample
+                       TestInstances
   hs-source-dirs:      test
   default-language:    Haskell2010
   ghc-options:         -Wall
   build-depends:       base                 >= 4.6  && < 5,
                        generics-sop
+
+benchmark generics-sop-benchmark
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Benchmark.hs
+  other-modules:       TestInstances
+  build-depends:       base
+                     , generics-sop
+                     , criterion
+                     , deepseq
+  ghc-options:         -Wall -threaded
+  default-language:    Haskell2010
