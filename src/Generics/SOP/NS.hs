@@ -366,8 +366,12 @@ ap_NS =
     cons ::
          (NP (f -.-> g) ys -> NS f ys -> NS g ys)
       -> (NP (f -.-> g) (y ': ys) -> NS f (y ': ys) -> NS g (y ': ys))
-    cons _ (Fn f :* _ ) (Z x ) = Z (f x)
-    cons r (_    :* fs) (S xs) = S (r fs xs)
+    cons r np ns =
+      case ns of
+        Z x  -> case np of
+          (Fn f :* _ ) -> Z (f x)
+        S xs -> case np of
+          (_    :* fs) -> S (r fs xs)
     {-# INLINE cons #-}
 {-# INLINE ap_NS #-}
 
@@ -445,13 +449,19 @@ cliftA2_SOP = hcliftA2
 {-# INLINE cliftA2_SOP #-}
 
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
-cmap_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
+cmap_NS  :: forall c xs f g proxy . All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
 cmap_SOP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
 
-cmap_NS  = hcmap
+cmap_NS p f = apFn (ccataSList p (fn refute_NS) (fn . cons . apFn))
+  where
+    cons :: forall y ys . (c y, All c ys) => (NS f ys -> NS g ys) -> NS f (y : ys) -> NS g (y : ys)
+    cons _ (Z x) = Z (f x)
+    cons g (S y) = S (g y)
+    {-# INLINE cons #-}
 {-# INLINE cmap_NS #-}
-cmap_SOP = hcmap
+
+cmap_SOP p f = SOP . cmap_NS (allP p) (cmap_NP p f) . unSOP
 {-# INLINE cmap_SOP #-}
 
 -- * Dealing with @'All' c@
@@ -494,16 +504,24 @@ instance HCollapse SOP where hcollapse = collapse_SOP
 
 -- * Sequencing
 
--- | Specialization of 'hsequence''.
-sequence'_NS  ::              Applicative f  => NS  (f :.: g) xs  -> f (NS  g xs)
+newtype LKF m f g xs = LKF { apLKF :: f xs -> m (g xs) }
 
 -- | Specialization of 'hsequence''.
-sequence'_SOP :: (SListI xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
+sequence'_NS  :: (SListI  xs , Applicative f) => NS  (f :.: g) xs  -> f (NS  g xs)
 
-sequence'_NS (Z mx)  = Z <$> unComp mx
-sequence'_NS (S mxs) = S <$> sequence'_NS mxs
+-- | Specialization of 'hsequence''.
+sequence'_SOP :: (SListI2 xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
 
-sequence'_SOP = fmap SOP . sequence'_NS . hliftA (Comp . sequence'_NP) . unSOP
+sequence'_NS = apLKF (cataSList (LKF refute_NS) (LKF . cons . apLKF))
+  where
+    cons :: Applicative f => (NS (f :.: g) ys -> f (NS g ys)) -> NS (f :.: g) (y ': ys) -> f (NS g (y ': ys))
+    cons _ (Z mx ) = Z <$> unComp mx
+    cons r (S mxs) = S <$> r mxs
+    {-# INLINE cons #-}
+{-# INLINE sequence'_NS #-}
+
+sequence'_SOP = fmap SOP . sequence'_NS . hcmap (Proxy :: Proxy SListI) (Comp . sequence'_NP) . unSOP
+{-# INLINE sequence'_SOP #-}
 
 instance HSequence NS  where hsequence' = sequence'_NS
 instance HSequence SOP where hsequence' = sequence'_SOP

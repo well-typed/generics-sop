@@ -9,6 +9,7 @@ module TestInstances where
 
 import qualified GHC.Generics as GHC
 import Generics.SOP
+import Generics.SOP.NS
 import Generics.SOP.TH
 import qualified Generics.SOP.Type.Metadata as T
 
@@ -16,24 +17,28 @@ import qualified Generics.SOP.Type.Metadata as T
 -- Generic show, kind of
 gshow :: (Generic a, All2 Show (Code a)) => a -> String
 gshow x = gshowS (from x)
+{-# INLINE gshow #-}
 
 gshowS :: (All2 Show xss) => SOP I xss -> String
 gshowS (SOP (Z xs))  = gshowP xs
 gshowS (SOP (S xss)) = gshowS (SOP xss)
+{-# INLINE gshowS #-}
 
 gshowP :: (All Show xs) => NP I xs -> String
 gshowP Nil         = ""
 gshowP (I x :* xs) = show x ++ (gshowP xs)
+{-# INLINE gshowP #-}
 
 -- Combinator version
 gshow' :: (Generic a, All2 Show (Code a)) => a -> String
 gshow' =
     concat
-  . hcollapse
-  . hcmap (Proxy :: Proxy Show) (mapIK show)
+  . collapse_SOP
+  . cmap_SOP (Proxy :: Proxy Show) (mapIK show)
   . from
+{-# INLINE gshow' #-}
 
--- GHC.Generics
+-- GHC.Generics / combinator
 data Tree = Leaf Int | Node Tree Tree
   deriving (GHC.Generic)
 
@@ -44,7 +49,7 @@ instance Generic Tree
 instance HasDatatypeInfo Tree
 
 instance Show Tree where
-  show = gshow
+  show = gshow'
 
 -- Template Haskell / combinator
 data TreeA = LeafA Int | NodeA TreeA TreeA

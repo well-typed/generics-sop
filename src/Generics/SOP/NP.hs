@@ -80,6 +80,7 @@ import Control.Applicative
 #endif
 import Data.Coerce
 import Data.Proxy (Proxy(..))
+import GHC.Base
 import Unsafe.Coerce
 
 import Control.DeepSeq (NFData(..))
@@ -276,11 +277,14 @@ ap_NP =
   where
     nil :: NP (f -.-> g) '[] -> NP f '[] -> NP g '[]
     nil Nil Nil = Nil
+    {-# INLINE nil #-}
 
     cons ::
          (NP (f -.-> g) ys -> NP f ys -> NP g ys)
       -> (NP (f -.-> g) (y ': ys) -> NP f (y ': ys) -> NP g (y ': ys))
     cons r (Fn f :* fs) (x :* xs) = f x :* r fs xs
+    {-# INLINE cons #-}
+{-# INLINE ap_NP #-}
 
 -- | Specialization of 'hap'.
 --
@@ -289,6 +293,7 @@ ap_NP =
 --
 ap_POP :: All SListI xss => POP (f -.-> g) xss -> POP  f xss -> POP  g xss
 ap_POP (POP fs) (POP xs) = POP (czipWith_NP (Proxy :: Proxy SListI) ap_NP fs xs)
+{-# INLINE ap_POP #-}
 
 -- The definition of 'ap_POP' is a more direct variant of
 -- '_ap_POP_spec'. The direct definition has the advantage
@@ -499,12 +504,15 @@ collapse_NP  :: SListI xs => NP  (K a) xs  ->  [a]
 --
 collapse_POP :: All SListI xss => POP (K a) xss -> [[a]]
 
-collapse_NP =
-  unK . apFn
+collapse_NP np =
+  build $ \ cons nil ->
+  unK $ apFn
     (cataSList
-      (fn (\ Nil -> K []))
-      (fn . (\ r (K x :* xs) -> K (x : unK (r xs))) . apFn)
+      (fn (\ Nil -> K nil))
+      (fn . (\ r (K x :* xs) -> K (x `cons` unK (r xs))) . apFn)
     )
+  np
+{-# INLINE collapse_NP #-}
 
 collapse_POP = collapse_NP . hcmap (Proxy :: Proxy SListI) (K . collapse_NP) . unPOP
 
@@ -516,16 +524,23 @@ instance HCollapse POP where hcollapse = collapse_POP
 
 -- * Sequencing
 
--- | Specialization of 'hsequence''.
-sequence'_NP  ::             Applicative f  => NP  (f :.: g) xs  -> f (NP  g xs)
+newtype LKF m f g xs = LKF { apLKF :: f xs -> m (g xs) }
 
 -- | Specialization of 'hsequence''.
-sequence'_POP :: (SListI xss, Applicative f) => POP (f :.: g) xss -> f (POP g xss)
+sequence'_NP  :: (SListI  xs , Applicative f) => NP  (f :.: g) xs  -> f (NP  g xs)
 
-sequence'_NP Nil         = pure Nil
-sequence'_NP (mx :* mxs) = (:*) <$> unComp mx <*> sequence'_NP mxs
+-- | Specialization of 'hsequence''.
+sequence'_POP :: (SListI2 xss, Applicative f) => POP (f :.: g) xss -> f (POP g xss)
 
-sequence'_POP = fmap POP . sequence'_NP . hliftA (Comp . sequence'_NP) . unPOP
+sequence'_NP = apLKF
+  (cataSList
+    (LKF (\ Nil -> pure Nil))
+    (LKF . (\ r (mx :* mxs) -> (:*) <$> unComp mx <*> r mxs) . apLKF)
+  )
+{-# INLINE sequence'_NP #-}
+
+sequence'_POP = fmap POP . sequence'_NP . hcmap (Proxy :: Proxy SListI) (Comp . sequence'_NP) . unPOP
+{-# INLINE sequence'_POP #-}
 
 instance HSequence NP  where hsequence' = sequence'_NP
 instance HSequence POP where hsequence' = sequence'_POP
