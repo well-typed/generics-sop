@@ -366,12 +366,8 @@ ap_NS =
     cons ::
          (NP (f -.-> g) ys -> NS f ys -> NS g ys)
       -> (NP (f -.-> g) (y ': ys) -> NS f (y ': ys) -> NS g (y ': ys))
-    cons r np ns =
-      case ns of
-        Z x  -> case np of
-          (Fn f :* _ ) -> Z (f x)
-        S xs -> case np of
-          (_    :* fs) -> S (r fs xs)
+    cons _ (Fn f :* _ ) (Z x ) = Z (f x)
+    cons r (_    :* fs) (S xs) = S (r fs xs)
     {-# INLINE cons #-}
 {-# INLINE ap_NS #-}
 
@@ -449,19 +445,14 @@ cliftA2_SOP = hcliftA2
 {-# INLINE cliftA2_SOP #-}
 
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
-cmap_NS  :: forall c xs f g proxy . All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
+cmap_NS  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NS   f xs  -> NS  g xs
 -- | Specialization of 'hcmap', which is equivalent to 'hcliftA'.
 cmap_SOP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> SOP  f xss -> SOP g xss
 
-cmap_NS p f = apFn (ccataSList p (fn refute_NS) (fn . cons . apFn))
-  where
-    cons :: forall y ys . (c y, All c ys) => (NS f ys -> NS g ys) -> NS f (y : ys) -> NS g (y : ys)
-    cons _ (Z x) = Z (f x)
-    cons g (S y) = S (g y)
-    {-# INLINE cons #-}
+cmap_NS  = hcmap
 {-# INLINE cmap_NS #-}
 
-cmap_SOP p f = SOP . cmap_NS (allP p) (cmap_NP p f) . unSOP
+cmap_SOP = hcmap
 {-# INLINE cmap_SOP #-}
 
 -- * Dealing with @'All' c@

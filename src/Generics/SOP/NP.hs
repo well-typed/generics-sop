@@ -227,6 +227,7 @@ cpure_NP p f =
 cpure_POP :: forall c xss proxy f. All2 c xss
           => proxy c -> (forall a. c a => f a) -> POP f xss
 cpure_POP p f = POP (cpure_NP (allP p) (cpure_NP p f))
+{-# INLINE cpure_POP #-}
 
 allP :: proxy c -> Proxy (All c)
 allP _ = Proxy
