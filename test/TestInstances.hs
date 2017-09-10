@@ -5,6 +5,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE PolyKinds #-}
 module TestInstances where
 
 import qualified GHC.Generics as GHC
@@ -13,8 +15,8 @@ import Generics.SOP.NS
 import Generics.SOP.TH
 import qualified Generics.SOP.Type.Metadata as T
 
-
 -- Generic show, kind of
+-- Explicitly recursive version (slow)
 gshow :: (Generic a, All2 Show (Code a)) => a -> String
 gshow x = gshowS (from x)
 {-# INLINE gshow #-}
@@ -29,12 +31,12 @@ gshowP Nil         = ""
 gshowP (I x :* xs) = show x ++ (gshowP xs)
 {-# INLINE gshowP #-}
 
--- Combinator version
+-- Combinator version (fast if optimised)
 gshow' :: (Generic a, All2 Show (Code a)) => a -> String
 gshow' =
     concat
-  . collapse_SOP
-  . cmap_SOP (Proxy :: Proxy Show) (mapIK show)
+  . hcollapse
+  . hcmap (Proxy :: Proxy Show) (mapIK show)
   . from
 {-# INLINE gshow' #-}
 
@@ -62,49 +64,62 @@ deriveGeneric ''TreeA
 instance Show TreeA where
   show = gshow'
 
--- Template Haskell
+-- GHC.Generics / explicitly recursive
 data TreeB = LeafB Int | NodeB TreeB TreeB
+  deriving (GHC.Generic)
 
 treeB :: TreeB
 treeB = NodeB (LeafB 1) (LeafB 2)
 
-deriveGeneric ''TreeB
+instance Generic TreeB
+instance HasDatatypeInfo TreeB
 
 instance Show TreeB where
   show = gshow
 
--- Orphan approach
+-- Template Haskell
 data TreeC = LeafC Int | NodeC TreeC TreeC
-  deriving (GHC.Generic)
 
 treeC :: TreeC
 treeC = NodeC (LeafC 1) (LeafC 2)
 
-deriveGenericFunctions ''TreeC "TreeCCode" "fromTreeC" "toTreeC"
-deriveMetadataValue ''TreeC "TreeCCode" "treeDatatypeInfo"
-deriveMetadataType ''TreeC "TreeDatatypeInfo"
-
-demotedTreeDatatypeInfo :: DatatypeInfo TreeCCode
-demotedTreeDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy TreeDatatypeInfo)
+deriveGeneric ''TreeC
 
 instance Show TreeC where
-  show x = gshowS (fromTreeC x)
+  show = gshow
 
--- Deriving Show
+-- Orphan approach
 data TreeD = LeafD Int | NodeD TreeD TreeD
-  deriving (GHC.Generic, Show)
+  deriving (GHC.Generic)
 
 treeD :: TreeD
 treeD = NodeD (LeafD 1) (LeafD 2)
 
-instance Generic TreeD
+deriveGenericFunctions ''TreeD "TreeDCode" "fromTreeD" "toTreeD"
+deriveMetadataValue ''TreeD "TreeDCode" "treeDatatypeInfo"
+deriveMetadataType ''TreeD "TreeDatatypeInfo"
 
--- hand-written
+demotedTreeDatatypeInfo :: DatatypeInfo TreeDCode
+demotedTreeDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy TreeDatatypeInfo)
+
+instance Show TreeD where
+  show x = gshowS (fromTreeD x)
+
+-- Deriving Show
 data TreeE = LeafE Int | NodeE TreeE TreeE
+  deriving (GHC.Generic, Show)
 
 treeE :: TreeE
 treeE = NodeE (LeafE 1) (LeafE 2)
 
-instance Show TreeE where
-  show (LeafE n) = show n
-  show (NodeE t1 t2) = show t1 ++ show t2
+instance Generic TreeE
+
+-- hand-written
+data TreeF = LeafF Int | NodeF TreeF TreeF
+
+treeF :: TreeF
+treeF = NodeF (LeafF 1) (LeafF 2)
+
+instance Show TreeF where
+  show (LeafF n) = show n
+  show (NodeF t1 t2) = show t1 ++ show t2
