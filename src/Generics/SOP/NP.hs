@@ -524,18 +524,16 @@ instance HCollapse POP where hcollapse = collapse_POP
 
 -- * Sequencing
 
-newtype LKF m f g xs = LKF { apLKF :: f xs -> m (g xs) }
-
 -- | Specialization of 'hsequence''.
 sequence'_NP  :: (SListI  xs , Applicative f) => NP  (f :.: g) xs  -> f (NP  g xs)
 
 -- | Specialization of 'hsequence''.
 sequence'_POP :: (SListI2 xss, Applicative f) => POP (f :.: g) xss -> f (POP g xss)
 
-sequence'_NP = apLKF
+sequence'_NP = apFnM
   (cataSList
-    (LKF (\ Nil -> pure Nil))
-    (LKF . (\ r (mx :* mxs) -> (:*) <$> unComp mx <*> r mxs) . apLKF)
+    (FnM (\ Nil -> pure Nil))
+    (FnM . (\ r (mx :* mxs) -> (:*) <$> unComp mx <*> r mxs) . apFnM)
   )
 {-# INLINE sequence'_NP #-}
 

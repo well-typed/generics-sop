@@ -504,15 +504,13 @@ instance HCollapse SOP where hcollapse = collapse_SOP
 
 -- * Sequencing
 
-newtype LKF m f g xs = LKF { apLKF :: f xs -> m (g xs) }
-
 -- | Specialization of 'hsequence''.
 sequence'_NS  :: (SListI  xs , Applicative f) => NS  (f :.: g) xs  -> f (NS  g xs)
 
 -- | Specialization of 'hsequence''.
 sequence'_SOP :: (SListI2 xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
 
-sequence'_NS = apLKF (cataSList (LKF refute_NS) (LKF . cons . apLKF))
+sequence'_NS = apFnM (cataSList (FnM refute_NS) (FnM . cons . apFnM))
   where
     cons :: Applicative f => (NS (f :.: g) ys -> f (NS g ys)) -> NS (f :.: g) (y ': ys) -> f (NS g (y ': ys))
     cons _ (Z mx ) = Z <$> unComp mx

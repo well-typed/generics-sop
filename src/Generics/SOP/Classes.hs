@@ -35,6 +35,7 @@ module Generics.SOP.Classes
     HPure(..)
     -- ** Generalized 'Control.Applicative.<*>'
   , type (-.->)(..)
+  , type (=.=>)(..)
   , fn
   , fn_2
   , fn_3
@@ -131,6 +132,10 @@ class HPure (h :: (k -> *) -> (l -> *)) where
 -- | Lifted functions.
 newtype (f -.-> g) a = Fn { apFn :: f a -> g a }
 infixr 1 -.->
+
+-- | Lifted monadic functions.
+newtype (f =.=> g) m a = FnM { apFnM :: f a -> m (g a) }
+infixr 1 =.=>
 
 -- | Apply a binary lifted function.
 apFn_2 :: (f -.-> f' -.-> f'') a -> (f a -> f' a -> f'' a)
