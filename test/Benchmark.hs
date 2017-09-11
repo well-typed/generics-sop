@@ -5,10 +5,8 @@
 {-# LANGUAGE TypeFamilies     #-}
 module Main where
 
-import Control.DeepSeq
 import Criterion
 import Criterion.Main
-import Generics.SOP
 import TestInstances
 
 
@@ -25,29 +23,6 @@ main = do
       , bench "Hand-written"     $ nf show treeF
       ]
     ]
-
--- * NFData
-
-grnf :: (Generic a, All2 NFData (Code a)) => a -> ()
-grnf = grnfS . from
-
-grnfS :: (All2 NFData xss) => SOP I xss -> ()
-grnfS (SOP (Z xs))  = grnfP xs
-grnfS (SOP (S xss)) = grnfS (SOP xss)
-
-grnfP :: (All NFData xs) => NP I xs -> ()
-grnfP Nil         = ()
-grnfP (I x :* xs) = rnf x `seq` (grnfP xs)
-
-instance NFData Tree  where rnf = grnf
-instance NFData TreeA where rnf = grnf
-instance NFData TreeB where rnf = grnf
-instance NFData TreeC where rnf = grnf
-instance NFData TreeD where rnf = grnfS . fromTreeD
-instance NFData TreeE where rnf = grnf
-instance NFData TreeF where
-  rnf (LeafF x)   = rnf x
-  rnf (NodeF l r) = rnf l `seq` rnf r
 
 --instance GShow ListTHI where
 --  show_ = gshow

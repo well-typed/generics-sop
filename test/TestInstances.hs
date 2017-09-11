@@ -9,9 +9,9 @@
 {-# LANGUAGE PolyKinds #-}
 module TestInstances where
 
+import Control.DeepSeq
 import qualified GHC.Generics as GHC
 import Generics.SOP
-import Generics.SOP.NS
 import Generics.SOP.TH
 import qualified Generics.SOP.Type.Metadata as T
 
@@ -40,6 +40,26 @@ gshow' =
   . from
 {-# INLINE gshow' #-}
 
+-- * NFData
+
+grnf :: (Generic a, All2 NFData (Code a)) => a -> ()
+grnf = grnfS . from
+
+grnfS :: (All2 NFData xss) => SOP I xss -> ()
+grnfS (SOP (Z xs))  = grnfP xs
+grnfS (SOP (S xss)) = grnfS (SOP xss)
+
+grnfP :: (All NFData xs) => NP I xs -> ()
+grnfP Nil         = ()
+grnfP (I x :* xs) = rnf x `seq` (grnfP xs)
+
+grnf' :: (Generic a, All2 NFData (Code a)) => a -> ()
+grnf' =
+    foldr seq ()
+  . hcollapse
+  . hcmap (Proxy :: Proxy NFData) (mapIK rnf)
+  . from
+
 -- GHC.Generics / combinator
 data Tree = Leaf Int | Node Tree Tree
   deriving (GHC.Generic)
@@ -53,6 +73,9 @@ instance HasDatatypeInfo Tree
 instance Show Tree where
   show = gshow'
 
+instance NFData Tree where
+  rnf = grnf'
+
 -- Template Haskell / combinator
 data TreeA = LeafA Int | NodeA TreeA TreeA
 
@@ -63,6 +86,9 @@ deriveGeneric ''TreeA
 
 instance Show TreeA where
   show = gshow'
+
+instance NFData TreeA where
+  rnf = grnf'
 
 -- GHC.Generics / explicitly recursive
 data TreeB = LeafB Int | NodeB TreeB TreeB
@@ -77,6 +103,9 @@ instance HasDatatypeInfo TreeB
 instance Show TreeB where
   show = gshow
 
+instance NFData TreeB where
+  rnf = grnf
+
 -- Template Haskell
 data TreeC = LeafC Int | NodeC TreeC TreeC
 
@@ -87,6 +116,9 @@ deriveGeneric ''TreeC
 
 instance Show TreeC where
   show = gshow
+
+instance NFData TreeC where
+  rnf = grnf
 
 -- Orphan approach
 data TreeD = LeafD Int | NodeD TreeD TreeD
@@ -105,6 +137,9 @@ demotedTreeDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy TreeDatatypeInfo)
 instance Show TreeD where
   show x = gshowS (fromTreeD x)
 
+instance NFData TreeD where
+  rnf x = grnfS (fromTreeD x)
+
 -- Deriving Show
 data TreeE = LeafE Int | NodeE TreeE TreeE
   deriving (GHC.Generic, Show)
@@ -113,6 +148,7 @@ treeE :: TreeE
 treeE = NodeE (LeafE 1) (LeafE 2)
 
 instance Generic TreeE
+instance NFData TreeE
 
 -- hand-written
 data TreeF = LeafF Int | NodeF TreeF TreeF
@@ -121,5 +157,9 @@ treeF :: TreeF
 treeF = NodeF (LeafF 1) (LeafF 2)
 
 instance Show TreeF where
-  show (LeafF n) = show n
+  show (LeafF n)     = show n
   show (NodeF t1 t2) = show t1 ++ show t2
+
+instance NFData TreeF where
+  rnf (LeafF n)     = rnf n
+  rnf (NodeF t1 t2) = rnf t1 `seq` rnf t2
