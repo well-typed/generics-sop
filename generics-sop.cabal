@@ -111,6 +111,8 @@ test-suite doctests
   type:                exitcode-stdio-1.0
   main-is:             doctests.hs
   x-doctest-options:   --preserve-it
+  other-modules:       Build_doctests
+  autogen-modules:     Build_doctests
   hs-source-dirs:      test
   default-language:    Haskell2010
   build-depends:       base,
