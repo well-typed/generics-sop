@@ -101,18 +101,19 @@ deriveGenericOnly n = do
 --
 deriveGenericFunctions :: Name -> String -> String -> String -> Q [Dec]
 deriveGenericFunctions n codeName fromName toName = do
-  let codeName'  = mkName codeName
+  let codeName' = mkName codeName
   let fromName' = mkName fromName
   let toName'   = mkName toName
   dec <- reifyDec n
-  withDataDec dec $ \_isNewtype _cxt name _bndrs cons _derivs -> do
+  withDataDec dec $ \_isNewtype _cxt name bndrs cons _derivs -> do
     let codeType = codeFor cons                        -- '[ '[Int], '[Tree, Tree] ]
-    let repType = [t| SOP I $(conT codeName') |]       -- SOP I TreeCode
+    let origType = appTyVars name bndrs                -- Tree
+    let repType  = [t| SOP I $(appTyVars codeName' bndrs) |] -- SOP I TreeCode
     sequence
-      [ tySynD codeName' [] codeType                    -- type TreeCode = '[ '[Int], '[Tree, Tree] ]
-      , sigD fromName' [t| $(conT name) -> $repType |]  -- fromTree :: Tree -> SOP I TreeCode
+      [ tySynD codeName' bndrs codeType                 -- type TreeCode = '[ '[Int], '[Tree, Tree] ]
+      , sigD fromName' [t| $origType -> $repType |]     -- fromTree :: Tree -> SOP I TreeCode
       , embedding fromName' cons                        -- fromTree ... =
-      , sigD toName' [t| $repType -> $(conT name) |]    -- toTree :: SOP I TreeCode -> Tree
+      , sigD toName' [t| $repType -> $origType |]       -- toTree :: SOP I TreeCode -> Tree
       , projection toName' cons                         -- toTree ... =
       ]
 
@@ -128,7 +129,7 @@ deriveGenericFunctions n codeName fromName toName = do
 -- > treeDatatypeInfo = ADT "Main" "Tree"
 -- >     (Constructor "Leaf" :* Constructor "Node" :* Nil)
 --
--- /Note:/ CodeType need to be derived with 'deriveGenericFunctions'.
+-- /Note:/ CodeType needs to be derived with 'deriveGenericFunctions'.
 --
 -- @since 0.2
 --
@@ -138,7 +139,7 @@ deriveMetadataValue n codeName datatypeInfoName = do
   let datatypeInfoName' = mkName datatypeInfoName
   dec <- reifyDec n
   withDataDec dec $ \isNewtype _cxt name _bndrs cons _derivs -> do
-    sequence [ sigD datatypeInfoName' [t| SOP.DatatypeInfo $(conT codeName') |]                    -- treeDatatypeInfo :: DatatypeInfo TreeCode
+    sequence [ sigD datatypeInfoName' [t| SOP.DatatypeInfo $(conT codeName') |]                -- treeDatatypeInfo :: DatatypeInfo TreeCode
              , funD datatypeInfoName' [clause [] (normalB $ metadata' isNewtype name cons) []] -- treeDatatypeInfo = ...
              ]
 {-# DEPRECATED deriveMetadataValue "Use 'deriveMetadataType' and 'demoteDatatypeInfo' instead." #-}
