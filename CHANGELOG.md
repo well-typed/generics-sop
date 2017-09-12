@@ -1,3 +1,9 @@
+# 0.3.2.0
+
+* Make `deriveGenericFunctions` work properly with
+  parameterized types (note that the more widely used
+  `deriveGeneric` was already working correctly).
+
 # 0.3.1.0 (2017-06-11)
 
 * Add AllZip, htrans, hcoerce, hfromI, htoI.
