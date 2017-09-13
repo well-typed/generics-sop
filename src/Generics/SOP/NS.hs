@@ -495,9 +495,9 @@ ccompare_SOP ::
      forall c proxy r f g xss .
      (All2 c xss)
   => proxy c
-  -> r                                      -- ^ what to do if first is smaller
-  -> (forall xs . NP f xs -> NP g xs -> r)  -- ^ what to do if both are equal
-  -> r                                      -- ^ what to do if first is larger
+  -> r                                                  -- ^ what to do if first is smaller
+  -> (forall xs . All c xs => NP f xs -> NP g xs -> r)  -- ^ what to do if both are equal
+  -> r                                                  -- ^ what to do if first is larger
   -> SOP f xss -> SOP g xss
   -> r
 ccompare_SOP p lt eq gt (SOP xs) (SOP ys) =
