@@ -287,6 +287,11 @@ module Generics.SOP (
   , hcliftA'
   , hcliftA2'
   , hcliftA3'
+    -- ** Comparison
+  , compare_NS
+  , ccompare_NS
+  , compare_SOP
+  , ccompare_SOP
     -- ** Collapsing
   , CollapseTo
   , HCollapse(..)
