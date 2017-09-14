@@ -706,12 +706,23 @@ instance HExpand SOP where
 -- @since 0.3.1.0
 --
 trans_NS ::
+     forall c proxy xs ys f g .
      AllZip c xs ys
   => proxy c
   -> (forall x y . c x y => f x -> g y)
   -> NS f xs -> NS g ys
-trans_NS _ t (Z x)      = Z (t x)
-trans_NS p t (S x)      = S (trans_NS p t x)
+trans_NS p t =
+  apTrans (ccataSList2 p
+    (Trans refute_NS)
+    (Trans . cons . apTrans)
+  )
+  where
+    cons :: forall x y xs' ys' . (c x y, AllZip c xs' ys')
+      => (NS f xs' -> NS g ys') -> NS f (x ': xs') -> NS g (y ': ys')
+    cons _ (Z x) = Z (t x)
+    cons r (S x) = S (r x)
+    {-# INLINE cons #-}
+{-# INLINE trans_NS #-}
 
 -- | Specialization of 'htrans'.
 --
@@ -724,6 +735,7 @@ trans_SOP ::
   -> SOP f xss -> SOP g yss
 trans_SOP p t =
   SOP . trans_NS (allZipP p) (trans_NP p t) . unSOP
+{-# INLINE trans_SOP #-}
 
 allZipP :: proxy c -> Proxy (AllZip c)
 allZipP _ = Proxy
@@ -738,6 +750,7 @@ coerce_NS ::
   => NS f xs -> NS g ys
 coerce_NS =
   unsafeCoerce
+{-# INLINE coerce_NS #-}
 
 -- There is a bug in the way coerce works for higher-kinded
 -- type variables that seems to occur only in GHC 7.10.
@@ -765,6 +778,7 @@ coerce_SOP ::
   => SOP f xss -> SOP g yss
 coerce_SOP =
   unsafeCoerce
+{-# INLINE coerce_SOP #-}
 
 #if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
 _safe_coerce_SOP ::
@@ -784,6 +798,7 @@ fromI_NS ::
      AllZip (LiftedCoercible I f) xs ys
   => NS I xs -> NS f ys
 fromI_NS = hfromI
+{-# INLINE fromI_NS #-}
 
 -- | Specialization of 'htoI'.
 --
@@ -794,6 +809,7 @@ toI_NS ::
      AllZip (LiftedCoercible f I) xs ys
   => NS f xs -> NS I ys
 toI_NS = htoI
+{-# INLINE toI_NS #-}
 
 -- | Specialization of 'hfromI'.
 --
@@ -804,6 +820,7 @@ fromI_SOP ::
      AllZip2 (LiftedCoercible I f) xss yss
   => SOP I xss -> SOP f yss
 fromI_SOP = hfromI
+{-# INLINE fromI_SOP #-}
 
 -- | Specialization of 'htoI'.
 --
@@ -814,6 +831,7 @@ toI_SOP ::
      AllZip2 (LiftedCoercible f I) xss yss
   => SOP f xss -> SOP I yss
 toI_SOP = htoI
+{-# INLINE toI_SOP #-}
 
 instance HTrans NS NS where
   htrans  = trans_NS

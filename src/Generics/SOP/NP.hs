@@ -678,8 +678,12 @@ trans_NP ::
   => proxy c
   -> (forall x y . c x y => f x -> g y)
   -> NP f xs -> NP g ys
-trans_NP _ _t Nil       = Nil
-trans_NP p  t (x :* xs) = t x :* trans_NP p t xs
+trans_NP p t =
+  apTrans (ccataSList2 p
+    (Trans (\ Nil -> Nil))
+    (Trans . (\ r (x :* xs) -> t x :* r xs) . apTrans)
+  )
+{-# INLINE trans_NP #-}
 
 -- | Specialization of 'htrans'.
 --
@@ -692,6 +696,7 @@ trans_POP ::
   -> POP f xss -> POP g yss
 trans_POP p t =
   POP . trans_NP (allZipP p) (trans_NP p t) . unPOP
+{-# INLINE trans_POP #-}
 
 allZipP :: proxy c -> Proxy (AllZip c)
 allZipP _ = Proxy
@@ -706,6 +711,7 @@ coerce_NP ::
   => NP f xs -> NP g ys
 coerce_NP =
   unsafeCoerce
+{-# INLINE coerce_NP #-}
 
 -- There is a bug in the way coerce works for higher-kinded
 -- type variables that seems to occur only in GHC 7.10.
@@ -733,6 +739,7 @@ coerce_POP ::
   => POP f xss -> POP g yss
 coerce_POP =
   unsafeCoerce
+{-# INLINE coerce_POP #-}
 
 #if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
 _safe_coerce_POP ::
@@ -752,6 +759,7 @@ fromI_NP ::
      AllZip (LiftedCoercible I f) xs ys
   => NP I xs -> NP f ys
 fromI_NP = hfromI
+{-# INLINE fromI_NP #-}
 
 -- | Specialization of 'htoI'.
 --
@@ -762,6 +770,7 @@ toI_NP ::
      AllZip (LiftedCoercible f I) xs ys
   => NP f xs -> NP I ys
 toI_NP = htoI
+{-# INLINE toI_NP #-}
 
 -- | Specialization of 'hfromI'.
 --
@@ -772,6 +781,7 @@ fromI_POP ::
      AllZip2 (LiftedCoercible I f) xss yss
   => POP I xss -> POP f yss
 fromI_POP = hfromI
+{-# INLINE fromI_POP #-}
 
 -- | Specialization of 'htoI'.
 --
@@ -782,6 +792,7 @@ toI_POP ::
      AllZip2 (LiftedCoercible f I) xss yss
   => POP f xss -> POP I yss
 toI_POP = htoI
+{-# INLINE toI_POP #-}
 
 instance HTrans NP NP where
   htrans  = trans_NP

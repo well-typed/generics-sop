@@ -36,6 +36,7 @@ module Generics.SOP.Classes
     -- ** Generalized 'Control.Applicative.<*>'
   , type (-.->)(..)
   , type (=.=>)(..)
+  , type Trans(..)
   , fn
   , fn_2
   , fn_3
@@ -136,6 +137,9 @@ infixr 1 -.->
 -- | Lifted monadic functions.
 newtype (f =.=> g) m a = FnM { apFnM :: f a -> m (g a) }
 infixr 1 =.=>
+
+-- | Lifted index-changing transformations.
+newtype Trans f g a b = Trans { apTrans :: f a -> g b }
 
 -- | Apply a binary lifted function.
 apFn_2 :: (f -.-> f' -.-> f'') a -> (f a -> f' a -> f'' a)
