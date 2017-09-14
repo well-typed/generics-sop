@@ -138,8 +138,11 @@ deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP
 
 -- | @since 0.2.5.0
 instance All (NFData `Compose` f) xs => NFData (NP f xs) where
-    rnf Nil       = ()
-    rnf (x :* xs) = rnf x `seq` rnf xs
+  rnf = unK . ccata_NP (Proxy :: Proxy (NFData `Compose` f)) (K ()) cons
+    where
+      cons x (K xs) = rnf x `seq` rnf xs `seq` K ()
+      {-# INLINE cons #-}
+  {-# INLINE rnf #-}
 
 -- | A product of products.
 --
@@ -250,8 +253,8 @@ instance HPure POP where
 fromList :: forall xs a . SListI xs => [a] -> Maybe (NP (K a) xs)
 fromList =
   unComp . unComp $ cataSList
-    (Comp (Comp nil))
-    (Comp . Comp . cons . unComp . unComp)
+    (coerce nil)
+    (coerce cons)
   where
     nil :: [a] -> Maybe (NP (K a) '[])
     nil [] = Just Nil
@@ -317,6 +320,7 @@ instance HAp POP where hap = ap_POP
 --
 hd :: NP f (x ': xs) -> f x
 hd (x :* _xs) = x
+{-# INLINE hd #-}
 
 -- | Obtain the tail of an n-ary product.
 --
@@ -324,6 +328,7 @@ hd (x :* _xs) = x
 --
 tl :: NP f (x ': xs) -> NP f xs
 tl (_x :* xs) = xs
+{-# INLINE tl #-}
 
 -- | The type of projections from an n-ary product.
 --
@@ -338,11 +343,14 @@ projections =
   unProjection_ (cataSList (Projection_ Nil) (Projection_ . cons . unProjection_))
   where
     cons r = fn (hd . unK) :* map_NP shiftProjection r
+    {-# INLINE cons #-}
+{-# INLINE projections #-}
 
 newtype Projection_ f xs = Projection_ { unProjection_ :: NP (Projection f xs) xs }
 
 shiftProjection :: Projection f xs a -> Projection f (x ': xs) a
 shiftProjection (Fn f) = Fn $ f . K . tl . unK
+{-# INLINE shiftProjection #-}
 
 -- * Lifting / mapping
 
@@ -588,6 +596,7 @@ cata_NP nil cons =
       (fn (\ Nil -> nil))
       (fn . (\ r (x :* xs) -> cons x (r xs)) . apFn)
     )
+{-# INLINE cata_NP #-}
 
 -- | Constrained catamorphism for 'NP'.
 --
@@ -611,6 +620,7 @@ ccata_NP p nil cons =
       (fn (\ Nil -> nil))
       (fn . (\ r (x :* xs) -> cons x (r xs)) . apFn)
     )
+{-# INLINE ccata_NP #-}
 
 -- | Anamorphism for 'NP'.
 --
@@ -635,6 +645,7 @@ ana_NP uncons =
       (fn (\ _ -> Nil))
       (fn . (\ r s -> case uncons s of (x, s') -> x :* r s') . apFn)
     )
+{-# INLINE ana_NP #-}
 
 -- | Constrained anamorphism for 'NP'.
 --
@@ -656,6 +667,7 @@ cana_NP p uncons =
       (fn (const Nil))
       (fn . (\ r s -> case uncons s of (x, s') -> x :* r s') . apFn)
     )
+{-# INLINE cana_NP #-}
 
 -- | Specialization of 'htrans'.
 --

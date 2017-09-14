@@ -139,8 +139,8 @@ deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS
 
 -- | @since 0.2.5.0
 instance All (NFData `Compose` f) xs => NFData (NS f xs) where
-    rnf (Z x)  = rnf x
-    rnf (S xs) = rnf xs
+  rnf = unK . ccata_NS (Proxy :: Proxy (NFData `Compose` f)) (K . rnf) (K . unK)
+  {-# INLINE rnf #-}
 
 -- | Extract the payload from a unary sum.
 --
@@ -183,12 +183,16 @@ refute_NS x =
 --
 -- @since 0.2.4.0
 --
-index_NS :: forall f xs . NS f xs -> Int
-index_NS = go 0
+index_NS :: forall f xs . SListI xs => NS f xs -> Int
+index_NS =
+  unK . apFn_2 (cataSList (coerce nil) (coerce cons)) (K (0 :: Int))
   where
-    go :: forall ys . Int -> NS f ys -> Int
-    go !acc (Z _) = acc
-    go !acc (S x) = go (acc + 1) x
+    nil :: Int -> NS f '[] -> Int
+    nil _ = refute_NS
+
+    cons :: (Int -> NS f ys -> Int) -> Int -> NS f (y ': ys) -> Int
+    cons _ !acc (Z _) = acc
+    cons r !acc (S x) = r (acc + 1) x
 
 instance HIndex NS where
   hindex = index_NS
@@ -239,7 +243,7 @@ unSOP (SOP xss) = xss
 --
 -- @since 0.2.4.0
 --
-index_SOP :: SOP f xs -> Int
+index_SOP :: SListI xs => SOP f xs -> Int
 index_SOP = index_NS . unSOP
 
 instance HIndex SOP where
@@ -638,12 +642,13 @@ expand_NS :: forall f xs .
      (SListI xs)
   => (forall x . f x)
   -> NS f xs -> NP f xs
-expand_NS d = go sList
+expand_NS d = apFn (cataSList (Fn refute_NS) (Fn . cons . apFn))
   where
-    go :: forall ys . SList ys -> NS f ys -> NP f ys
-    go SCons (Z x) = x :* hpure d
-    go SCons (S i) = d :* go sList i
-    go SNil  _     = error "inaccessible" -- still required in ghc-8.0.*
+    cons :: SListI ys => (NS f ys -> NP f ys) -> NS f (y ': ys) -> NP f (y ': ys)
+    cons _ (Z x) = x :* hpure d
+    cons r (S i) = d :* r i
+    {-# INLINE cons #-}
+{-# INLINE expand_NS #-}
 
 -- | Specialization of 'hcexpand'.
 --
@@ -653,11 +658,13 @@ cexpand_NS :: forall c proxy f xs .
      (All c xs)
   => proxy c -> (forall x . c x => f x)
   -> NS f xs -> NP f xs
-cexpand_NS p d = go
+cexpand_NS p d = apFn (ccataSList p (Fn refute_NS) (Fn . cons . apFn))
   where
-    go :: forall ys . All c ys => NS f ys -> NP f ys
-    go (Z x) = x :* hcpure p d
-    go (S i) = d :* go i
+    cons :: (c y, All c ys) => (NS f ys -> NP f ys) -> NS f (y ': ys) -> NP f (y ': ys)
+    cons _ (Z x) = x :* hcpure p d
+    cons r (S i) = d :* r i
+    {-# INLINE cons #-}
+{-# INLINE cexpand_NS #-}
 
 -- | Specialization of 'hexpand'.
 --
@@ -669,6 +676,7 @@ expand_SOP :: forall f xss .
   -> SOP f xss -> POP f xss
 expand_SOP d =
   POP . cexpand_NS (Proxy :: Proxy SListI) (hpure d) . unSOP
+{-# INLINE expand_SOP #-}
 
 -- | Specialization of 'hcexpand'.
 --
@@ -680,6 +688,7 @@ cexpand_SOP :: forall c proxy f xss .
   -> SOP f xss -> POP f xss
 cexpand_SOP p d =
   POP . cexpand_NS (allP p) (hcpure p d) . unSOP
+{-# INLINE cexpand_SOP #-}
 
 allP :: proxy c -> Proxy (All c)
 allP _ = Proxy

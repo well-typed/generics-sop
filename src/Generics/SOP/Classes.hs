@@ -445,7 +445,7 @@ class HIndex (h :: (k -> *) -> (l -> *)) where
   --
   -- @since 0.2.4.0
   --
-  hindex :: h f xs -> Int
+  hindex :: (SListIN h xs) => h f xs -> Int
 
 -- * Applying all injections
 
