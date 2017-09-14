@@ -1,4 +1,4 @@
-module Main (main, toTreeC) where
+module Main (main) where
 
 import Data.Proxy
 import Generics.SOP

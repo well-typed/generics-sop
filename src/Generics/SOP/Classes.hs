@@ -440,11 +440,11 @@ class HIndex (h :: (k -> *) -> (l -> *)) where
   --
   -- /Examples:/
   --
-  -- >>> hindex (S (S (Z (I False))))
+  -- >>> hindex (S (S (Z (I False))) :: NS I '[Char, Int, Bool])
   -- 2
-  -- >>> hindex (Z (K ()))
+  -- >>> hindex (Z (K ()) :: NS (K ()) '[Char, Int, Bool])
   -- 0
-  -- >>> hindex (SOP (S (Z (I True :* I 'x' :* Nil))))
+  -- >>> hindex (SOP (S (Z (I True :* I 'x' :* Nil))) :: SOP I '[ '[Int], '[Bool, Char] ])
   -- 1
   --
   -- @since 0.2.4.0

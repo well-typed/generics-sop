@@ -176,9 +176,9 @@ refute_NS x =
 --
 -- /Examples:/
 --
--- >>> index_NS (S (S (Z (I False))))
+-- >>> index_NS (S (S (Z (I False))) :: NS I '[Char, Int, Bool])
 -- 2
--- >>> index_NS (Z (K ()))
+-- >>> index_NS (Z (K ()) :: NS (K ()) '[Char, Int, Bool])
 -- 0
 --
 -- @since 0.2.4.0
@@ -238,7 +238,7 @@ unSOP (SOP xss) = xss
 --
 -- /Example:/
 --
--- >>> index_SOP (SOP (S (Z (I True :* I 'x' :* Nil))))
+-- >>> index_SOP (SOP (S (Z (I True :* I 'x' :* Nil))) :: SOP I '[ '[Int], '[Bool, Char] ])
 -- 1
 --
 -- @since 0.2.4.0
