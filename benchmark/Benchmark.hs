@@ -10,7 +10,7 @@ import Control.DeepSeq
 import Criterion
 import Criterion.Main
 import Generics.SOP
-import TestInstances
+import Data
 
 
 main :: IO ()

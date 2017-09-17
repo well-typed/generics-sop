@@ -7,7 +7,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RankNTypes #-}
-module TestInstances where
+module Data where
 
 import qualified GHC.Generics as GHC
 import Generics.SOP
