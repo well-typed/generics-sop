@@ -1,10 +1,12 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RankNTypes #-}
 module TestInstances where
 
 import qualified GHC.Generics as GHC
@@ -12,6 +14,27 @@ import Generics.SOP
 import Generics.SOP.TH
 import qualified Generics.SOP.Type.Metadata as T
 
+
+data GenericContext
+  = THC -- Template Haskell hand written combinator
+  | TH  -- Template Haskell
+  | Der -- Derived Function
+  | HW  -- Hand written
+  | GHC -- GHC Generics
+
+data TreeF (a :: GenericContext) = LeafF Int | NodeF (TreeF a) (TreeF a)
+  deriving (GHC.Generic, Show)
+
+newtype TreeDer = TreeDer (TreeF 'Der) deriving (GHC.Generic, Show)
+newtype TreeTH  = TreeTH  (TreeF 'TH)  deriving (GHC.Generic)
+newtype TreeTHC = TreeTHC (TreeF 'THC) deriving (GHC.Generic)
+newtype TreeHW  = TreeHW  (TreeF 'HW)  deriving (GHC.Generic)
+newtype TreeGHC = TreeGHC (TreeF 'GHC) deriving (GHC.Generic)
+
+instance Generic TreeDer
+
+deriveGeneric ''TreeTH
+deriveGeneric ''TreeTHC
 
 -- Generic show, kind of
 gshow :: (Generic a, All2 Show (Code a)) => a -> String
@@ -33,73 +56,28 @@ gshow' =
   . hcmap (Proxy :: Proxy Show) (mapIK show)
   . from
 
--- GHC.Generics
-data Tree = Leaf Int | Node Tree Tree
-  deriving (GHC.Generic)
+instance Show TreeTHC where show = gshow'
+instance Show TreeTH  where show = gshow
 
-tree :: Tree
-tree = Node (Leaf 1) (Leaf 2)
+instance Show TreeHW where
+  show (TreeHW t) = showHW t where
+    showHW (LeafF x)   = show   x
+    showHW (NodeF l r) = showHW l ++ showHW r
 
-instance Generic Tree
-instance HasDatatypeInfo Tree
+treeF :: forall (a :: GenericContext) . TreeF a
+treeF = NodeF (LeafF 1) (LeafF 2)
 
-instance Show Tree where
-  show = gshow
+treeDer :: TreeDer
+treeDer = TreeDer treeF
 
--- Template Haskell / combinator
-data TreeA = LeafA Int | NodeA TreeA TreeA
+treeTH :: TreeTH
+treeTH  = TreeTH  treeF
 
-treeA :: TreeA
-treeA = NodeA (LeafA 1) (LeafA 2)
+treeTHC :: TreeTHC
+treeTHC = TreeTHC treeF
 
-deriveGeneric ''TreeA
+treeHW :: TreeHW
+treeHW  = TreeHW  treeF
 
-instance Show TreeA where
-  show = gshow'
-
--- Template Haskell
-data TreeB = LeafB Int | NodeB TreeB TreeB
-
-treeB :: TreeB
-treeB = NodeB (LeafB 1) (LeafB 2)
-
-deriveGeneric ''TreeB
-
-instance Show TreeB where
-  show = gshow
-
--- Orphan approach
-data TreeC = LeafC Int | NodeC TreeC TreeC
-  deriving (GHC.Generic)
-
-treeC :: TreeC
-treeC = NodeC (LeafC 1) (LeafC 2)
-
-deriveGenericFunctions ''TreeC "TreeCCode" "fromTreeC" "toTreeC"
-deriveMetadataValue ''TreeC "TreeCCode" "treeDatatypeInfo"
-deriveMetadataType ''TreeC "TreeDatatypeInfo"
-
-demotedTreeDatatypeInfo :: DatatypeInfo TreeCCode
-demotedTreeDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy TreeDatatypeInfo)
-
-instance Show TreeC where
-  show x = gshowS (fromTreeC x)
-
--- Deriving Show
-data TreeD = LeafD Int | NodeD TreeD TreeD
-  deriving (GHC.Generic, Show)
-
-treeD :: TreeD
-treeD = NodeD (LeafD 1) (LeafD 2)
-
-instance Generic TreeD
-
--- hand-written
-data TreeE = LeafE Int | NodeE TreeE TreeE
-
-treeE :: TreeE
-treeE = NodeE (LeafE 1) (LeafE 2)
-
-instance Show TreeE where
-  show (LeafE n) = show n
-  show (NodeE t1 t2) = show t1 ++ show t2
+treeGHC :: TreeGHC
+treeGHC = TreeGHC treeF
