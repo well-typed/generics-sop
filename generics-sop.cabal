@@ -117,6 +117,8 @@ benchmark generics-sop-benchmark
   main-is:             Benchmark.hs
   other-modules:       Data
   build-depends:       base
+                     , generic-random
+                     , QuickCheck
                      , generics-sop
                      , criterion
                      , deepseq

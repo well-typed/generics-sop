@@ -9,23 +9,32 @@
 {-# LANGUAGE RankNTypes #-}
 module Data where
 
+import Control.Applicative
 import qualified GHC.Generics as GHC
 import Generics.SOP
 import Generics.SOP.TH
 import qualified Generics.SOP.Type.Metadata as T
+import Test.QuickCheck
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Random
+import Test.QuickCheck.Arbitrary (Arbitrary(..))
+import Generic.Random
 
 
 data GenericContext
   = THC -- Template Haskell hand written combinator
   | TH  -- Template Haskell
-  | Der -- Derived Function
+  | Der -- Derived
   | HW  -- Hand written
   | GHC -- GHC Generics
 
 data TreeF (a :: GenericContext) = LeafF Int | NodeF (TreeF a) (TreeF a)
   deriving (GHC.Generic, Show)
 
-newtype TreeDer = TreeDer (TreeF 'Der) deriving (GHC.Generic, Show)
+instance Arbitrary (TreeF a) where
+  arbitrary = genericArbitraryU'
+
+newtype TreeDer = TreeDer (TreeF 'Der) deriving (GHC.Generic)
 newtype TreeTH  = TreeTH  (TreeF 'TH)  deriving (GHC.Generic)
 newtype TreeTHC = TreeTHC (TreeF 'THC) deriving (GHC.Generic)
 newtype TreeHW  = TreeHW  (TreeF 'HW)  deriving (GHC.Generic)
@@ -56,6 +65,7 @@ gshow' =
   . hcmap (Proxy :: Proxy Show) (mapIK show)
   . from
 
+instance Show TreeDer where show = gshow
 instance Show TreeTHC where show = gshow'
 instance Show TreeTH  where show = gshow
 
@@ -63,6 +73,12 @@ instance Show TreeHW where
   show (TreeHW t) = showHW t where
     showHW (LeafF x)   = show   x
     showHW (NodeF l r) = showHW l ++ showHW r
+
+sample :: Int -> Gen a -> [a]
+sample m g = [ gen n (n * n) g | n <- [0 .. m] ]
+  where
+    gen :: Int -> Int -> Gen a -> a
+    gen p s (MkGen g) = g (mkQCGen p) s
 
 treeF :: forall (a :: GenericContext) . TreeF a
 treeF = NodeF (LeafF 1) (LeafF 2)

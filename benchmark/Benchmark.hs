@@ -2,25 +2,33 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 module Main where
 
 import Control.DeepSeq
+import Control.Monad
 import Criterion
 import Criterion.Main
 import Generics.SOP
 import Data
 
+import Test.QuickCheck hiding (sample)
+import Test.QuickCheck.Gen hiding (sample)
+import Test.QuickCheck.Arbitrary
+
 
 main :: IO ()
 main = do
+  let samples :: forall (a :: GenericContext) . [TreeF a]
+      samples = sample 10000 (arbitrary :: Gen (TreeF a))
   defaultMainWith defaultConfig
     [ bgroup "Show"
-      [ bench "Template Haskell / combinator" $ nf show treeTHC
-      , bench "Template Haskell" $ nf show treeTH
-      , bench "Deriving Show"    $ nf show treeDer
-      , bench "Hand-written"     $ nf show treeHW
+      [ bench "Template Haskell / combinator" . nf show $ TreeTHC <$> samples
+      , bench "Template Haskell" . nf show $ TreeTH  <$> samples
+      , bench "Derived"          . nf show $ TreeDer <$> samples
+      , bench "Hand-written"     . nf show $ TreeHW  <$> samples
       ]
     ]
 
