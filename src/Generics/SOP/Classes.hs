@@ -330,8 +330,11 @@ hcliftA2 :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h, HAp (Prod h)) => pr
 hcliftA3 :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcliftA  p f xs       = hcpure p (fn   f) `hap` xs
+{-# INLINE hcliftA #-}
 hcliftA2 p f xs ys    = hcpure p (fn_2 f) `hap` xs `hap` ys
+{-# INLINE hcliftA2 #-}
 hcliftA3 p f xs ys zs = hcpure p (fn_3 f) `hap` xs `hap` ys `hap` zs
+{-# INLINE hcliftA3 #-}
 
 -- | Another name for 'hcliftA'.
 --
@@ -352,8 +355,11 @@ hczipWith  :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h, HAp (Prod h)) => 
 hczipWith3 :: (SListIN (Prod h) xs, AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcmap      = hcliftA
+{-# INLINE hcmap #-}
 hczipWith  = hcliftA2
+{-# INLINE hczipWith #-}
 hczipWith3 = hcliftA3
+{-# INLINE hczipWith3 #-}
 
 -- * Collapsing homogeneous structures
 
