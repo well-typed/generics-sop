@@ -58,11 +58,17 @@ module Generics.SOP.Classes
     -- * Collapsing homogeneous structures
   , CollapseTo
   , HCollapse(..)
+    -- * Folding over structures
+  , HFoldMap(..)
+  , hcfor_
     -- * Sequencing effects
   , HSequence(..)
     -- ** Derived functions
   , hsequence
   , hsequenceK
+  , hctraverse'
+  , hctraverse
+  , hcfor
     -- * Indexing into sums
   , HIndex(..)
     -- * Applying all injections
@@ -374,6 +380,17 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
   --
   hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
 
+-- | ...
+class HFoldMap (h :: (k -> *) -> (l -> *)) where
+  hcfoldMap :: (AllN h c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> h f xs -> m
+  hcfoldMap p f = unK . hctraverse_ p (K . f)
+
+  hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
+
+-- | Flipped version of 'hcfor_'
+hcfor_ :: (HFoldMap h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g ()) -> g ()
+hcfor_ p xs f = hctraverse_ p f xs
+
 -- * Sequencing effects
 
 -- | A generalization of 'Data.Traversable.sequenceA'.
@@ -395,6 +412,18 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   hsequence' :: (SListIN h xs, Applicative f) => h (f :.: g) xs -> f (h g xs)
 
 -- ** Derived functions
+
+-- | ..
+hctraverse' :: (HSequence h, SListIN h xs, AllN (Prod h) c xs, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (k a)) -> h f xs -> g (h k xs)
+hctraverse' p f = hsequence' . hcliftA p (Comp . f)
+
+-- | ...
+hctraverse :: (HSequence h, SListIN h xs, SListIN (Prod h) xs, AllN (Prod h) c xs, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> h f xs -> g (h I xs)
+hctraverse p f = hsequence . hcliftA p f
+
+-- | Flipped version of 'hctraverse'.
+hcfor :: (HSequence h, SListIN h xs, SListIN (Prod h) xs, AllN (Prod h) c xs, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g a) -> g (h I xs)
+hcfor p xs f = hctraverse p f xs
 
 -- | Special case of 'hsequence'' where @g = 'I'@.
 hsequence :: (SListIN h xs, SListIN (Prod h) xs, HSequence h) => Applicative f => h f xs -> f (h I xs)
