@@ -7,9 +7,7 @@
 {-# LANGUAGE TypeFamilies      #-}
 module Main where
 
-import Control.Applicative
 import Control.DeepSeq
-import Control.Monad
 import Criterion
 import Criterion.Main
 import Generics.SOP

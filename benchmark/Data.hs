@@ -79,21 +79,3 @@ sample m g = [ gen n (n * n) g | n <- [0 .. m] ]
   where
     gen :: Int -> Int -> Gen a -> a
     gen p s (MkGen g) = g (mkQCGen p) s
-
-treeF :: forall (a :: GenericContext) . TreeF a
-treeF = NodeF (LeafF 1) (LeafF 2)
-
-treeDer :: TreeDer
-treeDer = TreeDer treeF
-
-treeTH :: TreeTH
-treeTH  = TreeTH  treeF
-
-treeTHC :: TreeTHC
-treeTHC = TreeTHC treeF
-
-treeHW :: TreeHW
-treeHW  = TreeHW  treeF
-
-treeGHC :: TreeGHC
-treeGHC = TreeGHC treeF
