@@ -25,18 +25,27 @@ main = do
   defaultMainWith defaultConfig
     [ bgroup "Show"
       [ bench "Template Haskell / combinator" . nf show $ TreeTHC <$> samples
-      , bench "Template Haskell" . nf show $ TreeTH  <$> samples
-      , bench "Derived"          . nf show $ TreeDer <$> samples
-      , bench "Hand-written"     . nf show $ TreeHW  <$> samples
+      , bench "Template Haskell" . nf show $ TreeTH     <$> samples
+      , bench "Derived"          . nf show $ TreeDer    <$> samples
+      , bench "GHC Deriving"     . nf show $ TreeGHCDer <$> samples
+      , bench "Hand-written"     . nf show $ TreeHW     <$> samples
+      ]
+    , bgroup "Eq"
+      [ bench "Derived"          . nf eq $ TreeDer    <$> samples
+      , bench "Template Haskell" . nf eq $ TreeTH     <$> samples
+      , bench "GHC deriving"     . nf eq $ TreeGHCDer <$> samples
       ]
     ]
+  where
+    eq x = x == x
 
 instance NFData (TreeF a)
 instance NFData TreeDer
 instance NFData TreeTH
 instance NFData TreeTHC
 instance NFData TreeHW
-instance NFData TreeGHC
+instance NFData TreeGHCGen
+instance NFData TreeGHCDer
 
 {-
 Data-types:

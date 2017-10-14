@@ -24,10 +24,16 @@ main = do
   () <- return $ rnf samples
 
   mainWith $ do
-    func "Template Haskell / combinator" show (TreeTHC <$> samples)
-    func "Template Haskell" show (TreeTH  <$> samples)
-    func "Derived"          show (TreeDer <$> samples)
-    func "Hand-written"     show (TreeHW  <$> samples)
+    func "Show - Template Haskell / combinator" show (TreeTHC <$> samples)
+    func "Show - Template Haskell" show (TreeTH  <$> samples)
+    func "Show - Derived"          show (TreeDer <$> samples)
+    func "Show - Hand-written"     show (TreeHW  <$> samples)
+
+    func "Eq - Derived"          eq $ TreeDer    <$> samples
+    func "Eq - Template Haskell" eq $ TreeTH     <$> samples
+    func "Eq - GHC deriving"     eq $ TreeGHCDer <$> samples
+  where
+    eq x = x == x
 
 
 instance NFData (TreeF a)
@@ -35,4 +41,4 @@ instance NFData TreeDer
 instance NFData TreeTH
 instance NFData TreeTHC
 instance NFData TreeHW
-instance NFData TreeGHC
+instance NFData TreeGHCDer
