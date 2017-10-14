@@ -8,7 +8,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
-module Data where
+module Generics.SOP.Benchmark.Data where
 
 import Control.Applicative
 import Data.Function (on)

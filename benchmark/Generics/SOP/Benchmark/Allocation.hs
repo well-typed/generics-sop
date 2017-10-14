@@ -10,7 +10,7 @@ module Main where
 import Control.Applicative
 import Control.DeepSeq
 import Generics.SOP
-import Data
+import Generics.SOP.Benchmark.Data
 import Weigh
 
 import Test.QuickCheck hiding (sample)

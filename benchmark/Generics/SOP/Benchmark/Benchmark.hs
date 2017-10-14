@@ -11,7 +11,7 @@ import Control.DeepSeq
 import Criterion
 import Criterion.Main
 import Generics.SOP
-import Data
+import Generics.SOP.Benchmark.Data
 
 import Test.QuickCheck hiding (sample)
 import Test.QuickCheck.Gen hiding (sample)
