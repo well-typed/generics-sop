@@ -111,7 +111,7 @@ test-suite generics-sop-examples
   build-depends:       base                 >= 4.6  && < 5,
                        generics-sop
 
-benchmark generics-sop-benchmark
+benchmark generics-sop-benchmark-time
   type:                exitcode-stdio-1.0
   hs-source-dirs:      benchmark
   main-is:             Benchmark.hs
@@ -122,5 +122,20 @@ benchmark generics-sop-benchmark
                      , generics-sop
                      , criterion
                      , deepseq
+                     , weigh
+  ghc-options:         -Wall -threaded
+  default-language:    Haskell2010
+
+benchmark generics-sop-benchmark-alloc
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      benchmark
+  main-is:             Allocation.hs
+  other-modules:       Data
+  build-depends:       base
+                     , generic-random
+                     , QuickCheck
+                     , generics-sop
+                     , deepseq
+                     , weigh
   ghc-options:         -Wall -threaded
   default-language:    Haskell2010
