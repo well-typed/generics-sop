@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeFamilies      #-}
 module Main where
 
+import Control.Applicative
 import Control.DeepSeq
 import Generics.SOP
 import Data
@@ -29,9 +30,9 @@ main = do
     func "Show - Derived"          show (TreeDer <$> samples)
     func "Show - Hand-written"     show (TreeHW  <$> samples)
 
-    func "Eq - Derived"          eq $ TreeDer    <$> samples
-    func "Eq - Template Haskell" eq $ TreeTH     <$> samples
-    func "Eq - GHC deriving"     eq $ TreeGHCDer <$> samples
+    func "Eq - Derived"          eq (TreeDer    <$> samples)
+    func "Eq - Template Haskell" eq (TreeTH     <$> samples)
+    func "Eq - GHC deriving"     eq (TreeGHCDer <$> samples)
   where
     eq x = x == x
 
