@@ -66,7 +66,6 @@ module Generics.SOP.Classes
     -- ** Derived functions
   , hsequence
   , hsequenceK
-  , hctraverse'
   , hctraverse
   , hcfor
     -- * Indexing into sums
@@ -84,6 +83,7 @@ module Generics.SOP.Classes
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative (Applicative)
+import Data.Monoid (Monoid)
 #endif
 
 import Generics.SOP.BasicFunctors
@@ -380,11 +380,20 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
   --
   hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
 
--- | ...
+-- | A generalization of 'Data.Foldable.foldMap'.
 class HFoldMap (h :: (k -> *) -> (l -> *)) where
+
+  -- | Corresponds to 'Data.Foldable.foldMap'.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- ...
+  -- @
   hcfoldMap :: (AllN h c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> h f xs -> m
   hcfoldMap p f = unK . hctraverse_ p (K . f)
 
+  -- | Corresponds to 'Data.Foldable.traverse_'.
   hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
 
 -- | Flipped version of 'hcfor_'
@@ -411,18 +420,25 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   --
   hsequence' :: (SListIN h xs, Applicative f) => h (f :.: g) xs -> f (h g xs)
 
+
+  -- | Corresponds to 'Data.Traversable.traverse'.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- ...
+  -- @
+  --
+  hctraverse' :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> h f xs -> g (h f' xs)
+
 -- ** Derived functions
 
--- | ..
-hctraverse' :: (HSequence h, SListIN h xs, AllN (Prod h) c xs, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (k a)) -> h f xs -> g (h k xs)
-hctraverse' p f = hsequence' . hcliftA p (Comp . f)
-
--- | ...
-hctraverse :: (HSequence h, SListIN h xs, SListIN (Prod h) xs, AllN (Prod h) c xs, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> h f xs -> g (h I xs)
-hctraverse p f = hsequence . hcliftA p f
+-- | Special case of 'hctraverse'' where @f' = 'I'@.
+hctraverse :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> h f xs -> g (h I xs)
+hctraverse p f = hctraverse' p (fmap I . f)
 
 -- | Flipped version of 'hctraverse'.
-hcfor :: (HSequence h, SListIN h xs, SListIN (Prod h) xs, AllN (Prod h) c xs, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g a) -> g (h I xs)
+hcfor :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g a) -> g (h I xs)
 hcfor p xs f = hctraverse p f xs
 
 -- | Special case of 'hsequence'' where @g = 'I'@.
