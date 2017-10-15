@@ -111,6 +111,9 @@ test-suite doctests
   type:                exitcode-stdio-1.0
   main-is:             doctests.hs
   x-doctest-options:   --preserve-it
+  -- The following lines should be enabled once we're prepared to require Cabal 2.0:
+  -- other-modules:       Build_doctests
+  -- autogen-modules:     Build_doctests
   hs-source-dirs:      test
   default-language:    Haskell2010
   build-depends:       base,
