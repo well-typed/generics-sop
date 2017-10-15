@@ -388,12 +388,26 @@ class HFoldMap (h :: (k -> *) -> (l -> *)) where
   -- /Instances:/
   --
   -- @
-  -- ...
+  -- 'hcfoldMap', 'Generics.SOP.NP.foldMap_NP'  :: ('All'  c xs , 'Monoid' m) => proxy c -> (forall a. c a => f a -> m) -> 'Generics.SOP.NP.NP'  f xs  -> m
+  -- 'hcfoldMap', 'Generics.SOP.NS.foldMap_NS'  :: ('All2' c xs , 'Monoid' m) => proxy c -> (forall a. c a => f a -> m) -> 'Generics.SOP.NS.NS'  f xs  -> m
+  -- 'hcfoldMap', 'Generics.SOP.NP.foldMap_POP' :: ('All'  c xss, 'Monoid' m) => proxy c -> (forall a. c a => f a -> m) -> 'Generics.SOP.NP.POP' f xss -> m
+  -- 'hcfoldMap', 'Generics.SOP.NS.foldMap_SOP' :: ('All2' c xss, 'Monoid' m) => proxy c -> (forall a. c a => f a -> m) -> 'Generics.SOP.NS.SOP' f xss -> m
   -- @
+  --
   hcfoldMap :: (AllN h c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> h f xs -> m
   hcfoldMap p f = unK . hctraverse_ p (K . f)
 
   -- | Corresponds to 'Data.Foldable.traverse_'.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hctraverse_', 'Generics.SOP.NP.ctraverse__NP'  :: ('All'  c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NP.NP'  f xs  -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NS.ctraverse__NS'  :: ('All2' c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NS.NS'  f xs  -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NP.ctraverse__POP' :: ('All'  c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NP.POP' f xss -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NS.ctraverse__SOP' :: ('All2' c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NS.SOP' f xss -> g ()
+  -- @
+  --
   hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
 
 -- | Flipped version of 'hcfor_'
@@ -426,7 +440,10 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   -- /Instances:/
   --
   -- @
-  -- ...
+  -- 'hctraverse'', 'Generics.SOP.NP.ctraverse'_NP'  :: ('All'  c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.NP'  f xs  -> g ('Generics.SOP.NP.NP'  f' xs )
+  -- 'hctraverse'', 'Generics.SOP.NS.ctraverse'_NS'  :: ('All2' c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.NS'  f xs  -> g ('Generics.SOP.NS.NS'  f' xs )
+  -- 'hctraverse'', 'Generics.SOP.NP.ctraverse'_POP' :: ('All'  c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.POP' f xss -> g ('Generics.SOP.NP.POP' f' xss)
+  -- 'hctraverse'', 'Generics.SOP.NS.ctraverse'_SOP' :: ('All2' c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.SOP' f xss -> g ('Generics.SOP.NS.SOP' f' xss)
   -- @
   --
   hctraverse' :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> h f xs -> g (h f' xs)
