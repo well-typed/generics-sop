@@ -44,6 +44,11 @@ module Generics.SOP.NS
     -- * Collapsing
   , collapse_NS
   , collapse_SOP
+    -- * Folding
+  , ctraverse__NS
+  , ctraverse__SOP
+  , cfoldMap_NS
+  , cfoldMap_SOP
     -- * Sequencing
   , sequence'_NS
   , sequence'_SOP
@@ -76,6 +81,7 @@ module Generics.SOP.NS
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
+import Data.Monoid (Monoid)
 #endif
 import Data.Coerce
 import Data.Proxy
@@ -447,6 +453,47 @@ type instance CollapseTo SOP a = [a]
 
 instance HCollapse NS  where hcollapse = collapse_NS
 instance HCollapse SOP where hcollapse = collapse_SOP
+
+-- * Folding
+
+-- | Specialization of 'hctraverse_'.
+--
+-- /Note:/ we don't need 'Applicative' constraint.
+--
+ctraverse__NS ::
+     forall c proxy xs f g. (All c xs)
+  => proxy c -> (forall a. c a => f a -> g ()) -> NS f xs -> g ()
+ctraverse__NS _ f = go
+  where
+    go :: All c ys => NS f ys -> g ()
+    go (Z x)  = f x
+    go (S xs) = go xs
+
+-- | Specialization of 'hcfoldMap'.
+ctraverse__SOP ::
+     forall c proxy xs f g. (All2 c xs, Applicative g)
+  => proxy c -> (forall a. c a => f a -> g ()) -> SOP f xs -> g ()
+ctraverse__SOP p f = ctraverse__NS (allP p) (ctraverse__NP p f) . unSOP
+
+instance HFoldMap NS  where hctraverse_ = ctraverse__NS
+instance HFoldMap SOP where hctraverse_ = ctraverse__SOP
+
+-- | Specialization of 'hcfoldMap'.
+--
+-- /Note:/ We don't need 'Monoid' instance.
+--
+cfoldMap_NS ::
+     forall c proxy f xs m. (All c xs)
+  => proxy c -> (forall a. c a => f a -> m) -> NS f xs -> m
+cfoldMap_NS _ f = go
+  where
+    go :: All c ys => NS f ys -> m
+    go (Z x)  = f x
+    go (S xs) = go xs
+
+-- | Specialization of 'hcfoldMap'.
+cfoldMap_SOP :: (All2 c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> SOP f xs -> m
+cfoldMap_SOP = hcfoldMap
 
 -- * Sequencing
 

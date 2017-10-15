@@ -54,6 +54,11 @@ module Generics.SOP.NP
     -- * Collapsing
   , collapse_NP
   , collapse_POP
+    -- * Folding
+  , ctraverse__NP
+  , ctraverse__POP
+  , cfoldMap_NP
+  , cfoldMap_POP
     -- * Sequencing
   , sequence'_NP
   , sequence'_POP
@@ -81,6 +86,7 @@ module Generics.SOP.NP
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
+import Data.Monoid (Monoid (..))
 #endif
 import Data.Coerce
 import Data.Proxy (Proxy(..))
@@ -505,6 +511,35 @@ type instance CollapseTo POP a = [[a]]
 instance HCollapse NP  where hcollapse = collapse_NP
 instance HCollapse POP where hcollapse = collapse_POP
 
+-- * Folding
+
+-- | Specialization of 'hctraverse_'.
+ctraverse__NP ::
+     forall c proxy xs f g. (All c xs, Applicative g)
+  => proxy c -> (forall a. c a => f a -> g ()) -> NP f xs -> g ()
+ctraverse__NP _ f = go
+  where
+    go :: All c ys => NP f ys -> g ()
+    go Nil       = pure ()
+    go (x :* xs) = f x *> go xs
+
+-- | Specialization of 'hcfoldMap'.
+ctraverse__POP ::
+     forall c proxy xs f g. (All2 c xs, Applicative g)
+  => proxy c -> (forall a. c a => f a -> g ()) -> POP f xs -> g ()
+ctraverse__POP p f = ctraverse__NP (allP p) (ctraverse__NP p f) . unPOP
+
+instance HFoldMap NP  where hctraverse_ = ctraverse__NP
+instance HFoldMap POP where hctraverse_ = ctraverse__POP
+
+-- | Specialization of 'hcfoldMap'.
+cfoldMap_NP :: (All c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> NP f xs -> m
+cfoldMap_NP  = hcfoldMap
+
+-- | Specialization of 'hcfoldMap'.
+cfoldMap_POP :: (All2 c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> POP f xs -> m
+cfoldMap_POP = hcfoldMap
+
 -- * Sequencing
 
 -- | Specialization of 'hsequence''.
@@ -538,7 +573,7 @@ instance HSequence NP  where
   hctraverse' = ctraverse'_NP
 instance HSequence POP where
   hsequence' = sequence'_POP
-  hctraverse' = ctraverse'_POP 
+  hctraverse' = ctraverse'_POP
 
 -- | Specialization of 'hsequence'.
 --
@@ -562,11 +597,6 @@ sequence_NP   = hsequence
 sequence_POP  = hsequence
 
 -- | Specialization of 'hctraverse'.
---
--- /Example:/
---
--- >>> ctraverse_NP (Proxy :: Proxy Show) (Just . show . unI) (I 'x' :* I 2 :* Nil)
---
 ctraverse_NP  :: (All  c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> NP  f xs -> g (NP  I xs)
 
 -- | Specialization of 'hctraverse'.
