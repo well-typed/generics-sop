@@ -138,8 +138,11 @@ deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP
 
 -- | @since 0.2.5.0
 instance All (NFData `Compose` f) xs => NFData (NP f xs) where
-    rnf Nil       = ()
-    rnf (x :* xs) = rnf x `seq` rnf xs
+  rnf = unK . ccata_NP (Proxy :: Proxy (NFData `Compose` f)) (K ()) cons
+    where
+      cons x (K xs) = rnf x `seq` rnf xs `seq` K ()
+      {-# INLINE cons #-}
+  {-# INLINE rnf #-}
 
 -- | A product of products.
 --
@@ -250,8 +253,8 @@ instance HPure POP where
 fromList :: forall xs a . SListI xs => [a] -> Maybe (NP (K a) xs)
 fromList =
   unComp . unComp $ cataSList
-    (Comp (Comp nil))
-    (Comp . Comp . cons . unComp . unComp)
+    (coerce nil)
+    (coerce cons)
   where
     nil :: [a] -> Maybe (NP (K a) '[])
     nil [] = Just Nil
@@ -317,6 +320,7 @@ instance HAp POP where hap = ap_POP
 --
 hd :: NP f (x ': xs) -> f x
 hd (x :* _xs) = x
+{-# INLINE hd #-}
 
 -- | Obtain the tail of an n-ary product.
 --
@@ -324,6 +328,7 @@ hd (x :* _xs) = x
 --
 tl :: NP f (x ': xs) -> NP f xs
 tl (_x :* xs) = xs
+{-# INLINE tl #-}
 
 -- | The type of projections from an n-ary product.
 --
@@ -338,11 +343,14 @@ projections =
   unProjection_ (cataSList (Projection_ Nil) (Projection_ . cons . unProjection_))
   where
     cons r = fn (hd . unK) :* map_NP shiftProjection r
+    {-# INLINE cons #-}
+{-# INLINE projections #-}
 
 newtype Projection_ f xs = Projection_ { unProjection_ :: NP (Projection f xs) xs }
 
 shiftProjection :: Projection f xs a -> Projection f (x ': xs) a
 shiftProjection (Fn f) = Fn $ f . K . tl . unK
+{-# INLINE shiftProjection #-}
 
 -- * Lifting / mapping
 
@@ -588,6 +596,7 @@ cata_NP nil cons =
       (fn (\ Nil -> nil))
       (fn . (\ r (x :* xs) -> cons x (r xs)) . apFn)
     )
+{-# INLINE cata_NP #-}
 
 -- | Constrained catamorphism for 'NP'.
 --
@@ -611,6 +620,7 @@ ccata_NP p nil cons =
       (fn (\ Nil -> nil))
       (fn . (\ r (x :* xs) -> cons x (r xs)) . apFn)
     )
+{-# INLINE ccata_NP #-}
 
 -- | Anamorphism for 'NP'.
 --
@@ -635,6 +645,7 @@ ana_NP uncons =
       (fn (\ _ -> Nil))
       (fn . (\ r s -> case uncons s of (x, s') -> x :* r s') . apFn)
     )
+{-# INLINE ana_NP #-}
 
 -- | Constrained anamorphism for 'NP'.
 --
@@ -656,6 +667,7 @@ cana_NP p uncons =
       (fn (const Nil))
       (fn . (\ r s -> case uncons s of (x, s') -> x :* r s') . apFn)
     )
+{-# INLINE cana_NP #-}
 
 -- | Specialization of 'htrans'.
 --
@@ -666,8 +678,12 @@ trans_NP ::
   => proxy c
   -> (forall x y . c x y => f x -> g y)
   -> NP f xs -> NP g ys
-trans_NP _ _t Nil       = Nil
-trans_NP p  t (x :* xs) = t x :* trans_NP p t xs
+trans_NP p t =
+  apTrans (ccataSList2 p
+    (Trans (\ Nil -> Nil))
+    (Trans . (\ r (x :* xs) -> t x :* r xs) . apTrans)
+  )
+{-# INLINE trans_NP #-}
 
 -- | Specialization of 'htrans'.
 --
@@ -680,6 +696,7 @@ trans_POP ::
   -> POP f xss -> POP g yss
 trans_POP p t =
   POP . trans_NP (allZipP p) (trans_NP p t) . unPOP
+{-# INLINE trans_POP #-}
 
 allZipP :: proxy c -> Proxy (AllZip c)
 allZipP _ = Proxy
@@ -694,6 +711,7 @@ coerce_NP ::
   => NP f xs -> NP g ys
 coerce_NP =
   unsafeCoerce
+{-# INLINE coerce_NP #-}
 
 -- There is a bug in the way coerce works for higher-kinded
 -- type variables that seems to occur only in GHC 7.10.
@@ -721,6 +739,7 @@ coerce_POP ::
   => POP f xss -> POP g yss
 coerce_POP =
   unsafeCoerce
+{-# INLINE coerce_POP #-}
 
 #if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
 _safe_coerce_POP ::
@@ -740,6 +759,7 @@ fromI_NP ::
      AllZip (LiftedCoercible I f) xs ys
   => NP I xs -> NP f ys
 fromI_NP = hfromI
+{-# INLINE fromI_NP #-}
 
 -- | Specialization of 'htoI'.
 --
@@ -750,6 +770,7 @@ toI_NP ::
      AllZip (LiftedCoercible f I) xs ys
   => NP f xs -> NP I ys
 toI_NP = htoI
+{-# INLINE toI_NP #-}
 
 -- | Specialization of 'hfromI'.
 --
@@ -760,6 +781,7 @@ fromI_POP ::
      AllZip2 (LiftedCoercible I f) xss yss
   => POP I xss -> POP f yss
 fromI_POP = hfromI
+{-# INLINE fromI_POP #-}
 
 -- | Specialization of 'htoI'.
 --
@@ -770,6 +792,7 @@ toI_POP ::
      AllZip2 (LiftedCoercible f I) xss yss
   => POP f xss -> POP I yss
 toI_POP = htoI
+{-# INLINE toI_POP #-}
 
 instance HTrans NP NP where
   htrans  = trans_NP
