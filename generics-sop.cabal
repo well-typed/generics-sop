@@ -114,8 +114,9 @@ test-suite generics-sop-examples
 benchmark generics-sop-benchmark-time
   type:                exitcode-stdio-1.0
   hs-source-dirs:      benchmark
-  main-is:             Generics/SOP/Benchmark/Benchmark.hs
-  other-modules:       Generics.SOP.Benchmark.Data
+  main-is:             Generics/SOP/Benchmark/Time.hs
+  other-modules:       Generics.SOP.Benchmark.Bench
+                     , Generics.SOP.Benchmark.Data
   build-depends:       base
                      , generic-random
                      , QuickCheck
@@ -129,8 +130,10 @@ benchmark generics-sop-benchmark-alloc
   type:                exitcode-stdio-1.0
   hs-source-dirs:      benchmark
   main-is:             Generics/SOP/Benchmark/Allocation.hs
-  other-modules:       Generics.SOP.Benchmark.Data
+  other-modules:       Generics.SOP.Benchmark.Bench
+                     , Generics.SOP.Benchmark.Data
   build-depends:       base
+                     , containers
                      , generic-random
                      , QuickCheck
                      , generics-sop
