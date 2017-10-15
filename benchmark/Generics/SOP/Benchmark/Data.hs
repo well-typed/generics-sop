@@ -24,9 +24,9 @@ import Generic.Random
 
 
 data GenericContext
-  = THC    -- Template Haskell hand written combinator
-  | TH     -- Template Haskell
-  | Der    -- Derived
+  = SOPTHC -- SOP from Template Haskell and hand written combinator
+  | SOPTH  -- SOP from Template Haskell
+  | SOPDer -- SOP Derived via GHC.Generics
   | HW     -- Hand written
   | GHCGen -- GHC Generics
   | GHCDer -- GHC Derived instances
@@ -37,17 +37,17 @@ data TreeF (a :: GenericContext) = LeafF Int | NodeF (TreeF a) (TreeF a)
 instance Arbitrary (TreeF a) where
   arbitrary = genericArbitraryU'
 
-newtype TreeDer    = TreeDer    (TreeF 'Der)    deriving (GHC.Generic)
-newtype TreeTH     = TreeTH     (TreeF 'TH)     deriving (GHC.Generic)
-newtype TreeTHC    = TreeTHC    (TreeF 'THC)    deriving (GHC.Generic)
+newtype TreeSOPDer = TreeSOPDer (TreeF 'SOPDer) deriving (GHC.Generic)
+newtype TreeSOPTH  = TreeSOPTH  (TreeF 'SOPTH)  deriving (GHC.Generic)
+newtype TreeSOPTHC = TreeSOPTHC (TreeF 'SOPTHC) deriving (GHC.Generic)
 newtype TreeHW     = TreeHW     (TreeF 'HW)     deriving (GHC.Generic)
 newtype TreeGHCGen = TreeGHCGen (TreeF 'GHCGen) deriving (GHC.Generic)
 newtype TreeGHCDer = TreeGHCDer (TreeF 'GHCDer) deriving (GHC.Generic)
 
-instance Generic TreeDer
+instance Generic TreeSOPDer
 
-deriveGeneric ''TreeTH
-deriveGeneric ''TreeTHC
+deriveGeneric ''TreeSOPTH
+deriveGeneric ''TreeSOPTHC
 
 -- * Show
 
@@ -71,9 +71,9 @@ gshow' =
   . hcmap (Proxy :: Proxy Show) (mapIK show)
   . from
 
-instance Show TreeDer where show = gshow
-instance Show TreeTHC where show = gshow'
-instance Show TreeTH  where show = gshow
+instance Show TreeSOPDer where show = gshow
+instance Show TreeSOPTHC where show = gshow'
+instance Show TreeSOPTH  where show = gshow
 deriving instance Show TreeGHCDer
 
 instance Show TreeHW where
@@ -103,7 +103,7 @@ geq = go `on` from
     eq :: forall (a :: *). Eq a => I a -> I a -> K Bool a
     eq (I a) (I b) = K (a == b)
 
-instance Eq TreeDer where (==) = geq
-instance Eq TreeTH  where (==) = geq
+instance Eq TreeSOPDer where (==) = geq
+instance Eq TreeSOPTH  where (==) = geq
 deriving instance Eq TreeGHCDer
 

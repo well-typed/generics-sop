@@ -24,15 +24,15 @@ suite = do
 
   return $ group "SOP"
     [ group "Show"
-      [ item "Template Haskell / combinator" show $ TreeTHC <$> samples
-      , item "Template Haskell" show $ TreeTH     <$> samples
-      , item "Derived"          show $ TreeDer    <$> samples
+      [ item "Template Haskell / combinator" show $ TreeSOPTHC <$> samples
+      , item "Template Haskell" show $ TreeSOPTH  <$> samples
+      , item "Derived"          show $ TreeSOPDer <$> samples
       , item "GHC Deriving"     show $ TreeGHCDer <$> samples
       , item "Hand-written"     show $ TreeHW     <$> samples
       ]
     , group "Eq"
-      [ item "Derived"          eq $ TreeDer    <$> samples
-      , item "Template Haskell" eq $ TreeTH     <$> samples
+      [ item "Derived"          eq $ TreeSOPDer <$> samples
+      , item "Template Haskell" eq $ TreeSOPTH  <$> samples
       , item "GHC deriving"     eq $ TreeGHCDer <$> samples
       ]
     ]
@@ -41,10 +41,9 @@ suite = do
 
 
 instance NFData (TreeF a)
-instance NFData TreeDer
-instance NFData TreeTH
-instance NFData TreeTHC
+instance NFData TreeSOPDer
+instance NFData TreeSOPTH
+instance NFData TreeSOPTHC
 instance NFData TreeHW
 instance NFData TreeGHCGen
 instance NFData TreeGHCDer
-
