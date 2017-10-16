@@ -45,13 +45,13 @@ cmapTuple :: Proof
 cmapTuple =
   (concat . hcollapse . hcmap (Proxy :: Proxy Show) (mapIK show) . from)
   ===
-  ((\ (x, y, z) -> concat [show x, show y, show z]) :: (Int, Bool, Char) -> String)
+  ((\ (x, y, z) -> show x ++ show y ++ show z) :: (Int, Bool, Char) -> String)
 
 cmapMyTriple :: Proof
 cmapMyTriple =
   (concat . hcollapse . hcmap (Proxy :: Proxy Show) (mapIK show) . from)
   ===
-  ((\ (MyTriple x y z) -> concat [show x, show y, show z]) :: MyTriple Int Bool Char -> String)
+  ((\ (MyTriple x y z) -> show x ++ show y ++ show z) :: MyTriple Int Bool Char -> String)
 
 czipWithTuple :: Proof
 czipWithTuple =
