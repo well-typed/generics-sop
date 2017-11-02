@@ -41,6 +41,11 @@ module Generics.SOP.NS
   , cmap_SOP
     -- * Dealing with @'All' c@
   , cliftA2'_NS
+    -- * Comparison
+  , compare_NS
+  , ccompare_NS
+  , compare_SOP
+  , ccompare_SOP
     -- * Collapsing
   , collapse_NS
   , collapse_SOP
@@ -422,6 +427,95 @@ cmap_SOP = hcmap
 cliftA2'_NS :: All2 c xss => proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
 
 cliftA2'_NS = hcliftA2'
+
+-- * Comparison
+
+-- | Compare two sums with respect to the choice they
+-- are making.
+--
+-- A value that chooses the first option
+-- is considered smaller than one that chooses the second
+-- option.
+--
+-- If the choices are different, then either the first
+-- (if the first is smaller than the second)
+-- or the third (if the first is larger than the second)
+-- argument are called. If both choices are equal, then the
+-- second argument is called, which has access to the
+-- elements contained in the sums.
+--
+-- @since 0.3.2.0
+--
+compare_NS ::
+     forall r f g xs .
+     r                             -- ^ what to do if first is smaller
+  -> (forall x . f x -> g x -> r)  -- ^ what to do if both are equal
+  -> r                             -- ^ what to do if first is larger
+  -> NS f xs -> NS g xs
+  -> r
+compare_NS lt eq gt = go
+  where
+    go :: forall ys . NS f ys -> NS g ys -> r
+    go (Z x)  (Z y)  = eq x y
+    go (Z _)  (S _)  = lt
+    go (S _)  (Z _)  = gt
+    go (S xs) (S ys) = go xs ys
+
+-- | Constrained version of 'compare_NS'.
+--
+-- @since 0.3.2.0
+--
+ccompare_NS ::
+     forall c proxy r f g xs .
+     (All c xs)
+  => proxy c
+  -> r                                    -- ^ what to do if first is smaller
+  -> (forall x . c x => f x -> g x -> r)  -- ^ what to do if both are equal
+  -> r                                    -- ^ what to do if first is larger
+  -> NS f xs -> NS g xs
+  -> r
+ccompare_NS _ lt eq gt = go
+  where
+    go :: forall ys . (All c ys) => NS f ys -> NS g ys -> r
+    go (Z x)  (Z y)  = eq x y
+    go (Z _)  (S _)  = lt
+    go (S _)  (Z _)  = gt
+    go (S xs) (S ys) = go xs ys
+
+-- | Compare two sums of products with respect to the
+-- choice in the sum they are making.
+--
+-- Only the sum structure is used for comparison.
+-- This is a small wrapper around 'ccompare_NS' for
+-- a common special case.
+--
+-- @since 0.3.2.0
+--
+compare_SOP ::
+     forall r f g xss .
+     r                                      -- ^ what to do if first is smaller
+  -> (forall xs . NP f xs -> NP g xs -> r)  -- ^ what to do if both are equal
+  -> r                                      -- ^ what to do if first is larger
+  -> SOP f xss -> SOP g xss
+  -> r
+compare_SOP lt eq gt (SOP xs) (SOP ys) =
+  compare_NS lt eq gt xs ys
+
+-- | Constrained version of 'compare_SOP'.
+--
+-- @since 0.3.2.0
+--
+ccompare_SOP ::
+     forall c proxy r f g xss .
+     (All2 c xss)
+  => proxy c
+  -> r                                                  -- ^ what to do if first is smaller
+  -> (forall xs . All c xs => NP f xs -> NP g xs -> r)  -- ^ what to do if both are equal
+  -> r                                                  -- ^ what to do if first is larger
+  -> SOP f xss -> SOP g xss
+  -> r
+ccompare_SOP p lt eq gt (SOP xs) (SOP ys) =
+  ccompare_NS (allP p) lt eq gt xs ys
 
 -- * Collapsing
 
