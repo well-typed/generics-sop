@@ -4,6 +4,10 @@
   parameterized types (note that the more widely used
   `deriveGeneric` was already working correctly).
 
+* Add `compare_NS`, `ccompare_NS`, `compare_SOP`, and
+  `ccompare_SOP` to better support comparison of sum
+  structures.
+
 # 0.3.1.0 (2017-06-11)
 
 * Add AllZip, htrans, hcoerce, hfromI, htoI.
