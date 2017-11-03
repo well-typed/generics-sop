@@ -131,7 +131,16 @@ import Generics.SOP.Sing
 --
 data NS :: (k -> *) -> [k] -> * where
   Z :: f x -> NS f (x ': xs)
-  S :: NS f xs -> NS f (x ': xs)
+  S :: !(NS f xs) -> NS f (x ': xs)
+
+-- Note: It's tempting to make 'Z' strict in its argument as well.
+-- After all, in the common NS (NP I) case, this would be morally
+-- correct, because once we reveal the constructor of a type, the
+-- product structure cannot be undefined.
+--
+-- However, we are also using NS I or NS K in the context of the
+-- library, and for such situations, we would not want to force the
+-- payload of the sum to WHNF.
 
 deriving instance All (Show `Compose` f) xs => Show (NS f xs)
 deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)

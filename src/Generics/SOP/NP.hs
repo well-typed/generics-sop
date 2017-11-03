@@ -120,7 +120,7 @@ import Generics.SOP.Sing
 --
 data NP :: (k -> *) -> [k] -> * where
   Nil  :: NP f '[]
-  (:*) :: f x -> NP f xs -> NP f (x ': xs)
+  (:*) :: f x -> !(NP f xs) -> NP f (x ': xs)
 
 infixr 5 :*
 
