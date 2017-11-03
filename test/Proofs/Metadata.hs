@@ -1,4 +1,6 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Proofs.Metadata where
 
@@ -22,4 +24,3 @@ theConstructor :: forall a . (Generic a, HasDatatypeInfo a) => a -> ConstructorN
 theConstructor x =
   hcollapse (hzipWith const (constructorNames' (Proxy :: Proxy a)) (unSOP (from x)))
 {-# INLINE theConstructor #-}
-

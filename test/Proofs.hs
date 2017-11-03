@@ -5,6 +5,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -18,6 +19,7 @@ module Main where
 
 import Data.Monoid (Sum(..), Product(..), (<>))
 import Generics.SOP
+import Generics.SOP.NS
 import GHC.Proof
 
 import Proofs.Metadata
@@ -48,7 +50,7 @@ proof_caseSelf_ConsNil =
 -}
 
 ---------------------------------------------------------------------
--- Roundtrips
+-- Roundtrips, from, to
 
 proof_roundtrip_T2 :: Proof
 proof_roundtrip_T2 =
@@ -61,6 +63,27 @@ proof_roundtrip_T2' =
   to . from
   ===
   idT2'
+
+proof_roundtrip_Bool :: Proof
+proof_roundtrip_Bool =
+  to . from
+  ===
+  ((\ x -> x) :: Bool -> Bool)
+
+proof_roundtrip_E3 :: Proof
+proof_roundtrip_E3 =
+  to . from
+  ===
+  ((\ x -> x) :: E3 -> E3)
+
+{-
+-- fails for unknown reasons
+proof_roundtrip_E3' :: Proof
+proof_roundtrip_E3' =
+  to . from
+  ===
+  ((\ x -> x) :: E3' -> E3')
+-}
 
 proof_doubleRoundtrip_T2 :: Proof
 proof_doubleRoundtrip_T2 =
@@ -389,6 +412,66 @@ proof_theConstructor_Maybe =
   (\ x -> theConstructor x)
   ===
   (\ x -> case x of Nothing -> "Nothing"; Just _ -> "Just")
+
+-- Should this be strict?
+proof_theConstructor_I10 :: Proof
+proof_theConstructor_I10 =
+  (\ x -> theConstructor (x :: I10))
+  ===
+  (\ _ -> "I10")
+
+{-
+-- This fails due to a strange combination of casts not being eliminated
+proof_theConstructor_I10' :: Proof
+proof_theConstructor_I10' =
+  (\ x -> theConstructor (x :: I10'))
+  ===
+  (\ x -> case x of I10' _ _ _ _ _ _ _ _ _ _ -> "I10'")
+-}
+
+---------------------------------------------------------------------
+-- injections
+
+proof_injections_Nil :: Proof
+proof_injections_Nil =
+  (injections :: NP (Injection I '[]) '[])
+  ===
+  Nil
+
+proof_injections_ConsNil :: Proof
+proof_injections_ConsNil =
+  (injections :: NP (Injection I '[Int]) '[Int])
+  ===
+  fn (\ x -> K (Z x)) :* Nil
+
+proof_injections_ConsConsNil :: Proof
+proof_injections_ConsConsNil =
+  (injections :: NP (Injection I '[Int, Bool]) '[Int, Bool])
+  ===
+  fn (\ x -> K (Z x)) :* fn (\ x -> K (S (Z x))) :* Nil
+
+---------------------------------------------------------------------
+-- apInjs
+
+genum' :: IsEnumType a => NP (K a) (Code a)
+genum' =
+  hmap (mapKK to) (apInjs'_POP (POP (hcpure (Proxy :: Proxy ((~) '[])) Nil)))
+{-# INLINE genum' #-}
+
+{-
+-- this fails for unknown reasons
+proof_enum'_Bool :: Proof
+proof_enum'_Bool =
+  genum'
+  ===
+  K False :* K True :* Nil
+-}
+
+proof_enum'_E3 :: Proof
+proof_enum'_E3 =
+  genum'
+  ===
+  K E3_0 :* K E3_1 :* K E3_2 :* Nil
 
 main :: IO ()
 main = return ()

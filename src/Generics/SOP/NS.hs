@@ -280,6 +280,7 @@ injections =
   unInjection_ (cataSList (Injection_ Nil) (Injection_ . cons . unInjection_))
   where
     cons r = fn (K . Z) :* map_NP shiftInjection r
+    {-# INLINE cons #-}
 {-# INLINE injections #-}
 
 newtype Injection_ f xs = Injection_ { unInjection_ :: NP (Injection f xs) xs }

@@ -82,6 +82,17 @@ data I10' = I10'
 
 deriveGeneric ''I10'
 
+data E3 = E3_0 | E3_1 | E3_2
+  deriving (GHC.Generic, Show)
+
+instance Generic E3
+instance HasDatatypeInfo E3
+
+data E3' = E3'_0 | E3'_1 | E3'_2
+  deriving (Show)
+
+deriveGeneric ''E3'
+
 productFrom :: IsProductType a xs => a -> NP I xs
 productFrom = unZ . unSOP . from
 {-# INLINE productFrom #-}
