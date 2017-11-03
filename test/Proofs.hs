@@ -16,10 +16,11 @@
 {-# OPTIONS_GHC -O -fplugin GHC.Proof.Plugin #-}
 module Main where
 
-import Data.Monoid (Sum(..), Product(..))
+import Data.Monoid (Sum(..), Product(..), (<>))
 import Generics.SOP
 import GHC.Proof
 
+import Proofs.Metadata
 import Proofs.Types
 
 ---------------------------------------------------------------------
@@ -245,6 +246,149 @@ proof_productShow_T3' =
   Wrap3' gproductShow
   ===
   (Wrap3' (\ (T3' x y z) -> show x ++ show y ++ show z) :: Wrap3' Show T3' String)
+
+---------------------------------------------------------------------
+-- czipWith
+
+gmappend :: (IsProductType a xs, All Monoid xs) => a -> a -> a
+gmappend =
+  \ x y -> productTo (hczipWith (Proxy :: Proxy Monoid) (mapIII mappend)
+    (productFrom x) (productFrom y))
+{-# INLINE gmappend #-}
+
+{-
+-- fails, due to GGP-conversion for single-constructor single-value datatype being lazy
+proof_mappend_T1 :: Proof
+proof_mappend_T1 =
+  Wrap1'' gmappend
+  ===
+  (Wrap1'' (\ (T1 x1) (T1 x2) -> T1 (x1 <> x2)) :: Wrap1'' Monoid T1)
+-}
+
+proof_mappend_T1' :: Proof
+proof_mappend_T1' =
+  Wrap1'' gmappend
+  ===
+  (Wrap1'' (\ (T1' x1) (T1' x2) -> T1' (x1 <> x2)) :: Wrap1'' Monoid T1')
+
+proof_mappend_T2 :: Proof
+proof_mappend_T2 =
+  Wrap2'' gmappend
+  ===
+  (Wrap2'' (\ (T2 x1 y1) (T2 x2 y2) -> T2 (x1 <> x2) (y1 <> y2)) :: Wrap2'' Monoid T2)
+
+proof_mappend_T2' :: Proof
+proof_mappend_T2' =
+  Wrap2'' gmappend
+  ===
+  (Wrap2'' (\ (T2' x1 y1) (T2' x2 y2) -> T2' (x1 <> x2) (y1 <> y2)) :: Wrap2'' Monoid T2')
+
+proof_mappend_T3 :: Proof
+proof_mappend_T3 =
+  Wrap3'' gmappend
+  ===
+  (Wrap3'' (\ (T3 x1 y1 z1) (T3 x2 y2 z2) -> T3 (x1 <> x2) (y1 <> y2) (z1 <> z2)) :: Wrap3'' Monoid T3)
+
+proof_mappend_T3' :: Proof
+proof_mappend_T3' =
+  Wrap3'' gmappend
+  ===
+  (Wrap3'' (\ (T3' x1 y1 z1) (T3' x2 y2 z2) -> T3' (x1 <> x2) (y1 <> y2) (z1 <> z2)) :: Wrap3'' Monoid T3')
+
+proof_concreteMappend_Triple :: Proof
+proof_concreteMappend_Triple =
+  gmappend
+  ===
+  (\ (Sum x1, Product x2, x3) (Sum y1, Product y2, y3) ->
+    (Sum (x1 + y1 :: Int), Product (x2 * y2 :: Int), x3 ++ y3))
+
+proof_concreteMappend_T3 :: Proof
+proof_concreteMappend_T3 =
+  gmappend
+  ===
+  (\ (T3 (Sum x1) (Product x2) x3) (T3 (Sum y1) (Product y2) y3) ->
+    T3 (Sum (x1 + y1 :: Int)) (Product (x2 * y2 :: Int)) (x3 ++ y3))
+
+---------------------------------------------------------------------
+-- Metadata
+
+proof_datatypeNameOf_T1 :: Proof
+proof_datatypeNameOf_T1 =
+  datatypeNameOf (Proxy :: Proxy (T1 ()))
+  ===
+  "T1"
+
+proof_datatypeNameOf_T1' :: Proof
+proof_datatypeNameOf_T1' =
+  datatypeNameOf (Proxy :: Proxy (T1' ()))
+  ===
+  "T1'"
+
+proof_datatypeNameOf_I10 :: Proof
+proof_datatypeNameOf_I10 =
+  datatypeNameOf (Proxy :: Proxy I10)
+  ===
+  "I10"
+
+proof_datatypeNameOf_I10' :: Proof
+proof_datatypeNameOf_I10' =
+  datatypeNameOf (Proxy :: Proxy I10')
+  ===
+  "I10'"
+
+proof_constructorNames_Bool :: Proof
+proof_constructorNames_Bool =
+  constructorNames (Proxy :: Proxy Bool)
+  ===
+  ["False", "True"]
+
+proof_constructorNames_Ordering :: Proof
+proof_constructorNames_Ordering =
+  constructorNames (Proxy :: Proxy Ordering)
+  ===
+  ["LT", "EQ", "GT"]
+
+proof_constructorNames_Maybe :: Proof
+proof_constructorNames_Maybe =
+  constructorNames (Proxy :: Proxy (Maybe Int))
+  ===
+  ["Nothing", "Just"]
+
+proof_constructorNames_I10 :: Proof
+proof_constructorNames_I10 =
+  constructorNames (Proxy :: Proxy I10)
+  ===
+  ["I10"]
+
+proof_constructorNames_I10' :: Proof
+proof_constructorNames_I10' =
+  constructorNames (Proxy :: Proxy I10')
+  ===
+  ["I10'"]
+
+proof_theConstructor_True :: Proof
+proof_theConstructor_True =
+  theConstructor True
+  ===
+  "True"
+
+proof_theConstructor_Bool :: Proof
+proof_theConstructor_Bool =
+  (\ x -> theConstructor x)
+  ===
+  (\ x -> case x of False -> "False"; True -> "True")
+
+proof_theConstructor_Ordering :: Proof
+proof_theConstructor_Ordering =
+  (\ x -> theConstructor x)
+  ===
+  (\ x -> case x of LT -> "LT"; EQ -> "EQ"; GT -> "GT")
+
+proof_theConstructor_Maybe :: Proof
+proof_theConstructor_Maybe =
+  (\ x -> theConstructor x)
+  ===
+  (\ x -> case x of Nothing -> "Nothing"; Just _ -> "Just")
 
 main :: IO ()
 main = return ()

@@ -135,7 +135,8 @@ test-suite generics-sop-examples
 test-suite proofs
   type:                exitcode-stdio-1.0
   main-is:             Proofs.hs
-  other-modules:       Proofs.Types
+  other-modules:       Proofs.Metadata
+                       Proofs.Types
   hs-source-dirs:      test
   default-language:    Haskell2010
   ghc-options:         -Wall
