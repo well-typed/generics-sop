@@ -111,8 +111,10 @@ deriveGenericFunctions n codeName fromName toName = do
     let repType  = [t| SOP I $(appTyVars codeName' bndrs) |] -- SOP I TreeCode
     sequence
       [ tySynD codeName' bndrs codeType                 -- type TreeCode = '[ '[Int], '[Tree, Tree] ]
+      , pragInlD fromName' Inline FunLike AllPhases     -- {-# INLINE fromTree #-}
       , sigD fromName' [t| $origType -> $repType |]     -- fromTree :: Tree -> SOP I TreeCode
       , embedding fromName' cons                        -- fromTree ... =
+      , pragInlD toName' Inline FunLike AllPhases       -- {-# INLINE toTree #-}
       , sigD toName' [t| $repType -> $origType |]       -- toTree :: SOP I TreeCode -> Tree
       , projection toName' cons                         -- toTree ... =
       ]
@@ -139,7 +141,8 @@ deriveMetadataValue n codeName datatypeInfoName = do
   let datatypeInfoName' = mkName datatypeInfoName
   dec <- reifyDec n
   withDataDec dec $ \isNewtype _cxt name _bndrs cons _derivs -> do
-    sequence [ sigD datatypeInfoName' [t| SOP.DatatypeInfo $(conT codeName') |]                -- treeDatatypeInfo :: DatatypeInfo TreeCode
+    sequence [ pragInlD datatypeInfoName' Inline FunLike AllPhases                             -- {-# INLINE treeDatatypeInfo #-}
+             , sigD datatypeInfoName' [t| SOP.DatatypeInfo $(conT codeName') |]                -- treeDatatypeInfo :: DatatypeInfo TreeCode
              , funD datatypeInfoName' [clause [] (normalB $ metadata' isNewtype name cons) []] -- treeDatatypeInfo = ...
              ]
 {-# DEPRECATED deriveMetadataValue "Use 'deriveMetadataType' and 'demoteDatatypeInfo' instead." #-}
@@ -177,7 +180,12 @@ deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
   inst <- instanceD
             (cxt [])
             [t| Generic $typ |]
-            [codeSyn, embedding 'from cons, projection 'to cons]
+            [ codeSyn
+            , pragInlD 'from Inline FunLike AllPhases
+            , embedding 'from cons
+            , pragInlD 'to Inline FunLike AllPhases
+            , projection 'to cons
+            ]
   return [inst]
 
 deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
@@ -186,6 +194,7 @@ deriveMetadataForDataDec isNewtype _cxt name bndrs cons _derivs = do
   md   <- instanceD (cxt [])
             [t| HasDatatypeInfo $typ |]
             [ metadataType typ isNewtype name cons
+            , pragInlD 'datatypeInfo Inline FunLike AllPhases
             , funD 'datatypeInfo
                 [ clause [wildP]
                   (normalB [| SOP.T.demoteDatatypeInfo (Proxy :: Proxy (DatatypeInfoOf $typ)) |])
@@ -212,51 +221,52 @@ codeFor = promotedTypeList . map go
 -------------------------------------------------------------------------------}
 
 embedding :: Name -> [Con] -> Q Dec
-embedding fromName = funD fromName . go' (\e -> [| Z $e |])
+embedding fromName = lamFunD fromName . go' (\e -> [| Z $e |])
   where
-    go' :: (Q Exp -> Q Exp) -> [Con] -> [Q Clause]
+    go' :: (Q Exp -> Q Exp) -> [Con] -> [Q Match]
     go' _ [] = (:[]) $ do
       x <- newName "x"
-      clause [varP x] (normalB (caseE (varE x) [])) []
+      match (varP x) (normalB (caseE (varE x) [])) []
     go' br cs = go br cs
 
-    go :: (Q Exp -> Q Exp) -> [Con] -> [Q Clause]
+    go :: (Q Exp -> Q Exp) -> [Con] -> [Q Match]
     go _  []     = []
     go br (c:cs) = mkClause br c : go (\e -> [| S $(br e) |]) cs
 
-    mkClause :: (Q Exp -> Q Exp) -> Con -> Q Clause
+    mkClause :: (Q Exp -> Q Exp) -> Con -> Q Match
     mkClause br c = do
       (n, ts) <- conInfo c
       vars    <- replicateM (length ts) (newName "x")
-      clause [conP n (map varP vars)]
+      match  (conP n (map varP vars))
              (normalB [| SOP $(br . npE . map (appE (conE 'I) . varE) $ vars) |])
              []
 
 projection :: Name -> [Con] -> Q Dec
-projection toName = funD toName . go' (\p -> conP 'Z [p])
+projection toName = lamFunD toName . go' (\p -> conP 'Z [p])
   where
-    go' :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
+    go' :: (Q Pat -> Q Pat) -> [Con] -> [Q Match]
     go' _ [] = (:[]) $ do
       x <- newName "x"
-      clause [varP x] (normalB (caseE (varE x) [])) []
+      match (varP x) (normalB (caseE (varE x) [])) []
     go' br cs = go br cs
 
-    go :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
+    go :: (Q Pat -> Q Pat) -> [Con] -> [Q Match]
     go _ [] = [unreachable]
     go br (c:cs) = mkClause br c : go (\p -> conP 'S [br p]) cs
 
-    mkClause :: (Q Pat -> Q Pat) -> Con -> Q Clause
+    mkClause :: (Q Pat -> Q Pat) -> Con -> Q Match
     mkClause br c = do
       (n, ts) <- conInfo c
       vars    <- replicateM (length ts) (newName "x")
-      clause [conP 'SOP [br . npP . map (\v -> conP 'I [varP v]) $ vars]]
+      match (conP 'SOP [br . npP . map (\v -> conP 'I [varP v]) $ vars])
              (normalB . appsE $ conE n : map varE vars)
              []
 
-unreachable :: Q Clause
-unreachable = clause [wildP]
-                     (normalB [| error "unreachable" |])
-                     []
+unreachable :: Q Match
+unreachable = match
+  (wildP)
+  (normalB [| error "unreachable" |])
+  []
 
 {-------------------------------------------------------------------------------
   Compute metadata
@@ -388,6 +398,12 @@ npP (p:ps) = conP '(:*) [p, npP ps]
 {-------------------------------------------------------------------------------
   Some auxiliary definitions for working with TH
 -------------------------------------------------------------------------------}
+
+-- | A 0-arity function comprising just one case statement.
+lamFunD :: Name -> [Q Match] -> Q Dec
+lamFunD n ms = do
+  a <- newName "a"
+  funD n [clause [] (normalB (lamE [varP a] (caseE (varE a) ms))) []]
 
 conInfo :: Con -> Q (Name, [Q Type])
 conInfo (NormalC n ts) = return (n, map (return . (\(_, t)    -> t)) ts)
