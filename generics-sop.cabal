@@ -137,7 +137,7 @@ test-suite proofs
   main-is:             Proofs.hs
   hs-source-dirs:      test
   default-language:    Haskell2010
-  ghc-options:         -Wall -O -fplugin GHC.Proof.Plugin
+  ghc-options:         -Wall
   build-depends:       base                 >= 4.6  && < 5,
                        generics-sop,
                        ghc-proofs           >= 0.1.1
