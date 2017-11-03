@@ -70,6 +70,39 @@ proof_roundtrip_Bool =
   ===
   ((\ x -> x) :: Bool -> Bool)
 
+{-
+-- fails for unknown reasons
+proof_roundtrip_Ordering :: Proof
+proof_roundtrip_Ordering =
+  to . from
+  ===
+  ((\ x -> x) :: Ordering -> Ordering)
+#-}
+
+proof_roundtrip_E1 :: Proof
+proof_roundtrip_E1 =
+  to . from
+  ===
+  ((\ x -> x) :: E1 -> E1)
+
+proof_roundtrip_E1' :: Proof
+proof_roundtrip_E1' =
+  to . from
+  ===
+  ((\ x -> x) :: E1' -> E1')
+
+proof_roundtrip_E2 :: Proof
+proof_roundtrip_E2 =
+  to . from
+  ===
+  ((\ x -> x) :: E2 -> E2)
+
+proof_roundtrip_E2' :: Proof
+proof_roundtrip_E2' =
+  to . from
+  ===
+  ((\ x -> x) :: E2' -> E2')
+
 proof_roundtrip_E3 :: Proof
 proof_roundtrip_E3 =
   to . from
@@ -465,6 +498,33 @@ proof_enum'_Bool =
   genum'
   ===
   K False :* K True :* Nil
+-}
+
+proof_enum'_E1 :: Proof
+proof_enum'_E1 =
+  genum'
+  ===
+  K E1_0 :* Nil
+
+proof_enum'_E1' :: Proof
+proof_enum'_E1' =
+  genum'
+  ===
+  K E1'_0 :* Nil
+
+proof_enum'_E2 :: Proof
+proof_enum'_E2 =
+  genum'
+  ===
+  K E2_0 :* K E2_1 :* Nil
+
+{-
+-- this fails for unknown reasons
+proof_enum'_E2' :: Proof
+proof_enum'_E2' =
+  genum'
+  ===
+  K E2'_0 :* K E2'_1 :* Nil
 -}
 
 proof_enum'_E3 :: Proof

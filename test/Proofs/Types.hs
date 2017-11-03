@@ -4,6 +4,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -ddump-splices #-}
 module Proofs.Types where
 
 import Generics.SOP
@@ -81,6 +82,28 @@ data I10' = I10'
   deriving (Show)
 
 deriveGeneric ''I10'
+
+data E1 = E1_0
+  deriving (GHC.Generic, Show)
+
+instance Generic E1
+instance HasDatatypeInfo E1
+
+data E1' = E1'_0
+  deriving (Show)
+
+deriveGeneric ''E1'
+
+data E2 = E2_0 | E2_1
+  deriving (GHC.Generic, Show)
+
+instance Generic E2
+instance HasDatatypeInfo E2
+
+data E2' = E2'_0 | E2'_1
+  deriving (Show)
+
+deriveGeneric ''E2'
 
 data E3 = E3_0 | E3_1 | E3_2
   deriving (GHC.Generic, Show)
