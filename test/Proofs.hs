@@ -1,180 +1,251 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# OPTIONS_GHC -fshow-hole-constraints #-}
+{-# OPTIONS_GHC -fshow-hole-constraints -Wall #-}
+{-# OPTIONS_GHC -O -fplugin GHC.Proof.Plugin #-}
 module Main where
 
-import Data.Monoid
+import Data.Monoid (Sum(..), Product(..))
 import Generics.SOP
 import GHC.Proof
-import qualified GHC.Generics as GHC
 
-data MyPair a b = MyPair a b
-  deriving (GHC.Generic, Generic, Show)
+import Proofs.Types
 
-data MyTriple a b c = MyTriple a b c
-  deriving (GHC.Generic, Generic, Show)
+---------------------------------------------------------------------
+-- Simple properties
 
--- The above two types have GGP-derived Generic instances,
--- whereas the built-in triples have TH-derived Generic instances.
+proof_caseSelf_T2 :: Proof
+proof_caseSelf_T2 =
+  (\ x -> case x of T2 a b -> T2 a b)
+  ===
+  (\ x -> x)
 
-productFrom :: IsProductType a xs => a -> NP I xs
-productFrom = unZ . unSOP . from
+proof_caseSelf_Nil :: Proof
+proof_caseSelf_Nil =
+  (\ x -> case (x :: NP I '[]) of Nil -> Nil)
+  ===
+  (\ x -> x)
 
-productTo :: IsProductType a xs => NP I xs -> a
-productTo = to . SOP . Z
+{-
+-- fails
+proof_caseSelf_ConsNil :: Proof
+proof_caseSelf_ConsNil =
+  (\ x -> case (x :: NP I '[Int]) of y :* Nil -> y :* Nil)
+  ===
+  (\ x -> x)
+-}
 
-cpureTuple :: Proof
-cpureTuple =
+---------------------------------------------------------------------
+-- Roundtrips
+
+proof_roundtrip_T2 :: Proof
+proof_roundtrip_T2 =
+  to . from
+  ===
+  idT2
+
+proof_roundtrip_T2' :: Proof
+proof_roundtrip_T2' =
+  to . from
+  ===
+  idT2'
+
+proof_doubleRoundtrip_T2 :: Proof
+proof_doubleRoundtrip_T2 =
+  roundt . roundt
+  ===
+  idT2
+  where
+    roundt :: T2 a b -> T2 a b
+    roundt = to . from
+    {-# INLINE roundt #-}
+
+proof_doubleRoundtrip_T2' :: Proof
+proof_doubleRoundtrip_T2' =
+  roundt . roundt
+  ===
+  idT2'
+  where
+    roundt :: T2' a b -> T2' a b
+    roundt = to . from
+    {-# INLINE roundt #-}
+
+proof_productRoundtrip_T2 :: Proof
+proof_productRoundtrip_T2 =
+  productTo . productFrom'
+  ===
+  idT2
+  where
+    productFrom' :: T2 a b -> NP I '[a, b]
+    productFrom' = productFrom
+    {-# INLINE productFrom' #-}
+
+proof_productRoundtrip_T2' :: Proof
+proof_productRoundtrip_T2' =
+  productTo . productFrom'
+  ===
+  idT2'
+  where
+    productFrom' :: T2' a b -> NP I '[a, b]
+    productFrom' = productFrom
+    {-# INLINE productFrom' #-}
+
+---------------------------------------------------------------------
+-- cpure
+
+gmempty :: (IsProductType a xs, All Monoid xs) => a
+gmempty =
   productTo (hcpure (Proxy :: Proxy Monoid) (I mempty))
+{-# INLINE gmempty #-}
+
+mempty_T2 :: (Monoid a, Monoid b) => T2 a b
+mempty_T2 =
+  T2 mempty mempty
+
+mempty_T2' :: (Monoid a, Monoid b) => T2' a b
+mempty_T2' =
+  T2' mempty mempty
+
+mempty_T3 :: (Monoid a, Monoid b, Monoid c) => T3 a b c
+mempty_T3 =
+  T3 mempty mempty mempty
+
+mempty_T3' :: (Monoid a, Monoid b, Monoid c) => T3' a b c
+mempty_T3' =
+  T3' mempty mempty mempty
+
+proof_mempty_T2 :: Proof
+proof_mempty_T2 =
+  (Wrap2 gmempty :: Wrap2 Monoid T2)
+  ===
+  Wrap2 mempty_T2
+
+proof_mempty_T2' :: Proof
+proof_mempty_T2' =
+  (Wrap2 gmempty :: Wrap2 Monoid T2')
+  ===
+  Wrap2 mempty_T2'
+
+proof_mempty_T3 :: Proof
+proof_mempty_T3 =
+  (Wrap3 gmempty :: Wrap3 Monoid T3)
+  ===
+  Wrap3 mempty_T3
+
+proof_mempty_T3' :: Proof
+proof_mempty_T3' =
+  (Wrap3 gmempty :: Wrap3 Monoid T3')
+  ===
+  Wrap3 mempty_T3'
+
+proof_concreteMempty_Triple :: Proof
+proof_concreteMempty_Triple =
+  gmempty
   ===
   ((Sum 0, Product 1, []) :: (Sum Int, Product Int, [Bool]))
 
-cpureMyTriple :: Proof
-cpureMyTriple =
-  productTo (hcpure (Proxy :: Proxy Monoid) (I mempty))
+proof_concreteMempty_T3 :: Proof
+proof_concreteMempty_T3 =
+  gmempty
   ===
-  (MyTriple (Sum 0) (Product 1) [] :: MyTriple (Sum Int) (Product Int) [Bool])
+  (T3 (Sum 0) (Product 1) [] :: T3 (Sum Int) (Product Int) [Bool])
 
-cmapTuple :: Proof
-cmapTuple =
-  (concat . hcollapse . hcmap (Proxy :: Proxy Show) (mapIK show) . from)
+proof_concreteMempty_T3' :: Proof
+proof_concreteMempty_T3' =
+  gmempty
   ===
-  ((\ (x, y, z) -> show x ++ show y ++ show z) :: (Int, Bool, Char) -> String)
+  (T3' (Sum 0) (Product 1) [] :: T3' (Sum Int) (Product Int) [Bool])
 
-cmapMyTriple :: Proof
-cmapMyTriple =
-  (concat . hcollapse . hcmap (Proxy :: Proxy Show) (mapIK show) . from)
-  ===
-  ((\ (MyTriple x y z) -> show x ++ show y ++ show z) :: MyTriple Int Bool Char -> String)
+---------------------------------------------------------------------
+-- cmap
 
-czipWithTuple :: Proof
-czipWithTuple =
-  (\ x y -> productTo (hczipWith (Proxy :: Proxy Monoid)
-    (mapIII mappend) (productFrom x) (productFrom y)))
-  ===
-  (\ (Sum x1, Product x2, x3) (Sum y1, Product y2, y3) ->
-    (Sum (x1 + y1 :: Int), Product (x2 * y2 :: Int), x3 ++ y3))
+gshow :: (Generic a, All2 Show (Code a)) => a -> String
+gshow =
+  concat . hcollapse . hcmap (Proxy :: Proxy Show) (mapIK show) . from
+{-# INLINE gshow #-}
 
-czipWithMyTriple :: Proof
-czipWithMyTriple =
-  (\ x y -> productTo (hczipWith (Proxy :: Proxy Monoid)
-    (mapIII mappend) (productFrom x) (productFrom y)))
-  ===
-  (\ (MyTriple (Sum x1) (Product x2) x3) (MyTriple (Sum y1) (Product y2) y3) ->
-    MyTriple (Sum (x1 + y1 :: Int)) (Product (x2 * y2 :: Int)) (x3 ++ y3))
-
-type Lens' s a =
-  forall f . Functor f => (a -> f a) -> (s -> f s)
-
-newtype WrappedLens s a =
-  Wrap { unWrap :: Lens' s a }
-
-newtype WrappedGetter s a =
-  WG { unWG :: s -> a }
-
-sop_ :: Lens' (SOP f xss) (NS (NP f) xss)
-sop_ = \ wrap (SOP ns) -> SOP <$> wrap ns
-
-z_ :: Lens' (NS (NP f) '[ xs ]) (NP f xs)
-z_ = \ wrap (Z np) -> Z <$> wrap np
-
-hd_ :: Lens' (NP f (x ': xs)) (f x)
-hd_ = \ wrap (x :* xs) -> (:* xs) <$> wrap x
-
-tl_ :: Lens' (NP f (x ': xs)) (NP f xs)
-tl_ = \ wrap (x :* xs) -> (x :*) <$> wrap xs
-
-i_ :: Lens' (I x) x
-i_ = \ wrap (I x) -> I <$> wrap x
-
-id_ :: Lens' x x
-id_ = \ wrap x -> (\ y -> y) <$> wrap x
-
-(%) :: WrappedLens s a -> WrappedLens a b -> WrappedLens s b
-(%) = \ (Wrap l1) (Wrap l2) -> Wrap (l1 . l2)
-{-# INLINE (%) #-}
-
-infixr 9 %
-
-(%%) :: WrappedGetter s a -> WrappedGetter a b -> WrappedGetter s b
-(%%) = \ (WG l1) (WG l2) -> WG (l2 . l1)
-{-# INLINE (%%) #-}
-
-infixr 9 %%
-
-
-rep_ :: Generic a => Lens' a (Rep a)
-rep_ = \ wrap a -> to <$> wrap (from a)
-
-productRep_ :: IsProductType a xs => Lens' a (NP I xs)
-productRep_ = \ wrap a -> (\ x -> productTo x) <$> wrap (productFrom a)
-
-newtype LensHelper xs = LensHelper { unLensHelper :: NP (WrappedLens (NP I xs)) xs }
-
-lenses :: IsProductType a xs => NP (WrappedLens a) xs
-lenses = hmap (Wrap productRep_ %) $ unLensHelper $ cataSList (LensHelper Nil) $
-  \ (LensHelper rec) -> LensHelper $ (Wrap hd_ % Wrap i_) :* hmap (Wrap tl_ %) rec
-{-# INLINE lenses #-}
-
-newtype OpticHelper f xs = OpticHelper { unOpticHelper :: NP (f (NP I xs)) xs }
-
-getters :: IsProductType a xs => NP (WrappedGetter a) xs
-getters = hmap (WG productFrom %%) $ unOpticHelper $ cataSList (OpticHelper Nil) $
-  \ (OpticHelper rec) -> OpticHelper $ WG (unI . hd) :* hmap (WG tl %%) rec
-{-# INLINE getters #-}
+gproductShow :: (IsProductType a xs, All Show xs) => a -> String
+gproductShow =
+  concat . hcollapse . hcmap (Proxy :: Proxy Show) (mapIK show) . productFrom
+{-# INLINE gproductShow #-}
 
 {-
--- Note: This already fails! So we have a problem with lens
--- composition in general.
-
-lensId :: Proof
-lensId =
-  Wrap sop_ % Wrap id_ === Wrap sop_
+-- fails, due to GGP-conversion for single-constructor single-value datatype being lazy
+proof_show_T1 :: Proof
+proof_show_T1 =
+  Wrap1' gshow
+  ===
+  (Wrap1' (\ (T1 x) -> show x) :: Wrap1' Show T1 String)
 -}
+
+proof_show_T1' :: Proof
+proof_show_T1' =
+  Wrap1' gshow
+  ===
+  (Wrap1' (\ (T1' x) -> show x) :: Wrap1' Show T1' String)
 
 {-
-lensesMyPair :: Proof
-lensesMyPair =
-  lenses
+-- fails, due to GGP-conversion for single-constructor single-value datatype being lazy
+proof_productShow_T1 :: Proof
+proof_productShow_T1 =
+  Wrap1' gproductShow
   ===
-  (Wrap (\ wrap (MyPair x y) -> (\ z -> MyPair z y) <$> wrap x)
-  :* Wrap (\ wrap (MyPair x y) -> (\ z -> MyPair x z) <$> wrap y)
-  :* Nil :: NP (WrappedLens (MyPair Int Char)) '[Int, Char])
+  (Wrap1' (\ (T1 x) -> show x) :: Wrap1' Show T1 String)
 -}
 
-{-
-lensesPair :: Proof
-lensesPair =
-  lenses
+proof_productShow_T1' :: Proof
+proof_productShow_T1' =
+  Wrap1' gproductShow
   ===
-  (Wrap (\ wrap (x, y) -> (,y) <$> wrap x)
-  :* Wrap (\ wrap (x, y) -> (x,) <$> wrap y)
-  :* Nil :: NP (WrappedLens (Int, Char)) '[Int, Char])
--}
+  (Wrap1' (\ (T1' x) -> show x) :: Wrap1' Show T1' String)
 
-gettersTriple :: Proof
-gettersTriple =
-  getters
+proof_show_T2 :: Proof
+proof_show_T2 =
+  Wrap2' gshow
   ===
-  (WG (\ (x, _, _) -> x)
-  :* WG (\ (_, y, _) -> y)
-  :* WG (\ (_, _, z) -> z)
-  :* Nil :: NP (WrappedGetter (Int, Char, Bool)) '[Int, Char, Bool])
+  (Wrap2' (\ (T2 x y) -> show x ++ show y) :: Wrap2' Show T2 String)
 
-gettersMyPair :: Proof
-gettersMyPair =
-  getters
+proof_show_T2' :: Proof
+proof_show_T2' =
+  Wrap2' gshow
   ===
-  (WG (\ (MyTriple x _ _) -> x)
-  :* WG (\ (MyTriple _ y _) -> y)
-  :* WG (\ (MyTriple _ _ z) -> z)
-  :* Nil :: NP (WrappedGetter (MyTriple Int Char Bool)) '[Int, Char, Bool])
+  (Wrap2' (\ (T2' x y) -> show x ++ show y) :: Wrap2' Show T2' String)
+
+proof_productShow_T2 :: Proof
+proof_productShow_T2 =
+  Wrap2' gproductShow
+  ===
+  (Wrap2' (\ (T2 x y) -> show x ++ show y) :: Wrap2' Show T2 String)
+
+proof_productShow_T2' :: Proof
+proof_productShow_T2' =
+  Wrap2' gproductShow
+  ===
+  (Wrap2' (\ (T2' x y) -> show x ++ show y) :: Wrap2' Show T2' String)
+
+proof_productShow_T3 :: Proof
+proof_productShow_T3 =
+  Wrap3' gproductShow
+  ===
+  (Wrap3' (\ (T3 x y z) -> show x ++ show y ++ show z) :: Wrap3' Show T3 String)
+
+proof_productShow_T3' :: Proof
+proof_productShow_T3' =
+  Wrap3' gproductShow
+  ===
+  (Wrap3' (\ (T3' x y z) -> show x ++ show y ++ show z) :: Wrap3' Show T3' String)
 
 main :: IO ()
 main = return ()
+
