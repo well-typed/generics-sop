@@ -14,6 +14,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fshow-hole-constraints -Wall #-}
+-- {-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
 {-# OPTIONS_GHC -O -fplugin GHC.Proof.Plugin #-}
 module Main where
 
@@ -71,13 +72,13 @@ proof_roundtrip_Bool =
   ((\ x -> x) :: Bool -> Bool)
 
 {-
--- fails for unknown reasons
+-- fails for unknown reasons (optimised correctly in GHC)
 proof_roundtrip_Ordering :: Proof
 proof_roundtrip_Ordering =
   to . from
   ===
   ((\ x -> x) :: Ordering -> Ordering)
-#-}
+-}
 
 proof_roundtrip_E1 :: Proof
 proof_roundtrip_E1 =
@@ -110,7 +111,7 @@ proof_roundtrip_E3 =
   ((\ x -> x) :: E3 -> E3)
 
 {-
--- fails for unknown reasons
+-- fails for unknown reasons (optimises correctly in GHC)
 proof_roundtrip_E3' :: Proof
 proof_roundtrip_E3' =
   to . from
@@ -484,7 +485,36 @@ proof_injections_ConsConsNil =
   fn (\ x -> K (Z x)) :* fn (\ x -> K (S (Z x))) :* Nil
 
 ---------------------------------------------------------------------
+-- projections
+
+proof_projections_Nil :: Proof
+proof_projections_Nil =
+  (projections :: NP (Projection I '[]) '[])
+  ===
+  Nil
+
+proof_projections_ConsNil :: Proof
+proof_projections_ConsNil =
+  (projections :: NP (Projection I '[Int]) '[Int])
+  ===
+  fn (\ (K (x :* _)) -> x) :* Nil
+
+{-
+-- fails for unclear reasons
+proof_projections_ConsConsNil :: Proof
+proof_projections_ConsConsNil =
+  (projections :: NP (Projection I '[Int, Bool]) '[Int, Bool])
+  ===
+  fn (\ (K (x :* _)) -> x) :* fn (\ (K (_ :* x :* _)) -> x) :* Nil
+-}
+
+---------------------------------------------------------------------
 -- apInjs
+
+genum :: IsEnumType a => [a]
+genum =
+  hcollapse genum'
+{-# INLINE genum #-}
 
 genum' :: IsEnumType a => NP (K a) (Code a)
 genum' =
@@ -492,7 +522,7 @@ genum' =
 {-# INLINE genum' #-}
 
 {-
--- this fails for unknown reasons
+-- fails for unknown reasons (optimises correctly in GHC)
 proof_enum'_Bool :: Proof
 proof_enum'_Bool =
   genum'
@@ -511,6 +541,18 @@ proof_enum'_E1' =
   genum'
   ===
   K E1'_0 :* Nil
+
+proof_enum_E1 :: Proof
+proof_enum_E1 =
+  genum
+  ===
+  [E1_0]
+
+proof_enum_E1' :: Proof
+proof_enum_E1' =
+  genum
+  ===
+  [E1'_0]
 
 proof_enum'_E2 :: Proof
 proof_enum'_E2 =
@@ -532,6 +574,12 @@ proof_enum'_E3 =
   genum'
   ===
   K E3_0 :* K E3_1 :* K E3_2 :* Nil
+
+proof_enum_E3 :: Proof
+proof_enum_E3 =
+  genum
+  ===
+  [E3_0, E3_1, E3_2]
 
 main :: IO ()
 main = return ()
