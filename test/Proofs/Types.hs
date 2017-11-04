@@ -52,6 +52,37 @@ data T3' a b c = T3' a b c
 
 deriveGeneric ''T3'
 
+data U10 a = U10
+  a
+  a
+  a
+  a
+  a
+  a
+  a
+  a
+  a
+  a
+  deriving (GHC.Generic, Show)
+
+instance Generic (U10 a)
+instance HasDatatypeInfo (U10 a)
+
+data U10' a = U10'
+  a
+  a
+  a
+  a
+  a
+  a
+  a
+  a
+  a
+  a
+  deriving (Show)
+
+deriveGeneric ''U10'
+
 data I10 = I10
   Int
   Int

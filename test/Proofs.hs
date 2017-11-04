@@ -14,7 +14,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fshow-hole-constraints -Wall #-}
--- {-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
+{-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
 {-# OPTIONS_GHC -O -fplugin GHC.Proof.Plugin #-}
 module Main where
 
@@ -207,6 +207,41 @@ proof_mempty_T3' =
   ===
   Wrap3 mempty_T3'
 
+{-
+-- fails for somewhat mysterious reasons
+proof_mempty_U10 :: Proof
+proof_mempty_U10 =
+  (Wrap1 gmempty :: Wrap1 Monoid U10)
+  ===
+  Wrap1 (U10
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty)
+-}
+
+proof_mempty_U10' :: Proof
+proof_mempty_U10' =
+  (Wrap1 gmempty :: Wrap1 Monoid U10')
+  ===
+  Wrap1 (U10'
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty
+    mempty)
+
 proof_concreteMempty_Triple :: Proof
 proof_concreteMempty_Triple =
   gmempty
@@ -279,6 +314,74 @@ proof_show_T2' =
   Wrap2' gshow
   ===
   (Wrap2' (\ (T2' x y) -> show x ++ show y) :: Wrap2' Show T2' String)
+
+proof_show_U10 :: Proof
+proof_show_U10 =
+  Wrap1' gshow
+  ===
+  (Wrap1' (\ (U10 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10) ->
+       show a1
+    ++ show a2
+    ++ show a3
+    ++ show a4
+    ++ show a5
+    ++ show a6
+    ++ show a7
+    ++ show a8
+    ++ show a9
+    ++ show a10) :: Wrap1' Show U10 String)
+
+proof_show_U10' :: Proof
+proof_show_U10' =
+  Wrap1' gshow
+  ===
+  (Wrap1' (\ (U10' a1 a2 a3 a4 a5 a6 a7 a8 a9 a10) ->
+       show a1
+    ++ show a2
+    ++ show a3
+    ++ show a4
+    ++ show a5
+    ++ show a6
+    ++ show a7
+    ++ show a8
+    ++ show a9
+    ++ show a10) :: Wrap1' Show U10' String)
+
+proof_show_E1 :: Proof
+proof_show_E1 =
+  gshow
+  ===
+  ((\ E1_0 -> "") :: E1 -> String)
+
+proof_show_E1' :: Proof
+proof_show_E1' =
+  gshow
+  ===
+  ((\ E1'_0 -> "") :: E1' -> String)
+
+proof_show_E2 :: Proof
+proof_show_E2 =
+  gshow
+  ===
+  ((\ !_ -> "") :: E2 -> String)
+
+proof_show_E2' :: Proof
+proof_show_E2' =
+  gshow
+  ===
+  ((\ !_ -> "") :: E2' -> String)
+
+proof_show_E3 :: Proof
+proof_show_E3 =
+  gshow
+  ===
+  ((\ !_ -> "") :: E3 -> String)
+
+proof_show_E3' :: Proof
+proof_show_E3' =
+  gshow
+  ===
+  ((\ !_ -> "") :: E3' -> String)
 
 proof_productShow_T2 :: Proof
 proof_productShow_T2 =
