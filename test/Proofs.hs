@@ -14,8 +14,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fshow-hole-constraints -Wall #-}
-{-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
+-- {-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
 {-# OPTIONS_GHC -O -fplugin GHC.Proof.Plugin #-}
+{-# OPTIONS_GHC -funfolding-creation-threshold=5000 -funfolding-use-threshold=5000 #-}
 module Main where
 
 import Data.Monoid (Sum(..), Product(..), (<>))
@@ -407,6 +408,38 @@ proof_productShow_T3' =
   ===
   (Wrap3' (\ (T3' x y z) -> show x ++ show y ++ show z) :: Wrap3' Show T3' String)
 
+proof_productShow_U10 :: Proof
+proof_productShow_U10 =
+  Wrap1' gproductShow
+  ===
+  (Wrap1' (\ (U10 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10) ->
+       show a1
+    ++ show a2
+    ++ show a3
+    ++ show a4
+    ++ show a5
+    ++ show a6
+    ++ show a7
+    ++ show a8
+    ++ show a9
+    ++ show a10) :: Wrap1' Show U10 String)
+
+proof_productShow_U10' :: Proof
+proof_productShow_U10' =
+  Wrap1' gproductShow
+  ===
+  (Wrap1' (\ (U10' a1 a2 a3 a4 a5 a6 a7 a8 a9 a10) ->
+       show a1
+    ++ show a2
+    ++ show a3
+    ++ show a4
+    ++ show a5
+    ++ show a6
+    ++ show a7
+    ++ show a8
+    ++ show a9
+    ++ show a10) :: Wrap1' Show U10' String)
+
 ---------------------------------------------------------------------
 -- czipWith
 
@@ -454,6 +487,40 @@ proof_mappend_T3' =
   Wrap3'' gmappend
   ===
   (Wrap3'' (\ (T3' x1 y1 z1) (T3' x2 y2 z2) -> T3' (x1 <> x2) (y1 <> y2) (z1 <> z2)) :: Wrap3'' Monoid T3')
+
+proof_mappend_U10 :: Proof
+proof_mappend_U10 =
+  Wrap1'' gmappend
+  ===
+  (Wrap1'' (\ (U10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9) (U10 b0 b1 b2 b3 b4 b5 b6 b7 b8 b9) ->
+    U10
+      (a0 <> b0)
+      (a1 <> b1)
+      (a2 <> b2)
+      (a3 <> b3)
+      (a4 <> b4)
+      (a5 <> b5)
+      (a6 <> b6)
+      (a7 <> b7)
+      (a8 <> b8)
+      (a9 <> b9)) :: Wrap1'' Monoid U10)
+
+proof_mappend_U10' :: Proof
+proof_mappend_U10' =
+  Wrap1'' gmappend
+  ===
+  (Wrap1'' (\ (U10' a0 a1 a2 a3 a4 a5 a6 a7 a8 a9) (U10' b0 b1 b2 b3 b4 b5 b6 b7 b8 b9) ->
+    U10'
+      (a0 <> b0)
+      (a1 <> b1)
+      (a2 <> b2)
+      (a3 <> b3)
+      (a4 <> b4)
+      (a5 <> b5)
+      (a6 <> b6)
+      (a7 <> b7)
+      (a8 <> b8)
+      (a9 <> b9)) :: Wrap1'' Monoid U10')
 
 proof_concreteMappend_Triple :: Proof
 proof_concreteMappend_Triple =
@@ -664,7 +731,7 @@ proof_enum'_E2 =
   K E2_0 :* K E2_1 :* Nil
 
 {-
--- this fails for unknown reasons
+-- fails for unknown reasons
 proof_enum'_E2' :: Proof
 proof_enum'_E2' =
   genum'
@@ -683,6 +750,24 @@ proof_enum_E3 =
   genum
   ===
   [E3_0, E3_1, E3_2]
+
+genum_E50' :: [E50']
+genum_E50' = genum
+
+proof_enum'_E10 :: Proof
+proof_enum'_E10 =
+  genum'
+  ===
+  K E10_0 :* K E10_1 :* K E10_2 :* K E10_3 :* K E10_4 :* K E10_5 :* K E10_6 :* K E10_7 :* K E10_8 :* K E10_9 :* Nil
+
+{-
+-- fails for unknown reasons
+proof_enum'_E10' :: Proof
+proof_enum'_E10' =
+  genum'
+  ===
+  K E10'_0 :* K E10'_1 :* K E10'_2 :* K E10'_3 :* K E10'_4 :* K E10'_5 :* K E10'_6 :* K E10'_7 :* K E10'_8 :* K E10'_9 :* Nil
+-}
 
 main :: IO ()
 main = return ()
