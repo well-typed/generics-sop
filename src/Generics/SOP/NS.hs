@@ -475,8 +475,8 @@ ctraverse__SOP ::
   => proxy c -> (forall a. c a => f a -> g ()) -> SOP f xs -> g ()
 ctraverse__SOP p f = ctraverse__NS (allP p) (ctraverse__NP p f) . unSOP
 
-instance HFoldMap NS  where hctraverse_ = ctraverse__NS
-instance HFoldMap SOP where hctraverse_ = ctraverse__SOP
+instance HTraverse_ NS  where hctraverse_ = ctraverse__NS
+instance HTraverse_ SOP where hctraverse_ = ctraverse__SOP
 
 -- | Specialization of 'hcfoldMap'.
 --

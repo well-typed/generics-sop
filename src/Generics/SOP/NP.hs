@@ -529,8 +529,8 @@ ctraverse__POP ::
   => proxy c -> (forall a. c a => f a -> g ()) -> POP f xs -> g ()
 ctraverse__POP p f = ctraverse__NP (allP p) (ctraverse__NP p f) . unPOP
 
-instance HFoldMap NP  where hctraverse_ = ctraverse__NP
-instance HFoldMap POP where hctraverse_ = ctraverse__POP
+instance HTraverse_ NP  where hctraverse_ = ctraverse__NP
+instance HTraverse_ POP where hctraverse_ = ctraverse__POP
 
 -- | Specialization of 'hcfoldMap'.
 cfoldMap_NP :: (All c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> NP f xs -> m
