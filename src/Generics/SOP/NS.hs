@@ -460,6 +460,8 @@ instance HCollapse SOP where hcollapse = collapse_SOP
 --
 -- /Note:/ we don't need 'Applicative' constraint.
 --
+-- @since 0.3.2.0
+--
 ctraverse__NS ::
      forall c proxy xs f g. (All c xs)
   => proxy c -> (forall a. c a => f a -> g ()) -> NS f xs -> g ()
@@ -470,6 +472,9 @@ ctraverse__NS _ f = go
     go (S xs) = go xs
 
 -- | Specialization of 'hcfoldMap'.
+--
+-- @since 0.3.2.0
+--
 ctraverse__SOP ::
      forall c proxy xs f g. (All2 c xs, Applicative g)
   => proxy c -> (forall a. c a => f a -> g ()) -> SOP f xs -> g ()
@@ -482,6 +487,8 @@ instance HTraverse_ SOP where hctraverse_ = ctraverse__SOP
 --
 -- /Note:/ We don't need 'Monoid' instance.
 --
+-- @since 0.3.2.0
+--
 cfoldMap_NS ::
      forall c proxy f xs m. (All c xs)
   => proxy c -> (forall a. c a => f a -> m) -> NS f xs -> m
@@ -492,6 +499,9 @@ cfoldMap_NS _ f = go
     go (S xs) = go xs
 
 -- | Specialization of 'hcfoldMap'.
+--
+-- @since 0.3.2.0
+--
 cfoldMap_SOP :: (All2 c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> SOP f xs -> m
 cfoldMap_SOP = hcfoldMap
 
@@ -506,11 +516,17 @@ sequence'_SOP :: (SListI xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xs
 -- | Specialization of 'hctraverse''.
 --
 -- /Note:/ as 'NS' has exactly one element, the 'Functor' constraint is enough.
+--
+-- @since 0.3.2.0
+--
 ctraverse'_NS  ::
      forall c proxy xs f f' g. (All c xs,  Functor g)
   => proxy c -> (forall a. c a => f a -> g (f' a)) -> NS f xs  -> g (NS f' xs)
 
 -- | Specialization of 'hctraverse''.
+--
+-- @since 0.3.2.0
+--
 ctraverse'_SOP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> SOP f xs -> g (SOP f' xs)
 
 sequence'_NS (Z mx)  = Z <$> unComp mx
@@ -543,9 +559,14 @@ sequence_SOP  = hsequence
 
 -- | Specialization of 'hctraverse'.
 --
+-- @since 0.3.2.0
+--
 ctraverse_NS  :: (All  c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> NP  f xs -> g (NP  I xs)
 
 -- | Specialization of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
 ctraverse_SOP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> POP f xs -> g (POP I xs)
 
 ctraverse_NS = hctraverse

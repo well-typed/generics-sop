@@ -514,6 +514,9 @@ instance HCollapse POP where hcollapse = collapse_POP
 -- * Folding
 
 -- | Specialization of 'hctraverse_'.
+--
+-- @since 0.3.2.0
+--
 ctraverse__NP ::
      forall c proxy xs f g. (All c xs, Applicative g)
   => proxy c -> (forall a. c a => f a -> g ()) -> NP f xs -> g ()
@@ -524,6 +527,9 @@ ctraverse__NP _ f = go
     go (x :* xs) = f x *> go xs
 
 -- | Specialization of 'hcfoldMap'.
+--
+-- @since 0.3.2.0
+--
 ctraverse__POP ::
      forall c proxy xs f g. (All2 c xs, Applicative g)
   => proxy c -> (forall a. c a => f a -> g ()) -> POP f xs -> g ()
@@ -533,10 +539,16 @@ instance HTraverse_ NP  where hctraverse_ = ctraverse__NP
 instance HTraverse_ POP where hctraverse_ = ctraverse__POP
 
 -- | Specialization of 'hcfoldMap'.
+--
+-- @since 0.3.2.0
+--
 cfoldMap_NP :: (All c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> NP f xs -> m
 cfoldMap_NP  = hcfoldMap
 
 -- | Specialization of 'hcfoldMap'.
+--
+-- @since 0.3.2.0
+--
 cfoldMap_POP :: (All2 c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> POP f xs -> m
 cfoldMap_POP = hcfoldMap
 
@@ -549,11 +561,17 @@ sequence'_NP  ::              Applicative f  => NP  (f :.: g) xs  -> f (NP  g xs
 sequence'_POP :: (SListI xss, Applicative f) => POP (f :.: g) xss -> f (POP g xss)
 
 -- | Specialization of 'hctraverse''.
+--
+-- @since 0.3.2.0
+--
 ctraverse'_NP  ::
      forall c proxy xs f f' g. (All c xs,  Applicative g)
   => proxy c -> (forall a. c a => f a -> g (f' a)) -> NP f xs  -> g (NP f' xs)
 
 -- | Specialization of 'hctraverse''.
+--
+-- @since 0.3.2.0
+--
 ctraverse'_POP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> POP f xs -> g (POP f' xs)
 
 sequence'_NP Nil         = pure Nil
@@ -597,9 +615,15 @@ sequence_NP   = hsequence
 sequence_POP  = hsequence
 
 -- | Specialization of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
 ctraverse_NP  :: (All  c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> NP  f xs -> g (NP  I xs)
 
 -- | Specialization of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
 ctraverse_POP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> POP f xs -> g (POP I xs)
 
 ctraverse_NP = hctraverse

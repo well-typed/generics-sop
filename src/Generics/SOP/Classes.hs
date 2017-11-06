@@ -368,6 +368,9 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
   hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
 
 -- | A generalization of 'Data.Foldable.traverse_' or 'Data.Foldable.foldMap'.
+--
+-- @since 0.3.2.0
+--
 class HTraverse_ (h :: (k -> *) -> (l -> *)) where
   -- | Corresponds to 'Data.Foldable.traverse_'.
   --
@@ -380,9 +383,14 @@ class HTraverse_ (h :: (k -> *) -> (l -> *)) where
   -- 'hctraverse_', 'Generics.SOP.NS.ctraverse__SOP' :: ('All2' c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NS.SOP' f xss -> g ()
   -- @
   --
+  -- @since 0.3.2.0
+  --
   hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
 
 -- | Flipped version of 'hctraverse_'
+--
+-- @since 0.3.2.0
+--
 hcfor_ :: (HTraverse_ h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g ()) -> g ()
 hcfor_ p xs f = hctraverse_ p f xs
 
@@ -404,10 +412,15 @@ hcfor_ p xs f = hctraverse_ p f xs
 -- 'hcollapse', 'Generics.SOP.NS.collapse_SOP' :: 'Generics.SOP.NP.SOP' ('K' a) xss ->  [a]
 -- @
 --
+-- @since 0.3.2.0
+--
 hcfoldMap :: (HTraverse_ h, AllN h c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> h f xs -> m
 hcfoldMap p f = unK . hctraverse_ p (K . f)
 
 -- | Unconstrained version of 'hctraverse_'.
+--
+-- @since 0.3.2.0
+--
 htraverse_ :: (HTraverse_ h, Applicative g, AllN h Top xs) => (forall a. f a -> g ()) -> h f xs -> g ()
 htraverse_ f = hctraverse_ (Proxy :: Proxy Top) f
 
@@ -443,19 +456,30 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   -- 'hctraverse'', 'Generics.SOP.NS.ctraverse'_SOP' :: ('All2' c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.SOP' f xss -> g ('Generics.SOP.NS.SOP' f' xss)
   -- @
   --
+  -- @since 0.3.2.0
+  --
   hctraverse' :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> h f xs -> g (h f' xs)
 
 -- ** Derived functions
 
 -- | Special case of 'hctraverse'' where @f' = 'I'@.
+--
+-- @since 0.3.2.0
+--
 hctraverse :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> h f xs -> g (h I xs)
 hctraverse p f = hctraverse' p (fmap I . f)
 
 -- | Unconstrained variant of `htraverse'`.
+--
+-- @since 0.3.2.0
+--
 htraverse' :: (HSequence h , Applicative g, AllN h Top xs) => (forall a. f a -> g (f' a)) -> h f xs -> g (h f' xs)
 htraverse' f = hctraverse' (Proxy :: Proxy Top) f
 
 -- | Flipped version of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
 hcfor :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g a) -> g (h I xs)
 hcfor p xs f = hctraverse p f xs
 

@@ -3,6 +3,7 @@
 * Make `deriveGenericFunctions` work properly with
   parameterized types (note that the more widely used
   `deriveGeneric` was already working correctly).
+* Add `htraverse_` and `htraverse'
 
 # 0.3.1.0 (2017-06-11)
 
