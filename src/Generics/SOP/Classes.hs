@@ -62,6 +62,7 @@ module Generics.SOP.Classes
   , HTraverse_(..)
   , hcfoldMap
   , hcfor_
+  , htraverse_
     -- * Sequencing effects
   , HSequence(..)
     -- ** Derived functions
@@ -69,6 +70,7 @@ module Generics.SOP.Classes
   , hsequenceK
   , hctraverse
   , hcfor
+  , htraverse'
     -- * Indexing into sums
   , HIndex(..)
     -- * Applying all injections
@@ -86,6 +88,7 @@ module Generics.SOP.Classes
 import Control.Applicative (Applicative)
 import Data.Monoid (Monoid)
 #endif
+import Data.Proxy
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
@@ -404,6 +407,10 @@ hcfor_ p xs f = hctraverse_ p f xs
 hcfoldMap :: (HTraverse_ h, AllN h c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> h f xs -> m
 hcfoldMap p f = unK . hctraverse_ p (K . f)
 
+-- | Unconstrained version of 'hctraverse_'.
+htraverse_ :: (HTraverse_ h, Applicative g, AllN h Top xs) => (forall a. f a -> g ()) -> h f xs -> g ()
+htraverse_ f = hctraverse_ (Proxy :: Proxy Top) f
+
 -- * Sequencing effects
 
 -- | A generalization of 'Data.Traversable.sequenceA'.
@@ -443,6 +450,10 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
 -- | Special case of 'hctraverse'' where @f' = 'I'@.
 hctraverse :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> h f xs -> g (h I xs)
 hctraverse p f = hctraverse' p (fmap I . f)
+
+-- | Unconstrained variant of `htraverse'`.
+htraverse' :: (HSequence h , Applicative g, AllN h Top xs) => (forall a. f a -> g (f' a)) -> h f xs -> g (h f' xs)
+htraverse' f = hctraverse' (Proxy :: Proxy Top) f
 
 -- | Flipped version of 'hctraverse'.
 hcfor :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g a) -> g (h I xs)
