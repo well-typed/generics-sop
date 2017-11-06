@@ -410,7 +410,7 @@ class HFoldMap (h :: (k -> *) -> (l -> *)) where
   --
   hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
 
--- | Flipped version of 'hcfor_'
+-- | Flipped version of 'hctraverse_'
 hcfor_ :: (HFoldMap h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g ()) -> g ()
 hcfor_ p xs f = hctraverse_ p f xs
 
