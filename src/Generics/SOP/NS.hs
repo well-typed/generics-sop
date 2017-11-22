@@ -52,6 +52,8 @@ module Generics.SOP.NS
     -- * Folding
   , ctraverse__NS
   , ctraverse__SOP
+  , traverse__NS
+  , traverse__SOP
   , cfoldMap_NS
   , cfoldMap_SOP
     -- * Sequencing
@@ -61,6 +63,8 @@ module Generics.SOP.NS
   , sequence_SOP
   , ctraverse'_NS
   , ctraverse'_SOP
+  , traverse'_NS
+  , traverse'_SOP
   , ctraverse_NS
   , ctraverse_SOP
     -- * Catamorphism and anamorphism
@@ -565,17 +569,49 @@ ctraverse__NS _ f = go
     go (Z x)  = f x
     go (S xs) = go xs
 
--- | Specialization of 'hcfoldMap'.
+-- | Specialization of 'htraverse_'.
+--
+-- /Note:/ we don't need 'Applicative' constraint.
+--
+-- @since 0.3.2.0
+--
+traverse__NS ::
+     forall xs f g. (SListI xs)
+  => (forall a. f a -> g ()) -> NS f xs -> g ()
+traverse__NS f = go
+  where
+    go :: NS f ys -> g ()
+    go (Z x)  = f x
+    go (S xs) = go xs
+
+-- | Specialization of 'hctraverse_'.
 --
 -- @since 0.3.2.0
 --
 ctraverse__SOP ::
-     forall c proxy xs f g. (All2 c xs, Applicative g)
-  => proxy c -> (forall a. c a => f a -> g ()) -> SOP f xs -> g ()
+     forall c proxy xss f g. (All2 c xss, Applicative g)
+  => proxy c -> (forall a. c a => f a -> g ()) -> SOP f xss -> g ()
 ctraverse__SOP p f = ctraverse__NS (allP p) (ctraverse__NP p f) . unSOP
 
-instance HTraverse_ NS  where hctraverse_ = ctraverse__NS
-instance HTraverse_ SOP where hctraverse_ = ctraverse__SOP
+-- | Specialization of 'htraverse_'.
+--
+-- @since 0.3.2.0
+--
+traverse__SOP ::
+     forall xss f g. (SListI2 xss, Applicative g)
+  => (forall a. f a -> g ()) -> SOP f xss -> g ()
+traverse__SOP f = ctraverse__NS sListP (traverse__NP f) . unSOP
+
+sListP :: Proxy SListI
+sListP = Proxy
+
+instance HTraverse_ NS  where
+  hctraverse_ = ctraverse__NS
+  htraverse_  = traverse__NS
+
+instance HTraverse_ SOP where
+  hctraverse_ = ctraverse__SOP
+  htraverse_  = traverse__SOP
 
 -- | Specialization of 'hcfoldMap'.
 --
@@ -603,9 +639,12 @@ cfoldMap_SOP = hcfoldMap
 
 -- | Specialization of 'hsequence''.
 sequence'_NS  ::              Applicative f  => NS  (f :.: g) xs  -> f (NS  g xs)
+sequence'_NS (Z mx)  = Z <$> unComp mx
+sequence'_NS (S mxs) = S <$> sequence'_NS mxs
 
 -- | Specialization of 'hsequence''.
 sequence'_SOP :: (SListI xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
+sequence'_SOP = fmap SOP . sequence'_NS . hliftA (Comp . sequence'_NP) . unSOP
 
 -- | Specialization of 'hctraverse''.
 --
@@ -616,31 +655,48 @@ sequence'_SOP :: (SListI xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xs
 ctraverse'_NS  ::
      forall c proxy xs f f' g. (All c xs,  Functor g)
   => proxy c -> (forall a. c a => f a -> g (f' a)) -> NS f xs  -> g (NS f' xs)
-
--- | Specialization of 'hctraverse''.
---
--- @since 0.3.2.0
---
-ctraverse'_SOP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> SOP f xs -> g (SOP f' xs)
-
-sequence'_NS (Z mx)  = Z <$> unComp mx
-sequence'_NS (S mxs) = S <$> sequence'_NS mxs
-
-sequence'_SOP = fmap SOP . sequence'_NS . hliftA (Comp . sequence'_NP) . unSOP
-
 ctraverse'_NS _ f = go where
   go :: All c ys => NS f ys -> g (NS f' ys)
   go (Z x)  = Z <$> f x
   go (S xs) = S <$> go xs
 
+-- | Specialization of 'htraverse''.
+--
+-- /Note:/ as 'NS' has exactly one element, the 'Functor' constraint is enough.
+--
+-- @since 0.3.2.0
+--
+traverse'_NS  ::
+     forall xs f f' g. (SListI xs,  Functor g)
+  => (forall a. f a -> g (f' a)) -> NS f xs  -> g (NS f' xs)
+traverse'_NS f = go where
+  go :: NS f ys -> g (NS f' ys)
+  go (Z x)  = Z <$> f x
+  go (S xs) = S <$> go xs
+
+-- | Specialization of 'hctraverse''.
+--
+-- @since 0.3.2.0
+--
+ctraverse'_SOP :: (All2 c xss, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> SOP f xss -> g (SOP f' xss)
 ctraverse'_SOP p f = fmap SOP . ctraverse'_NS (allP p) (ctraverse'_NP p f) . unSOP
 
+-- | Specialization of 'htraverse''.
+--
+-- @since 0.3.2.0
+--
+traverse'_SOP :: (SListI2 xss, Applicative g) => (forall a. f a -> g (f' a)) -> SOP f xss -> g (SOP f' xss)
+traverse'_SOP f = fmap SOP . ctraverse'_NS sListP (traverse'_NP f) . unSOP
+
 instance HSequence NS  where
-  hsequence' = sequence'_NS
+  hsequence'  = sequence'_NS
   hctraverse' = ctraverse'_NS
+  htraverse'  = traverse'_NS
+
 instance HSequence SOP where
-  hsequence' = sequence'_SOP
+  hsequence'  = sequence'_SOP
   hctraverse' = ctraverse'_SOP
+  htraverse'  = traverse'_SOP
 
 -- | Specialization of 'hsequence'.
 sequence_NS  :: (SListI xs,  Applicative f) => NS  f xs  -> f (NS  I xs)

@@ -62,7 +62,6 @@ module Generics.SOP.Classes
   , HTraverse_(..)
   , hcfoldMap
   , hcfor_
-  , htraverse_
     -- * Sequencing effects
   , HSequence(..)
     -- ** Derived functions
@@ -70,7 +69,6 @@ module Generics.SOP.Classes
   , hsequenceK
   , hctraverse
   , hcfor
-  , htraverse'
     -- * Indexing into sums
   , HIndex(..)
     -- * Applying all injections
@@ -88,7 +86,6 @@ module Generics.SOP.Classes
 import Control.Applicative (Applicative)
 import Data.Monoid (Monoid)
 #endif
-import Data.Proxy
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
@@ -389,6 +386,7 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
 -- @since 0.3.2.0
 --
 class HTraverse_ (h :: (k -> *) -> (l -> *)) where
+
   -- | Corresponds to 'Data.Foldable.traverse_'.
   --
   -- /Instances:/
@@ -404,6 +402,21 @@ class HTraverse_ (h :: (k -> *) -> (l -> *)) where
   --
   hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
 
+  -- | Unconstrained version of 'hctraverse_'.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'traverse_', 'Generics.SOP.NP.traverse__NP'  :: ('SListI'  xs , 'Applicative g') => (forall a. f a -> g ()) -> 'Generics.SOP.NP.NP'  f xs  -> g ()
+  -- 'traverse_', 'Generics.SOP.NS.traverse__NS'  :: ('SListI'  xs , 'Applicative g') => (forall a. f a -> g ()) -> 'Generics.SOP.NS.NS'  f xs  -> g ()
+  -- 'traverse_', 'Generics.SOP.NP.traverse__POP' :: ('SListI2' xss, 'Applicative g') => (forall a. f a -> g ()) -> 'Generics.SOP.NP.POP' f xss -> g ()
+  -- 'traverse_', 'Generics.SOP.NS.traverse__SOP' :: ('SListI2' xss, 'Applicative g') => (forall a. f a -> g ()) -> 'Generics.SOP.NS.SOP' f xss -> g ()
+  -- @
+  --
+  -- @since 0.3.2.0
+  --
+  htraverse_ :: (SListIN h xs, Applicative g) => (forall a. f a -> g ()) -> h f xs -> g ()
+
 -- | Flipped version of 'hctraverse_'.
 --
 -- @since 0.3.2.0
@@ -417,13 +430,6 @@ hcfor_ p xs f = hctraverse_ p f xs
 --
 hcfoldMap :: (HTraverse_ h, AllN h c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> h f xs -> m
 hcfoldMap p f = unK . hctraverse_ p (K . f)
-
--- | Unconstrained version of 'hctraverse_'.
---
--- @since 0.3.2.0
---
-htraverse_ :: (HTraverse_ h, Applicative g, AllN h Top xs) => (forall a. f a -> g ()) -> h f xs -> g ()
-htraverse_ f = hctraverse_ (Proxy :: Proxy Top) f
 
 -- * Sequencing effects
 
@@ -461,6 +467,21 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   --
   hctraverse' :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> h f xs -> g (h f' xs)
 
+  -- | Unconstrained variant of `htraverse'`.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'htraverse'', 'Generics.SOP.NP.traverse'_NP'  :: ('SListI'  xs , 'Applicative' g) => (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.NP'  f xs  -> g ('Generics.SOP.NP.NP'  f' xs )
+  -- 'htraverse'', 'Generics.SOP.NS.traverse'_NS'  :: ('SListI2' xs , 'Applicative' g) => (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.NS'  f xs  -> g ('Generics.SOP.NS.NS'  f' xs )
+  -- 'htraverse'', 'Generics.SOP.NP.traverse'_POP' :: ('SListI'  xss, 'Applicative' g) => (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.POP' f xss -> g ('Generics.SOP.NP.POP' f' xss)
+  -- 'htraverse'', 'Generics.SOP.NS.traverse'_SOP' :: ('SListI2' xss, 'Applicative' g) => (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.SOP' f xss -> g ('Generics.SOP.NS.SOP' f' xss)
+  -- @
+  --
+  -- @since 0.3.2.0
+  --
+  htraverse' :: (SListIN h xs, Applicative g) => (forall a. f a -> g (f' a)) -> h f xs -> g (h f' xs)
+
 -- ** Derived functions
 
 -- | Special case of 'hctraverse'' where @f' = 'I'@.
@@ -469,13 +490,6 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
 --
 hctraverse :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> h f xs -> g (h I xs)
 hctraverse p f = hctraverse' p (fmap I . f)
-
--- | Unconstrained variant of `htraverse'`.
---
--- @since 0.3.2.0
---
-htraverse' :: (HSequence h , Applicative g, AllN h Top xs) => (forall a. f a -> g (f' a)) -> h f xs -> g (h f' xs)
-htraverse' f = hctraverse' (Proxy :: Proxy Top) f
 
 -- | Flipped version of 'hctraverse'.
 --
