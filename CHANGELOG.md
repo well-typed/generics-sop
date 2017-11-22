@@ -3,6 +3,7 @@
 * Make TH `deriveGenericFunctions` work properly with
   parameterized types (note that the more widely used
   `deriveGeneric` was already working correctly).
+* Add `htraverse_` and `htraverse'
 
 * Make TH `deriveGeneric` work properly with empty
   types.

@@ -58,11 +58,19 @@ module Generics.SOP.Classes
     -- * Collapsing homogeneous structures
   , CollapseTo
   , HCollapse(..)
+    -- * Folding over structures
+  , HTraverse_(..)
+  , hcfoldMap
+  , hcfor_
+  , htraverse_
     -- * Sequencing effects
   , HSequence(..)
     -- ** Derived functions
   , hsequence
   , hsequenceK
+  , hctraverse
+  , hcfor
+  , htraverse'
     -- * Indexing into sums
   , HIndex(..)
     -- * Applying all injections
@@ -78,7 +86,9 @@ module Generics.SOP.Classes
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative (Applicative)
+import Data.Monoid (Monoid)
 #endif
+import Data.Proxy
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
@@ -354,25 +364,65 @@ type family CollapseTo (h :: (k -> *) -> (l -> *)) (x :: *) :: *
 -- a homogeneous one.
 class HCollapse (h :: (k -> *) -> (l -> *)) where
 
-  -- | Collapse a heterogeneous structure with homogeneous elements
-  -- into a homogeneous structure.
-  --
-  -- If a heterogeneous structure is instantiated to the constant
-  -- functor 'K', then it is in fact homogeneous. This function
-  -- maps such a value to a simpler Haskell datatype reflecting that.
-  -- An @'NS' ('K' a)@ contains a single @a@, and an @'NP' ('K' a)@ contains
-  -- a list of @a@s.
+
+  hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
+
+-- | A generalization of 'Data.Foldable.traverse_' or 'Data.Foldable.foldMap'.
+--
+-- @since 0.3.2.0
+--
+class HTraverse_ (h :: (k -> *) -> (l -> *)) where
+  -- | Corresponds to 'Data.Foldable.traverse_'.
   --
   -- /Instances:/
   --
   -- @
-  -- 'hcollapse', 'Generics.SOP.NP.collapse_NP'  :: 'Generics.SOP.NP.NP'  ('K' a) xs  ->  [a]
-  -- 'hcollapse', 'Generics.SOP.NS.collapse_NS'  :: 'Generics.SOP.NS.NS'  ('K' a) xs  ->   a
-  -- 'hcollapse', 'Generics.SOP.NP.collapse_POP' :: 'Generics.SOP.NP.POP' ('K' a) xss -> [[a]]
-  -- 'hcollapse', 'Generics.SOP.NS.collapse_SOP' :: 'Generics.SOP.NP.SOP' ('K' a) xss ->  [a]
+  -- 'hctraverse_', 'Generics.SOP.NP.ctraverse__NP'  :: ('All'  c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NP.NP'  f xs  -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NS.ctraverse__NS'  :: ('All2' c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NS.NS'  f xs  -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NP.ctraverse__POP' :: ('All'  c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NP.POP' f xss -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NS.ctraverse__SOP' :: ('All2' c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NS.SOP' f xss -> g ()
   -- @
   --
-  hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
+  -- @since 0.3.2.0
+  --
+  hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
+
+-- | Flipped version of 'hctraverse_'
+--
+-- @since 0.3.2.0
+--
+hcfor_ :: (HTraverse_ h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g ()) -> g ()
+hcfor_ p xs f = hctraverse_ p f xs
+
+-- | Collapse a heterogeneous structure with homogeneous elements
+-- into a homogeneous structure.
+--
+-- If a heterogeneous structure is instantiated to the constant
+-- functor 'K', then it is in fact homogeneous. This function
+-- maps such a value to a simpler Haskell datatype reflecting that.
+-- An @'NS' ('K' a)@ contains a single @a@, and an @'NP' ('K' a)@ contains
+-- a list of @a@s.
+--
+-- /Instances:/
+--
+-- @
+-- 'hcollapse', 'Generics.SOP.NP.collapse_NP'  :: 'Generics.SOP.NP.NP'  ('K' a) xs  ->  [a]
+-- 'hcollapse', 'Generics.SOP.NS.collapse_NS'  :: 'Generics.SOP.NS.NS'  ('K' a) xs  ->   a
+-- 'hcollapse', 'Generics.SOP.NP.collapse_POP' :: 'Generics.SOP.NP.POP' ('K' a) xss -> [[a]]
+-- 'hcollapse', 'Generics.SOP.NS.collapse_SOP' :: 'Generics.SOP.NP.SOP' ('K' a) xss ->  [a]
+-- @
+--
+-- @since 0.3.2.0
+--
+hcfoldMap :: (HTraverse_ h, AllN h c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> h f xs -> m
+hcfoldMap p f = unK . hctraverse_ p (K . f)
+
+-- | Unconstrained version of 'hctraverse_'.
+--
+-- @since 0.3.2.0
+--
+htraverse_ :: (HTraverse_ h, Applicative g, AllN h Top xs) => (forall a. f a -> g ()) -> h f xs -> g ()
+htraverse_ f = hctraverse_ (Proxy :: Proxy Top) f
 
 -- * Sequencing effects
 
@@ -394,7 +444,44 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   --
   hsequence' :: (SListIN h xs, Applicative f) => h (f :.: g) xs -> f (h g xs)
 
+
+  -- | Corresponds to 'Data.Traversable.traverse'.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hctraverse'', 'Generics.SOP.NP.ctraverse'_NP'  :: ('All'  c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.NP'  f xs  -> g ('Generics.SOP.NP.NP'  f' xs )
+  -- 'hctraverse'', 'Generics.SOP.NS.ctraverse'_NS'  :: ('All2' c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.NS'  f xs  -> g ('Generics.SOP.NS.NS'  f' xs )
+  -- 'hctraverse'', 'Generics.SOP.NP.ctraverse'_POP' :: ('All'  c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.POP' f xss -> g ('Generics.SOP.NP.POP' f' xss)
+  -- 'hctraverse'', 'Generics.SOP.NS.ctraverse'_SOP' :: ('All2' c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.SOP' f xss -> g ('Generics.SOP.NS.SOP' f' xss)
+  -- @
+  --
+  -- @since 0.3.2.0
+  --
+  hctraverse' :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> h f xs -> g (h f' xs)
+
 -- ** Derived functions
+
+-- | Special case of 'hctraverse'' where @f' = 'I'@.
+--
+-- @since 0.3.2.0
+--
+hctraverse :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> h f xs -> g (h I xs)
+hctraverse p f = hctraverse' p (fmap I . f)
+
+-- | Unconstrained variant of `htraverse'`.
+--
+-- @since 0.3.2.0
+--
+htraverse' :: (HSequence h , Applicative g, AllN h Top xs) => (forall a. f a -> g (f' a)) -> h f xs -> g (h f' xs)
+htraverse' f = hctraverse' (Proxy :: Proxy Top) f
+
+-- | Flipped version of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
+hcfor :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g a) -> g (h I xs)
+hcfor p xs f = hctraverse p f xs
 
 -- | Special case of 'hsequence'' where @g = 'I'@.
 hsequence :: (SListIN h xs, SListIN (Prod h) xs, HSequence h) => Applicative f => h f xs -> f (h I xs)
