@@ -145,7 +145,7 @@
 --
 -- @
 -- grnf :: ('Generic' a, 'All2' NFData ('Code' a)) => a -> ()
--- grnf = 'rnf' . 'hcollapse' . 'hcliftA' ('Proxy' :: 'Proxy' NFData) ('mapIK' rnf) . 'from'
+-- grnf = 'rnf' . 'hcollapse' . 'hcmap' ('Proxy' :: 'Proxy' NFData) ('mapIK' rnf) . 'from'
 -- @
 --
 -- 'mapIK' and friends ('mapII', 'mapKI', etc.) are small helpers for working
@@ -158,7 +158,7 @@
 -- >>> let x = G 2.5 'A' False :: B Double
 -- >>> from x
 -- SOP (S (Z (I 2.5 :* I 'A' :* I False :* Nil)))
--- >>> hcliftA (Proxy :: Proxy NFData) (mapIK rnf) it
+-- >>> hcmap (Proxy :: Proxy NFData) (mapIK rnf) it
 -- SOP (S (Z (K () :* K () :* K () :* Nil)))
 -- >>> hcollapse it
 -- [(),(),()]
@@ -166,7 +166,7 @@
 -- ()
 --
 -- The 'from' call converts into the structural representation.
--- Via 'hcliftA', we apply 'rnf' to all the components. The result
+-- Via 'hcmap', we apply 'rnf' to all the components. The result
 -- is a sum of products of the same shape, but the components are
 -- no longer heterogeneous ('I'), but homogeneous (@'K' ()@). A
 -- homogeneous structure can be collapsed ('hcollapse') into a
@@ -397,4 +397,4 @@ import Generics.SOP.Sing
 -- >>> instance Generic A     -- empty
 -- >>> instance Generic (B a) -- empty
 --
--- >>> let grnf = rnf . hcollapse . hcliftA (Proxy :: Proxy NFData) (\ (I x) -> K (rnf x)) . from
+-- >>> let grnf = rnf . hcollapse . hcmap (Proxy :: Proxy NFData) (\ (I x) -> K (rnf x)) . from
