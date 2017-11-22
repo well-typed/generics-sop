@@ -304,10 +304,15 @@ module Generics.SOP (
     -- ** Collapsing
   , CollapseTo
   , HCollapse(..)
-    -- ** Sequencing
+    -- ** Folding and sequencing
+  , HTraverse_(..)
+  , hcfoldMap
+  , hcfor_
   , HSequence(..)
   , hsequence
   , hsequenceK
+  , hctraverse
+  , hcfor
     -- ** Expanding sums to products
   , HExpand(..)
     -- ** Transformation of index lists and coercions

@@ -49,14 +49,13 @@ module Generics.SOP.NS
     -- * Collapsing
   , collapse_NS
   , collapse_SOP
-    -- * Folding
+    -- * Folding and sequencing
   , ctraverse__NS
   , ctraverse__SOP
   , traverse__NS
   , traverse__SOP
   , cfoldMap_NS
   , cfoldMap_SOP
-    -- * Sequencing
   , sequence'_NS
   , sequence'_SOP
   , sequence_NS

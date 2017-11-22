@@ -58,13 +58,12 @@ module Generics.SOP.Classes
     -- * Collapsing homogeneous structures
   , CollapseTo
   , HCollapse(..)
-    -- * Folding over structures
+    -- * Folding and sequencing
   , HTraverse_(..)
-  , hcfoldMap
-  , hcfor_
-    -- * Sequencing effects
   , HSequence(..)
     -- ** Derived functions
+  , hcfoldMap
+  , hcfor_
   , hsequence
   , hsequenceK
   , hctraverse

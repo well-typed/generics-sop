@@ -54,14 +54,13 @@ module Generics.SOP.NP
     -- * Collapsing
   , collapse_NP
   , collapse_POP
-    -- * Folding
+    -- * Folding and sequencing
   , ctraverse__NP
   , ctraverse__POP
   , traverse__NP
   , traverse__POP
   , cfoldMap_NP
   , cfoldMap_POP
-    -- * Sequencing
   , sequence'_NP
   , sequence'_POP
   , sequence_NP
