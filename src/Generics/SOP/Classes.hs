@@ -364,7 +364,24 @@ type family CollapseTo (h :: (k -> *) -> (l -> *)) (x :: *) :: *
 -- a homogeneous one.
 class HCollapse (h :: (k -> *) -> (l -> *)) where
 
-
+  -- | Collapse a heterogeneous structure with homogeneous elements
+  -- into a homogeneous structure.
+  --
+  -- If a heterogeneous structure is instantiated to the constant
+  -- functor 'K', then it is in fact homogeneous. This function
+  -- maps such a value to a simpler Haskell datatype reflecting that.
+  -- An @'NS' ('K' a)@ contains a single @a@, and an @'NP' ('K' a)@ contains
+  -- a list of @a@s.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hcollapse', 'Generics.SOP.NP.collapse_NP'  :: 'Generics.SOP.NP.NP'  ('K' a) xs  ->  [a]
+  -- 'hcollapse', 'Generics.SOP.NS.collapse_NS'  :: 'Generics.SOP.NS.NS'  ('K' a) xs  ->   a
+  -- 'hcollapse', 'Generics.SOP.NP.collapse_POP' :: 'Generics.SOP.NP.POP' ('K' a) xss -> [[a]]
+  -- 'hcollapse', 'Generics.SOP.NS.collapse_SOP' :: 'Generics.SOP.NP.SOP' ('K' a) xss ->  [a]
+  -- @
+  --
   hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
 
 -- | A generalization of 'Data.Foldable.traverse_' or 'Data.Foldable.foldMap'.
@@ -387,30 +404,14 @@ class HTraverse_ (h :: (k -> *) -> (l -> *)) where
   --
   hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
 
--- | Flipped version of 'hctraverse_'
+-- | Flipped version of 'hctraverse_'.
 --
 -- @since 0.3.2.0
 --
 hcfor_ :: (HTraverse_ h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g ()) -> g ()
 hcfor_ p xs f = hctraverse_ p f xs
 
--- | Collapse a heterogeneous structure with homogeneous elements
--- into a homogeneous structure.
---
--- If a heterogeneous structure is instantiated to the constant
--- functor 'K', then it is in fact homogeneous. This function
--- maps such a value to a simpler Haskell datatype reflecting that.
--- An @'NS' ('K' a)@ contains a single @a@, and an @'NP' ('K' a)@ contains
--- a list of @a@s.
---
--- /Instances:/
---
--- @
--- 'hcollapse', 'Generics.SOP.NP.collapse_NP'  :: 'Generics.SOP.NP.NP'  ('K' a) xs  ->  [a]
--- 'hcollapse', 'Generics.SOP.NS.collapse_NS'  :: 'Generics.SOP.NS.NS'  ('K' a) xs  ->   a
--- 'hcollapse', 'Generics.SOP.NP.collapse_POP' :: 'Generics.SOP.NP.POP' ('K' a) xss -> [[a]]
--- 'hcollapse', 'Generics.SOP.NS.collapse_SOP' :: 'Generics.SOP.NP.SOP' ('K' a) xss ->  [a]
--- @
+-- | Special case of 'hctraverse_'.
 --
 -- @since 0.3.2.0
 --
