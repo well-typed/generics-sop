@@ -1,8 +1,11 @@
 # 0.3.2.0
 
-* Make `deriveGenericFunctions` work properly with
+* Make TH `deriveGenericFunctions` work properly with
   parameterized types (note that the more widely used
   `deriveGeneric` was already working correctly).
+
+* Make TH `deriveGeneric` work properly with empty
+  types.
 
 * Add `compare_NS`, `ccompare_NS`, `compare_SOP`, and
   `ccompare_SOP` to better support comparison of sum
