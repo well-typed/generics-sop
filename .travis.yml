@@ -55,7 +55,7 @@ before_install:
   - HC=${CC}
   - HCPKG=${HC/ghc/ghc-pkg}
   - unset CC
-  - PATH=/opt/ghc/bin:/opt/ghc-ppa-tools/bin:$PATH
+  - PATH=/opt/ghc/bin:/opt/ghc-ppa-tools/bin:$HOME/.local/bin:$PATH
 
 install:
   - cabal --version
@@ -66,6 +66,8 @@ install:
   - INSTALLED=${INSTALLED-true}
   - travis_retry cabal update -v
   - sed -i.bak 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config
+  - mkdir -p $HOME/.local/bin
+  - cabal new-install --symlink-bindir=$HOME/.local/bin doctest --constraint="doctest==0.13.*"
   - rm -fv cabal.project.local
   - "echo 'packages: .' > cabal.project"
   - if [ -f "./configure.ac" ]; then
@@ -97,6 +99,9 @@ script:
   # build & run tests, build benchmarks
   - cabal new-build -w ${HC} ${TEST} ${BENCH} all
   - if [ "x$TEST" = "x--enable-tests" ]; then cabal new-test -w ${HC} ${TEST} all; fi
+
+  # doctest
+  - if $(echo $HC | grep -q "^ghc-8."); then (cd generics-sop-*; sh doctest.sh); fi
 
   # haddock
   - rm -rf ./dist-newstyle
