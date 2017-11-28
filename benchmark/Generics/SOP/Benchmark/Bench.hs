@@ -3,6 +3,7 @@
 {-# LANGUAGE RankNTypes     #-}
 module Generics.SOP.Benchmark.Bench where
 
+import Control.Applicative ((<$>))
 import Control.DeepSeq
 import Generics.SOP.Benchmark.Data
 import Test.QuickCheck hiding (sample)
