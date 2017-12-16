@@ -18,4 +18,4 @@ main = (suite :: IO Benchmark) >>= runBenchmark
 instance Bench Benchmark where
   group        = bgroup
   item  n f x  = bench n $ nf f x
-  runBenchmark = defaultMainWith defaultConfig . pure
+  runBenchmark = defaultMainWith defaultConfig . return
