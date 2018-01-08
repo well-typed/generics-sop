@@ -11,7 +11,7 @@
   `ccompare_SOP` to better support comparison of sum
   structures.
 
-* Add `hctraverse_` and `hctraverse' as well as their
+* Add `hctraverse_` and `hctraverse` as well as their
   unconstrained variants and a number of derived functions,
   to support effectful traversals.
 
