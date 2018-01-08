@@ -1,4 +1,4 @@
-# 0.3.2.0
+# 0.3.2.0 (2018-01-08)
 
 * Make TH `deriveGenericFunctions` work properly with
   parameterized types (note that the more widely used
