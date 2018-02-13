@@ -15,6 +15,32 @@ import Language.Haskell.TH
 import qualified SOPBench.Eq as SOP
 import qualified SOPBench.Show as SOP
 
+data S2 (tag :: Mode) =
+    S2_0
+  | S2_1
+
+data S20 (tag :: Mode) =
+    S20_00
+  | S20_01
+  | S20_02
+  | S20_03
+  | S20_04
+  | S20_05
+  | S20_06
+  | S20_07
+  | S20_08
+  | S20_09
+  | S20_10
+  | S20_11
+  | S20_12
+  | S20_13
+  | S20_14
+  | S20_15
+  | S20_16
+  | S20_17
+  | S20_18
+  | S20_19
+
 data Tree (tag :: Mode) =
     Leaf Int
   | Node (Tree tag) (Tree tag)
@@ -33,6 +59,50 @@ data Mode =
   | GHCGeneric
   | SOPGGP
   | SOPTH
+
+deriving instance Eq                  (S2   'GHCDeriving)
+deriving instance Show                (S2   'GHCDeriving)
+
+deriving instance GHC.Generic         (S2   'GHCGeneric)
+deriving instance GHC.Generic         (S2   'SOPGGP)
+instance          SOP.Generic         (S2   'SOPGGP)
+instance          SOP.HasDatatypeInfo (S2   'SOPGGP)
+
+deriveGenericSubst ''S2 (const (promotedT 'SOPTH))
+
+instance          Eq                  (S2   'SOPGGP) where
+  (==) = SOP.geq
+
+instance          Eq                  (S2   'SOPTH)  where
+  (==) = SOP.geq
+
+instance          Show                (S2   'SOPGGP) where
+  showsPrec = SOP.gshowsPrec
+
+instance          Show                (S2   'SOPTH)  where
+  showsPrec = SOP.gshowsPrec
+
+deriving instance Eq                  (S20  'GHCDeriving)
+deriving instance Show                (S20  'GHCDeriving)
+
+deriving instance GHC.Generic         (S20  'GHCGeneric)
+deriving instance GHC.Generic         (S20  'SOPGGP)
+instance          SOP.Generic         (S20  'SOPGGP)
+instance          SOP.HasDatatypeInfo (S20  'SOPGGP)
+
+deriveGenericSubst ''S20 (const (promotedT 'SOPTH))
+
+instance          Eq                  (S20  'SOPGGP) where
+  (==) = SOP.geq
+
+instance          Eq                  (S20  'SOPTH)  where
+  (==) = SOP.geq
+
+instance          Show                (S20  'SOPGGP) where
+  showsPrec = SOP.gshowsPrec
+
+instance          Show                (S20  'SOPTH)  where
+  showsPrec = SOP.gshowsPrec
 
 deriving instance Eq                  (Tree 'GHCDeriving)
 deriving instance Show                (Tree 'GHCDeriving)
