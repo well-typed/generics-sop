@@ -112,6 +112,8 @@ benchmark generics-sop-bench
   type:                exitcode-stdio-1.0
   main-is:             SOPBench.hs
   other-modules:       SOPBench.Type
+                       SOPBench.Eq
+                       SOPBench.Show
   hs-source-dirs:      bench
   default-language:    Haskell2010
   ghc-options:         -Wall
