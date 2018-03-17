@@ -239,7 +239,11 @@ wrappedTo = to . SOP . Z . (:* Nil) . I
 -- @since 0.3.1.0
 --
 type IsNewtype (a :: *) (x :: *) =
+#if MIN_VERSION_base(4,8,0)
   (IsWrappedType a x, Coercible a x)
+#else
+  (IsWrappedType a x, Coercible a x, Coercible x a)
+#endif
 
 -- | Convert a newtype to its inner type.
 --
