@@ -333,9 +333,7 @@ hmap'_T2 = \ x -> case x of
 
 
 inspect $ 'ghmap_T2 === 'hmap_T2
-
--- It is not entirely clear to me why this one fails
-inspect ('ghmap'_T2 ==- 'hmap'_T2) { expectFail = True }
+inspect $ 'ghmap'_T2 ==- 'hmap'_T2
 
 ---------------------------------------------------------------------
 -- hcollapse / hmap / hcmap
