@@ -1,12 +1,23 @@
-# 0.3.2.0
+# 0.3.2.0 (2018-01-08)
 
-* Make `deriveGenericFunctions` work properly with
+* Make TH `deriveGenericFunctions` work properly with
   parameterized types (note that the more widely used
   `deriveGeneric` was already working correctly).
 
+* Make TH `deriveGeneric` work properly with empty
+  types.
+
+* Add `compare_NS`, `ccompare_NS`, `compare_SOP`, and
+  `ccompare_SOP` to better support comparison of sum
+  structures.
+
+* Add `hctraverse_` and `hctraverse'` as well as their
+  unconstrained variants and a number of derived functions,
+  to support effectful traversals.
+
 # 0.3.1.0 (2017-06-11)
 
-* Add AllZip, htrans, hcoerce, hfromI, htoI.
+* Add `AllZip`, `htrans`, `hcoerce`, `hfromI`, `htoI`.
   These functions are for converting between related
   structures that do not have common signatures.
 

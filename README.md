@@ -1,3 +1,8 @@
+## generics-sop
+
+[![Build Status](https://travis-ci.org/well-typed/generics-sop.svg?branch=master)](https://travis-ci.org/well-typed/generics-sop)
+[![Hackage](https://img.shields.io/hackage/v/generics-sop.svg)](https://hackage.haskell.org/package/generics-sop)
+
 A library to support the definition of generic functions.
 Datatypes are viewed in a uniform, structured way:
 the choice between constructors is represented using an n-ary

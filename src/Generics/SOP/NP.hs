@@ -54,11 +54,23 @@ module Generics.SOP.NP
     -- * Collapsing
   , collapse_NP
   , collapse_POP
-    -- * Sequencing
+    -- * Folding and sequencing
+  , ctraverse__NP
+  , ctraverse__POP
+  , traverse__NP
+  , traverse__POP
+  , cfoldMap_NP
+  , cfoldMap_POP
   , sequence'_NP
   , sequence'_POP
   , sequence_NP
   , sequence_POP
+  , ctraverse'_NP
+  , ctraverse'_POP
+  , traverse'_NP
+  , traverse'_POP
+  , ctraverse_NP
+  , ctraverse_POP
     -- * Catamorphism and anamorphism
   , cata_NP
   , ccata_NP
@@ -77,6 +89,7 @@ module Generics.SOP.NP
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
+import Data.Monoid (Monoid (..))
 #endif
 import Data.Coerce
 import Data.Proxy (Proxy(..))
@@ -531,6 +544,74 @@ type instance CollapseTo POP a = [[a]]
 instance HCollapse NP  where hcollapse = collapse_NP
 instance HCollapse POP where hcollapse = collapse_POP
 
+-- * Folding
+
+-- | Specialization of 'hctraverse_'.
+--
+-- @since 0.3.2.0
+--
+ctraverse__NP ::
+     forall c proxy xs f g. (All c xs, Applicative g)
+  => proxy c -> (forall a. c a => f a -> g ()) -> NP f xs -> g ()
+ctraverse__NP _ f = go
+  where
+    go :: All c ys => NP f ys -> g ()
+    go Nil       = pure ()
+    go (x :* xs) = f x *> go xs
+
+-- | Specialization of 'htraverse_'.
+--
+-- @since 0.3.2.0
+--
+traverse__NP ::
+     forall xs f g. (SListI xs, Applicative g)
+  => (forall a. f a -> g ()) -> NP f xs -> g ()
+traverse__NP f = go
+  where
+    go :: NP f ys -> g ()
+    go Nil       = pure ()
+    go (x :* xs) = f x *> go xs
+
+-- | Specialization of 'hctraverse_'.
+--
+-- @since 0.3.2.0
+--
+ctraverse__POP ::
+     forall c proxy xss f g. (All2 c xss, Applicative g)
+  => proxy c -> (forall a. c a => f a -> g ()) -> POP f xss -> g ()
+ctraverse__POP p f = ctraverse__NP (allP p) (ctraverse__NP p f) . unPOP
+
+-- | Specialization of 'htraverse_'.
+--
+-- @since 0.3.2.0
+--
+traverse__POP ::
+     forall xss f g. (SListI2 xss, Applicative g)
+  => (forall a. f a -> g ()) -> POP f xss -> g ()
+traverse__POP f = ctraverse__NP sListP (traverse__NP f) . unPOP
+
+instance HTraverse_ NP  where
+  hctraverse_ = ctraverse__NP
+  htraverse_  = traverse__NP
+
+instance HTraverse_ POP where
+  hctraverse_ = ctraverse__POP
+  htraverse_  = traverse__POP
+
+-- | Specialization of 'hcfoldMap'.
+--
+-- @since 0.3.2.0
+--
+cfoldMap_NP :: (All c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> NP f xs -> m
+cfoldMap_NP  = hcfoldMap
+
+-- | Specialization of 'hcfoldMap'.
+--
+-- @since 0.3.2.0
+--
+cfoldMap_POP :: (All2 c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> POP f xs -> m
+cfoldMap_POP = hcfoldMap
+
 -- * Sequencing
 
 -- | Specialization of 'hsequence''.
@@ -549,8 +630,53 @@ sequence'_NP = apFnM
 sequence'_POP = fmap POP . sequence'_NP . hcmap (Proxy :: Proxy SListI) (Comp . sequence'_NP) . unPOP
 {-# INLINE sequence'_POP #-}
 
-instance HSequence NP  where hsequence' = sequence'_NP
-instance HSequence POP where hsequence' = sequence'_POP
+-- | Specialization of 'hctraverse''.
+--
+-- @since 0.3.2.0
+--
+ctraverse'_NP  ::
+     forall c proxy xs f f' g. (All c xs,  Applicative g)
+  => proxy c -> (forall a. c a => f a -> g (f' a)) -> NP f xs  -> g (NP f' xs)
+ctraverse'_NP _ f = go where
+  go :: All c ys => NP f ys -> g (NP f' ys)
+  go Nil       = pure Nil
+  go (x :* xs) = (:*) <$> f x <*> go xs
+
+-- | Specialization of 'htraverse''.
+--
+-- @since 0.3.2.0
+--
+traverse'_NP  ::
+     forall xs f f' g. (SListI xs,  Applicative g)
+  => (forall a. f a -> g (f' a)) -> NP f xs  -> g (NP f' xs)
+traverse'_NP f = go where
+  go :: NP f ys -> g (NP f' ys)
+  go Nil       = pure Nil
+  go (x :* xs) = (:*) <$> f x <*> go xs
+
+-- | Specialization of 'hctraverse''.
+--
+-- @since 0.3.2.0
+--
+ctraverse'_POP :: (All2 c xss, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> POP f xss -> g (POP f' xss)
+ctraverse'_POP p f = fmap POP . ctraverse'_NP (allP p) (ctraverse'_NP p f) . unPOP
+
+-- | Specialization of 'hctraverse''.
+--
+-- @since 0.3.2.0
+--
+traverse'_POP :: (SListI2 xss, Applicative g) => (forall a. f a -> g (f' a)) -> POP f xss -> g (POP f' xss)
+traverse'_POP f = fmap POP . ctraverse'_NP sListP (traverse'_NP f) . unPOP
+
+instance HSequence NP  where
+  hsequence'  = sequence'_NP
+  hctraverse' = ctraverse'_NP
+  htraverse'  = traverse'_NP
+
+instance HSequence POP where
+  hsequence'  = sequence'_POP
+  hctraverse' = ctraverse'_POP
+  htraverse'  = traverse'_POP
 
 -- | Specialization of 'hsequence'.
 --
@@ -572,6 +698,21 @@ sequence_POP :: (All SListI xss, Applicative f) => POP f xss -> f (POP I xss)
 
 sequence_NP   = hsequence
 sequence_POP  = hsequence
+
+-- | Specialization of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
+ctraverse_NP  :: (All  c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> NP  f xs -> g (NP  I xs)
+
+-- | Specialization of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
+ctraverse_POP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> POP f xs -> g (POP I xs)
+
+ctraverse_NP  = hctraverse
+ctraverse_POP = hctraverse
 
 -- * Catamorphism and anamorphism
 

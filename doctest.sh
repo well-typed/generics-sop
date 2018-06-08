@@ -2,7 +2,7 @@
 
 set -ex
 
-doctest \
+doctest --preserve-it \
   -XCPP \
   -XScopedTypeVariables \
   -XTypeFamilies \
