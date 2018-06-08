@@ -70,7 +70,7 @@ install:
   - travis_retry cabal update -v
   - sed -i.bak 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config
   - mkdir -p $HOME/.local/bin
-  - cabal new-install --symlink-bindir=$HOME/.local/bin doctest --constraint="doctest==0.13.*"
+  - cabal new-install --symlink-bindir=$HOME/.local/bin doctest --constraint="doctest>=0.13"
   - rm -fv cabal.project.local
   - "echo 'packages: .' > cabal.project"
   - if [ -f "./configure.ac" ]; then
