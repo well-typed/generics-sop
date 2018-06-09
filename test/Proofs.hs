@@ -1082,6 +1082,54 @@ enum'_E10' =
 -- needs higher threshold
 inspect ('genum'_E10' === 'enum'_E10') { expectFail = True }
 
+---------------------------------------------------------------------
+-- compare
+
+geq :: (Generic a, All2 Eq (Code a)) => a -> a -> Bool
+geq = \ x y ->
+  ccompare_SOP
+    (Proxy :: Proxy Eq)
+    False
+    (((and . hcollapse) .) . czipWith_NP (Proxy :: Proxy Eq) (mapIIK (==)))
+    False
+    (from x)
+    (from y)
+{-# INLINE geq #-}
+
+geq_Bool :: Bool -> Bool -> Bool
+geq_Bool = geq
+
+eq_Bool :: Bool -> Bool -> Bool
+eq_Bool False False = True
+eq_Bool True  True  = True
+eq_Bool _     _     = False
+
+geq_List :: Eq a => [a] -> [a] -> Bool
+geq_List = geq
+
+-- Refers back to (==), because that's how we define the generic version.
+eq_List :: Eq a => [a] -> [a] -> Bool
+eq_List []       []       = True
+eq_List (x : xs) (y : ys) = x == y && xs == ys
+eq_List _        _        = False
+
+geq_T3 :: (Eq a, Eq b, Eq c) => T3 a b c -> T3 a b c -> Bool
+geq_T3 = geq
+
+eq_T3 :: (Eq a, Eq b, Eq c) => T3 a b c -> T3 a b c -> Bool
+eq_T3 (T3 a1 b1 c1) (T3 a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
+
+geq_T3' :: (Eq a, Eq b, Eq c) => T3' a b c -> T3' a b c -> Bool
+geq_T3' = geq
+
+eq_T3' :: (Eq a, Eq b, Eq c) => T3' a b c -> T3' a b c -> Bool
+eq_T3' (T3' a1 b1 c1) (T3' a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
+
+inspect $ 'geq_Bool ==- 'eq_Bool
+inspect $ 'geq_List ==- 'eq_List
+inspect $ 'geq_T3   ==- 'eq_T3
+inspect $ 'geq_T3'  ==- 'eq_T3'
+
 main :: IO ()
 main = return ()
 

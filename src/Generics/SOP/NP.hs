@@ -445,7 +445,9 @@ cmap_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a) -> NP   f xs 
 cmap_POP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a) -> POP  f xss -> POP g xss
 
 cmap_NP  = hcmap
+{-# INLINE cmap_NP #-}
 cmap_POP = hcmap
+{-# INLINE cmap_POP #-}
 
 -- | Specialization of 'hczipWith', which is equivalent to 'hcliftA2'.
 czipWith_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a) -> NP  f xs  -> NP  g xs  -> NP  h xs
@@ -453,7 +455,9 @@ czipWith_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a) ->
 czipWith_POP :: All2 c xss => proxy c -> (forall a. c a => f a -> g a -> h a) -> POP f xss -> POP g xss -> POP h xss
 
 czipWith_NP  = hczipWith
+{-# INLINE czipWith_NP #-}
 czipWith_POP = hczipWith
+{-# INLINE czipWith_POP #-}
 
 -- | Specialization of 'hczipWith3', which is equivalent to 'hcliftA3'.
 czipWith3_NP  :: All  c xs  => proxy c -> (forall a. c a => f a -> g a -> h a -> i a) -> NP  f xs  -> NP  g xs  -> NP  h xs  -> NP  i xs
