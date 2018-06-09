@@ -532,7 +532,7 @@ collapse_NP np =
   cata_NP
     (K nil)
     (\ (K x) (K r) -> K (x `cons` r))
-  np
+    np
 {-# INLINE collapse_NP #-}
 
 collapse_POP =
@@ -746,7 +746,7 @@ ctraverse_POP = hctraverse
 cata_NP ::
      forall r f xs . SListI xs
   => r '[]
-  -> (forall y ys . f y -> r ys -> r (y ': ys))
+  -> (forall y ys . SListI ys => f y -> r ys -> r (y ': ys))
   -> NP f xs
   -> r xs
 cata_NP nil cons =

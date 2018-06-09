@@ -212,17 +212,16 @@ refute_NS x =
 --
 index_NS :: forall f xs . SListI xs => NS f xs -> Int
 index_NS =
-  unK . apFn_2 (cataSList (coerce nil) (coerce cons)) (K (0 :: Int))
-  where
-    nil :: Int -> NS f '[] -> Int
-    nil _ = refute_NS
-
-    cons :: (Int -> NS f ys -> Int) -> Int -> NS f (y ': ys) -> Int
-    cons _ !acc (Z _) = acc
-    cons r !acc (S x) = r (acc + 1) x
+  ($ 0) .
+  unK .
+  cata_NS
+    (\ _ -> K (\ !acc -> acc))
+    (\ (K r) -> K (\ !acc -> r (acc + 1)))
+{-# INLINE index_NS #-}
 
 instance HIndex NS where
   hindex = index_NS
+  {-# INLINE hindex #-}
 
 -- | A sum of products.
 --
@@ -245,11 +244,13 @@ deriving instance (Ord  (NS (NP f) xss)) => Ord  (SOP f xss)
 
 -- | @since 0.2.5.0
 instance (NFData (NS (NP f) xss)) => NFData (SOP f xss) where
-    rnf (SOP xss) = rnf xss
+  rnf (SOP xss) = rnf xss
+  {-# INLINE rnf #-}
 
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
+{-# INLINE unSOP #-}
 
 type instance AllN NS  c = All  c
 type instance AllN SOP c = All2 c
@@ -275,9 +276,11 @@ type instance AllN SOP c = All2 c
 --
 index_SOP :: SListI xs => SOP f xs -> Int
 index_SOP = index_NS . unSOP
+{-# INLINE index_SOP #-}
 
 instance HIndex SOP where
   hindex = index_SOP
+  {-# INLINE hindex #-}
 
 -- * Constructing sums
 
@@ -383,9 +386,11 @@ type instance UnProd POP = SOP
 
 instance HApInjs NS where
   hapInjs = apInjs_NP
+  {-# INLINE hapInjs #-}
 
 instance HApInjs SOP where
   hapInjs = apInjs_POP
+  {-# INLINE hapInjs #-}
 
 -- * Application
 
@@ -497,6 +502,7 @@ cmap_SOP = hcmap
 cliftA2'_NS :: All2 c xss => proxy c -> (forall xs. All c xs => f xs -> g xs -> h xs) -> NP f xss -> NS g xss -> NS h xss
 
 cliftA2'_NS = hcliftA2'
+{-# INLINE cliftA2'_NS #-}
 
 -- * Comparison
 
@@ -518,18 +524,27 @@ cliftA2'_NS = hcliftA2'
 --
 compare_NS ::
      forall r f g xs .
-     r                             -- ^ what to do if first is smaller
+     SListI xs
+  => r                             -- ^ what to do if first is smaller
   -> (forall x . f x -> g x -> r)  -- ^ what to do if both are equal
   -> r                             -- ^ what to do if first is larger
   -> NS f xs -> NS g xs
   -> r
-compare_NS lt eq gt = go
+compare_NS lt eq gt =
+  ((unK .) .) . apFn_2 $
+  cataSList
+    (fn_2 refute_NS)
+    (fn_2 . cons . apFn_2)
   where
-    go :: forall ys . NS f ys -> NS g ys -> r
-    go (Z x)  (Z y)  = eq x y
-    go (Z _)  (S _)  = lt
-    go (S _)  (Z _)  = gt
-    go (S xs) (S ys) = go xs ys
+    cons ::
+         (NS f ys -> NS g ys -> K r ys)
+      -> (NS f (y ': ys) -> NS g (y ': ys) -> K r (y ': ys))
+    cons _ (Z x)  (Z y)  = K (eq x y)
+    cons _ (Z _)  (S _)  = K lt
+    cons _ (S _)  (Z _)  = K gt
+    cons r (S xs) (S ys) = K (unK (r xs ys))
+    {-# INLINE cons #-}
+{-# INLINE compare_NS #-}
 
 -- | Constrained version of 'compare_NS'.
 --
@@ -544,13 +559,23 @@ ccompare_NS ::
   -> r                                    -- ^ what to do if first is larger
   -> NS f xs -> NS g xs
   -> r
-ccompare_NS _ lt eq gt = go
+ccompare_NS p lt eq gt =
+  ((unK .) .) . apFn_2 $
+  ccataSList
+    p
+    (fn_2 refute_NS)
+    (fn_2 . cons . apFn_2)
   where
-    go :: forall ys . (All c ys) => NS f ys -> NS g ys -> r
-    go (Z x)  (Z y)  = eq x y
-    go (Z _)  (S _)  = lt
-    go (S _)  (Z _)  = gt
-    go (S xs) (S ys) = go xs ys
+    cons ::
+         (c y, All c ys)
+      => (NS f ys -> NS g ys -> K r ys)
+      -> (NS f (y ': ys) -> NS g (y ': ys) -> K r (y ': ys))
+    cons _ (Z x)  (Z y)  = K (eq x y)
+    cons _ (Z _)  (S _)  = K lt
+    cons _ (S _)  (Z _)  = K gt
+    cons r (S xs) (S ys) = K (unK (r xs ys))
+    {-# INLINE cons #-}
+{-# INLINE ccompare_NS #-}
 
 -- | Compare two sums of products with respect to the
 -- choice in the sum they are making.
@@ -563,13 +588,15 @@ ccompare_NS _ lt eq gt = go
 --
 compare_SOP ::
      forall r f g xss .
-     r                                      -- ^ what to do if first is smaller
+     (All SListI xss)
+  => r                                      -- ^ what to do if first is smaller
   -> (forall xs . NP f xs -> NP g xs -> r)  -- ^ what to do if both are equal
   -> r                                      -- ^ what to do if first is larger
   -> SOP f xss -> SOP g xss
   -> r
 compare_SOP lt eq gt (SOP xs) (SOP ys) =
   compare_NS lt eq gt xs ys
+{-# INLINE compare_SOP #-}
 
 -- | Constrained version of 'compare_SOP'.
 --
@@ -586,6 +613,7 @@ ccompare_SOP ::
   -> r
 ccompare_SOP p lt eq gt (SOP xs) (SOP ys) =
   ccompare_NS (allP p) lt eq gt xs ys
+{-# INLINE ccompare_SOP #-}
 
 -- * Collapsing
 
@@ -595,16 +623,10 @@ collapse_NS  :: SListI     xs  => NS  (K a) xs  ->   a
 collapse_SOP :: All SListI xss => SOP (K a) xss ->  [a]
 
 collapse_NS =
-  unK . apFn
-    (cataSList
-      (fn refute_NS)
-      (fn . cons . apFn)
-    )
-  where
-    cons :: (NS (K a) ys -> K a ys) -> NS (K a) (y ': ys) -> K a (y ': ys)
-    cons _ (Z (K x)) = K x
-    cons r (S xs)    = K (unK (r xs))
-    {-# INLINE cons #-}
+  unK .
+  cata_NS
+    (K . unK)
+    (K . unK)
 {-# INLINE collapse_NS #-}
 
 collapse_SOP =
@@ -614,8 +636,13 @@ collapse_SOP =
 type instance CollapseTo NS  a =  a
 type instance CollapseTo SOP a = [a]
 
-instance HCollapse NS  where hcollapse = collapse_NS
-instance HCollapse SOP where hcollapse = collapse_SOP
+instance HCollapse NS  where
+  hcollapse = collapse_NS
+  {-# INLINE hcollapse #-}
+
+instance HCollapse SOP where
+  hcollapse = collapse_SOP
+  {-# INLINE hcollapse #-}
 
 -- * Folding
 
@@ -628,11 +655,9 @@ instance HCollapse SOP where hcollapse = collapse_SOP
 ctraverse__NS ::
      forall c proxy xs f g. (All c xs)
   => proxy c -> (forall a. c a => f a -> g ()) -> NS f xs -> g ()
-ctraverse__NS _ f = go
-  where
-    go :: All c ys => NS f ys -> g ()
-    go (Z x)  = f x
-    go (S xs) = go xs
+ctraverse__NS =
+  cfoldMap_NS
+{-# INLINE ctraverse__NS #-}
 
 -- | Specialization of 'htraverse_'.
 --
@@ -643,11 +668,12 @@ ctraverse__NS _ f = go
 traverse__NS ::
      forall xs f g. (SListI xs)
   => (forall a. f a -> g ()) -> NS f xs -> g ()
-traverse__NS f = go
-  where
-    go :: NS f ys -> g ()
-    go (Z x)  = f x
-    go (S xs) = go xs
+traverse__NS f =
+  unK .
+  cata_NS
+    (K . f)
+    (K . unK)
+{-# INLINE traverse__NS #-}
 
 -- | Specialization of 'hctraverse_'.
 --
@@ -656,7 +682,9 @@ traverse__NS f = go
 ctraverse__SOP ::
      forall c proxy xss f g. (All2 c xss, Applicative g)
   => proxy c -> (forall a. c a => f a -> g ()) -> SOP f xss -> g ()
-ctraverse__SOP p f = ctraverse__NS (allP p) (ctraverse__NP p f) . unSOP
+ctraverse__SOP p f =
+  ctraverse__NS (allP p) (ctraverse__NP p f) . unSOP
+{-# INLINE ctraverse__SOP #-}
 
 -- | Specialization of 'htraverse_'.
 --
@@ -665,7 +693,9 @@ ctraverse__SOP p f = ctraverse__NS (allP p) (ctraverse__NP p f) . unSOP
 traverse__SOP ::
      forall xss f g. (SListI2 xss, Applicative g)
   => (forall a. f a -> g ()) -> SOP f xss -> g ()
-traverse__SOP f = ctraverse__NS sListP (traverse__NP f) . unSOP
+traverse__SOP f =
+  ctraverse__NS sListP (traverse__NP f) . unSOP
+{-# INLINE traverse__SOP #-}
 
 sListP :: Proxy SListI
 sListP = Proxy
@@ -687,11 +717,13 @@ instance HTraverse_ SOP where
 cfoldMap_NS ::
      forall c proxy f xs m. (All c xs)
   => proxy c -> (forall a. c a => f a -> m) -> NS f xs -> m
-cfoldMap_NS _ f = go
-  where
-    go :: All c ys => NS f ys -> m
-    go (Z x)  = f x
-    go (S xs) = go xs
+cfoldMap_NS p f =
+  unK .
+  ccata_NS
+    p
+    (K . f)
+    (K . unK)
+{-# INLINE cfoldMap_NS #-}
 
 -- | Specialization of 'hcfoldMap'.
 --
@@ -699,6 +731,7 @@ cfoldMap_NS _ f = go
 --
 cfoldMap_SOP :: (All2 c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> SOP f xs -> m
 cfoldMap_SOP = hcfoldMap
+{-# INLINE cfoldMap_SOP #-}
 
 -- * Sequencing
 
@@ -708,12 +741,11 @@ sequence'_NS  :: (SListI  xs , Applicative f) => NS  (f :.: g) xs  -> f (NS  g x
 -- | Specialization of 'hsequence''.
 sequence'_SOP :: (SListI2 xss, Applicative f) => SOP (f :.: g) xss -> f (SOP g xss)
 
-sequence'_NS = apFnM (cataSList (FnM refute_NS) (FnM . cons . apFnM))
-  where
-    cons :: Applicative f => (NS (f :.: g) ys -> f (NS g ys)) -> NS (f :.: g) (y ': ys) -> f (NS g (y ': ys))
-    cons _ (Z mx ) = Z <$> unComp mx
-    cons r (S mxs) = S <$> r mxs
-    {-# INLINE cons #-}
+sequence'_NS =
+  unComp .
+  cata_NS
+    (Comp . (Z <$>) . unComp)
+    (Comp . (S <$>) . unComp)
 {-# INLINE sequence'_NS #-}
 
 sequence'_SOP = fmap SOP . sequence'_NS . hcmap (Proxy :: Proxy SListI) (Comp . sequence'_NP) . unSOP
@@ -728,10 +760,13 @@ sequence'_SOP = fmap SOP . sequence'_NS . hcmap (Proxy :: Proxy SListI) (Comp . 
 ctraverse'_NS  ::
      forall c proxy xs f f' g. (All c xs,  Functor g)
   => proxy c -> (forall a. c a => f a -> g (f' a)) -> NS f xs  -> g (NS f' xs)
-ctraverse'_NS _ f = go where
-  go :: All c ys => NS f ys -> g (NS f' ys)
-  go (Z x)  = Z <$> f x
-  go (S xs) = S <$> go xs
+ctraverse'_NS p f =
+  unComp .
+  ccata_NS
+    p
+    (Comp . (Z <$>) . f)
+    (Comp . (S <$>) . unComp)
+{-# INLINE ctraverse'_NS #-}
 
 -- | Specialization of 'htraverse''.
 --
@@ -742,10 +777,12 @@ ctraverse'_NS _ f = go where
 traverse'_NS  ::
      forall xs f f' g. (SListI xs,  Functor g)
   => (forall a. f a -> g (f' a)) -> NS f xs  -> g (NS f' xs)
-traverse'_NS f = go where
-  go :: NS f ys -> g (NS f' ys)
-  go (Z x)  = Z <$> f x
-  go (S xs) = S <$> go xs
+traverse'_NS f =
+  unComp .
+  cata_NS
+    (Comp . (Z <$>) . f)
+    (Comp . (S <$>) . unComp)
+{-# INLINE traverse'_NS #-}
 
 -- | Specialization of 'hctraverse''.
 --
@@ -753,6 +790,7 @@ traverse'_NS f = go where
 --
 ctraverse'_SOP :: (All2 c xss, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> SOP f xss -> g (SOP f' xss)
 ctraverse'_SOP p f = fmap SOP . ctraverse'_NS (allP p) (ctraverse'_NP p f) . unSOP
+{-# INLINE ctraverse'_SOP #-}
 
 -- | Specialization of 'htraverse''.
 --
@@ -760,16 +798,23 @@ ctraverse'_SOP p f = fmap SOP . ctraverse'_NS (allP p) (ctraverse'_NP p f) . unS
 --
 traverse'_SOP :: (SListI2 xss, Applicative g) => (forall a. f a -> g (f' a)) -> SOP f xss -> g (SOP f' xss)
 traverse'_SOP f = fmap SOP . ctraverse'_NS sListP (traverse'_NP f) . unSOP
+{-# INLINE traverse'_SOP #-}
 
 instance HSequence NS  where
   hsequence'  = sequence'_NS
   hctraverse' = ctraverse'_NS
   htraverse'  = traverse'_NS
+  {-# INLINE hsequence'  #-}
+  {-# INLINE hctraverse' #-}
+  {-# INLINE htraverse'  #-}
 
 instance HSequence SOP where
   hsequence'  = sequence'_SOP
   hctraverse' = ctraverse'_SOP
   htraverse'  = traverse'_SOP
+  {-# INLINE hsequence'  #-}
+  {-# INLINE hctraverse' #-}
+  {-# INLINE htraverse'  #-}
 
 -- | Specialization of 'hsequence'.
 sequence_NS  :: (SListI xs,  Applicative f) => NS  f xs  -> f (NS  I xs)
@@ -779,6 +824,8 @@ sequence_SOP :: (All SListI xss, Applicative f) => SOP f xss -> f (SOP I xss)
 
 sequence_NS   = hsequence
 sequence_SOP  = hsequence
+{-# INLINE sequence_NS  #-}
+{-# INLINE sequence_SOP #-}
 
 -- | Specialization of 'hctraverse'.
 --
@@ -792,8 +839,10 @@ ctraverse_NS  :: (All  c xs, Applicative g) => proxy c -> (forall a. c a => f a 
 --
 ctraverse_SOP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> POP f xs -> g (POP I xs)
 
-ctraverse_NS = hctraverse
+ctraverse_NS  = hctraverse
 ctraverse_SOP = hctraverse
+{-# INLINE ctraverse_NS  #-}
+{-# INLINE ctraverse_SOP #-}
 
 -- * Catamorphism and anamorphism
 
@@ -807,8 +856,8 @@ ctraverse_SOP = hctraverse
 --
 cata_NS ::
      forall r f xs . SListI xs
-  => (forall y ys . f y -> r (y ': ys))
-  -> (forall y ys . r ys -> r (y ': ys))
+  => (forall y ys . SListI ys => f y -> r (y ': ys))
+  -> (forall y ys . SListI ys => r ys -> r (y ': ys))
   -> NS f xs
   -> r xs
 cata_NS z s =
@@ -818,7 +867,7 @@ cata_NS z s =
       (fn . cons . apFn)
     )
   where
-    cons :: forall y ys . (NS f ys -> r ys) -> NS f (y ': ys) -> r (y ': ys)
+    cons :: forall y ys . SListI ys => (NS f ys -> r ys) -> NS f (y ': ys) -> r (y ': ys)
     cons _ (Z x) = z x
     cons r (S i) = s (r i)
     {-# INLINE cons #-}
@@ -909,12 +958,10 @@ expand_NS :: forall f xs .
      (SListI xs)
   => (forall x . f x)
   -> NS f xs -> NP f xs
-expand_NS d = apFn (cataSList (Fn refute_NS) (Fn . cons . apFn))
-  where
-    cons :: SListI ys => (NS f ys -> NP f ys) -> NS f (y ': ys) -> NP f (y ': ys)
-    cons _ (Z x) = x :* hpure d
-    cons r (S i) = d :* r i
-    {-# INLINE cons #-}
+expand_NS d =
+  cata_NS
+    (:* hpure d)
+    (d :*) -- replacing this with a hole triggers an interesting behaviour in ghc-8.4.2
 {-# INLINE expand_NS #-}
 
 -- | Specialization of 'hcexpand'.
@@ -925,12 +972,11 @@ cexpand_NS :: forall c proxy f xs .
      (All c xs)
   => proxy c -> (forall x . c x => f x)
   -> NS f xs -> NP f xs
-cexpand_NS p d = apFn (ccataSList p (Fn refute_NS) (Fn . cons . apFn))
-  where
-    cons :: (c y, All c ys) => (NS f ys -> NP f ys) -> NS f (y ': ys) -> NP f (y ': ys)
-    cons _ (Z x) = x :* hcpure p d
-    cons r (S i) = d :* r i
-    {-# INLINE cons #-}
+cexpand_NS p d =
+  ccata_NS
+    p
+    (:* hcpure p d)
+    (d :*)
 {-# INLINE cexpand_NS #-}
 
 -- | Specialization of 'hexpand'.
@@ -963,10 +1009,14 @@ allP _ = Proxy
 instance HExpand NS where
   hexpand  = expand_NS
   hcexpand = cexpand_NS
+  {-# INLINE hexpand #-}
+  {-# INLINE hcexpand #-}
 
 instance HExpand SOP where
   hexpand  = expand_SOP
   hcexpand = cexpand_SOP
+  {-# INLINE hexpand #-}
+  {-# INLINE hcexpand #-}
 
 -- | Specialization of 'htrans'.
 --
@@ -1103,7 +1153,11 @@ toI_SOP = htoI
 instance HTrans NS NS where
   htrans  = trans_NS
   hcoerce = coerce_NS
+  {-# INLINE htrans #-}
+  {-# INLINE hcoerce #-}
 
 instance HTrans SOP SOP where
   htrans  = trans_SOP
   hcoerce = coerce_SOP
+  {-# INLINE htrans #-}
+  {-# INLINE hcoerce #-}
