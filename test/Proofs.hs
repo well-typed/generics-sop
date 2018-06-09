@@ -15,6 +15,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fshow-hole-constraints -Wall #-}
 -- {-# OPTIONS_GHC -ddump-simpl #-}
+-- {-# OPTIONS_GHC -dsuppress-all #-}
 -- {-# OPTIONS_GHC -dsuppress-idinfo -dsuppress-module-prefixes #-}
 {-# OPTIONS_GHC -O #-}
 {-# OPTIONS_GHC -fplugin Test.Inspection.Plugin #-}
@@ -29,8 +30,6 @@ import Test.Inspection
 
 import Proofs.Metadata
 import Proofs.Types
-
-import GHC.Exts
 
 ---------------------------------------------------------------------
 -- Simple properties
@@ -314,24 +313,25 @@ libhmap' :: SListI xs => (forall x . f x -> g x) -> NP f xs -> NP g xs
 libhmap' = hmap
 {-# INLINE libhmap' #-}
 
-libhmapapp :: SListI xs => NP I xs -> NP (K ()) xs
-libhmapapp = libhmap (mapIK (const ()))
+libhmapappc :: SListI xs => c -> NP I xs -> NP (K c) xs
+libhmapappc = \ c -> libhmap (mapIK (const c))
+{-# INLINE libhmapappc #-}
 
-ghmap :: SListI xs => NP I xs -> NP (K ()) xs
-ghmap = myhmap (mapIK (const ()))
-{-# INLINE ghmap #-}
+ghmapc :: SListI xs => c -> NP I xs -> NP (K c) xs
+ghmapc = \ c -> myhmap (mapIK (const c))
+{-# INLINE ghmapc #-}
 
-ghmap' :: SListI xs => NP I xs -> NP (K ()) xs
-ghmap' = hmap (mapIK (const ()))
+ghmapc' :: SListI xs => c -> NP I xs -> NP (K c) xs
+ghmapc' = \ c -> hmap (mapIK (const c))
 
-libhmap_T2 :: NP I '[a,b] -> NP (K ()) '[a,b]
-libhmap_T2 = libhmapapp
+libhmap_T2 :: c -> NP I '[a,b] -> NP (K c) '[a,b]
+libhmap_T2 = libhmapappc
 
-ghmap_T2 :: NP I '[a,b] -> NP (K ()) '[a,b]
-ghmap_T2 = ghmap
+ghmap_T2 :: c -> NP I '[a,b] -> NP (K c) '[a,b]
+ghmap_T2 = ghmapc
 
-ghmap'_T2 :: NP I '[a,b] -> NP (K ()) '[a,b]
-ghmap'_T2 = ghmap'
+ghmap'_T2 :: c -> NP I '[a,b] -> NP (K c) '[a,b]
+ghmap'_T2 = ghmapc'
 
 -- Unfortunately, it is quite a bit more difficult than expected
 -- to obtain a "hand-written" version of ghmap that has the casts
@@ -339,24 +339,18 @@ ghmap'_T2 = ghmap'
 --
 -- Note that this is not really indicating a performance problem.
 --
-hmap_T2 :: forall a b . NP I '[a,b] -> NP (K ()) '[a,b]
-hmap_T2 = \ x -> case x of
-  I (_ :: a') :* ys -> case ys of
-    I (_ :: b') :* zs -> case (zs :: NP I '[]) of
-      Nil -> (K () :: K () a') :* (K () :: K () b') :* Nil
-
-hmap'_T2 :: forall a b . NP I '[a,b] -> NP (K ()) '[a,b]
-hmap'_T2 = \ x -> case x of
+hmap_T2 :: forall a b c . c -> NP I '[a,b] -> NP (K c) '[a,b]
+hmap_T2 = \ c x -> case x of
   I (_ :: a') :* ys -> case (ys :: NP I '[b]) of
-    I (_ :: b') :* zs -> case (zs :: NP I '[]) of
-      Nil -> (K () :: K () a') :* (K () :: K () b') :* Nil
-  -- The type annotations above are required for the proof
+    I (_ :: b') :* _ ->
+      (K c :: K c a') :* (K c :: K c b') :* Nil
+  -- The type annotations above are required for the proofs
   -- below to go through.
   --
-  -- The importans aspect is that in each of the cases, we
+  -- The important aspect is that we
   -- explicitly establish whether the 'NP' is empty or not.
   -- So, for example, with partial type signatures,
-  -- @NP I (_ : _)@ in the first annotations would also
+  -- @NP I (_ : _)@ in the annotation would also
   -- work.
 
 -- This one should work, because they're actually defined in the same way.
@@ -367,18 +361,8 @@ inspect $ 'ghmap'_T2 === 'libhmap_T2
 --
 inspect $ 'libhmap' === 'libhmap
 
--- This one also works, indicating that the lib version actually is simplified
--- properly.
-inspect $ 'ghmap'_T2 ==- 'hmap'_T2
-
--- I'm not entirely sure why this fails.
---
--- The terms are very similar. As far as I can see, they only differ
--- in the way type arguments and cast are applied.
---
--- But (==-) is currently not accepting this.
---
-inspect ('ghmap_T2 ==- 'hmap_T2) { expectFail = True }
+inspect $ 'ghmap'_T2 ==- 'hmap_T2
+inspect $ 'ghmap_T2 ==- 'hmap_T2
 
 ---------------------------------------------------------------------
 -- hcollapse / hmap / hcmap
@@ -926,10 +910,11 @@ gprojections_NP2 = projections
 
 projections_NP2 :: NP (Projection f '[a, b]) '[a, b]
 projections_NP2 =
-  fn (\ (K (x :* _)) -> x) :* fn (\ (K (_ :* x :* _)) -> x) :* Nil
+     fn (\ (K (x :* _)) -> x)
+  :* (fn (\ (K (_ :* (x :* _ :: NP f '[b]))) -> x))
+  :* Nil
 
--- fails for unclear reasons
-inspect ('gprojections_NP2 === 'projections_NP2) { expectFail = True }
+inspect ('gprojections_NP2 ==- 'projections_NP2)
 
 ---------------------------------------------------------------------
 -- apInjs
