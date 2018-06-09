@@ -1125,10 +1125,32 @@ geq_T3' = geq
 eq_T3' :: (Eq a, Eq b, Eq c) => T3' a b c -> T3' a b c -> Bool
 eq_T3' (T3' a1 b1 c1) (T3' a2 b2 c2) = a1 == a2 && b1 == b2 && c1 == c2
 
+geq_U10 :: Eq a => U10 a -> U10 a -> Bool
+geq_U10 = geq
+
+eq_U10 :: Eq a => U10 a -> U10 a -> Bool
+eq_U10
+  (U10 u01 u11 u21 u31 u41 u51 u61 u71 u81 u91)
+  (U10 u02 u12 u22 u32 u42 u52 u62 u72 u82 u92) =
+     u01 == u02
+  && u11 == u12
+  && u21 == u22
+  && u31 == u32
+  && u41 == u42
+  && u51 == u52
+  && u61 == u62
+  && u71 == u72
+  && u81 == u82
+  && u91 == u92
+
+geq_E10 :: E10 -> E10 -> Bool
+geq_E10 = geq
+
 inspect $ 'geq_Bool ==- 'eq_Bool
 inspect $ 'geq_List ==- 'eq_List
 inspect $ 'geq_T3   ==- 'eq_T3
 inspect $ 'geq_T3'  ==- 'eq_T3'
+inspect $ 'geq_U10  ==- 'geq_U10
 
 main :: IO ()
 main = return ()
