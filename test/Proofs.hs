@@ -302,12 +302,30 @@ myhmap f =
     (\ (Fn rec) -> fn (\ (y :* ys) -> f y :* rec ys))
 {-# INLINE myhmap #-}
 
+-- As this is tricky, for completeness, we reproduce the way
+-- hmap is defined in the library.
+--
+libhmap :: SListI xs => (forall x . f x -> g x) -> NP f xs -> NP g xs
+libhmap f xs =
+  ap_NP (pure_NP (fn f)) xs
+{-# INLINE libhmap #-}
+
+libhmap' :: SListI xs => (forall x . f x -> g x) -> NP f xs -> NP g xs
+libhmap' = hmap
+{-# INLINE libhmap' #-}
+
+libhmapapp :: SListI xs => NP I xs -> NP (K ()) xs
+libhmapapp = libhmap (mapIK (const ()))
+
 ghmap :: SListI xs => NP I xs -> NP (K ()) xs
 ghmap = myhmap (mapIK (const ()))
 {-# INLINE ghmap #-}
 
 ghmap' :: SListI xs => NP I xs -> NP (K ()) xs
 ghmap' = hmap (mapIK (const ()))
+
+libhmap_T2 :: NP I '[a,b] -> NP (K ()) '[a,b]
+libhmap_T2 = libhmapapp
 
 ghmap_T2 :: NP I '[a,b] -> NP (K ()) '[a,b]
 ghmap_T2 = ghmap
@@ -323,20 +341,44 @@ ghmap'_T2 = ghmap'
 --
 hmap_T2 :: forall a b . NP I '[a,b] -> NP (K ()) '[a,b]
 hmap_T2 = \ x -> case x of
-  I (_ :: a') :* ys -> (K () :: K () a') :* case (ys :: NP I '[b]) of
-    I (_ :: b') :* zs -> (K () :: K () b') :* case (zs :: NP I '[]) of
-      Nil -> Nil
+  I (_ :: a') :* ys -> case ys of
+    I (_ :: b') :* zs -> case (zs :: NP I '[]) of
+      Nil -> (K () :: K () a') :* (K () :: K () b') :* Nil
 
 hmap'_T2 :: forall a b . NP I '[a,b] -> NP (K ()) '[a,b]
 hmap'_T2 = \ x -> case x of
   I (_ :: a') :* ys -> case (ys :: NP I '[b]) of
     I (_ :: b') :* zs -> case (zs :: NP I '[]) of
       Nil -> (K () :: K () a') :* (K () :: K () b') :* Nil
+  -- The type annotations above are required for the proof
+  -- below to go through.
+  --
+  -- The importans aspect is that in each of the cases, we
+  -- explicitly establish whether the 'NP' is empty or not.
+  -- So, for example, with partial type signatures,
+  -- @NP I (_ : _)@ in the first annotations would also
+  -- work.
 
--- These are really tricky. I'll have to look at them again.
+-- This one should work, because they're actually defined in the same way.
+inspect $ 'ghmap'_T2 === 'libhmap_T2
 
--- inspect $ 'ghmap_T2 ==- 'hmap_T2
--- inspect $ 'ghmap'_T2 ==- 'hmap'_T2
+-- In fact, because they're the same function, even the unspecialised
+-- versions should be equal.
+--
+inspect $ 'libhmap' === 'libhmap
+
+-- This one also works, indicating that the lib version actually is simplified
+-- properly.
+inspect $ 'ghmap'_T2 ==- 'hmap'_T2
+
+-- I'm not entirely sure why this fails.
+--
+-- The terms are very similar. As far as I can see, they only differ
+-- in the way type arguments and cast are applied.
+--
+-- But (==-) is currently not accepting this.
+--
+inspect ('ghmap_T2 ==- 'hmap_T2) { expectFail = True }
 
 ---------------------------------------------------------------------
 -- hcollapse / hmap / hcmap
