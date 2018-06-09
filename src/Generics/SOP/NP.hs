@@ -528,15 +528,16 @@ collapse_POP :: All SListI xss => POP (K a) xss -> [[a]]
 
 collapse_NP np =
   build $ \ cons nil ->
-  unK $ apFn
-    (cataSList
-      (fn (\ Nil -> K nil))
-      (fn . (\ r (K x :* xs) -> K (x `cons` unK (r xs))) . apFn)
-    )
+  unK $
+  cata_NP
+    (K nil)
+    (\ (K x) (K r) -> K (x `cons` r))
   np
 {-# INLINE collapse_NP #-}
 
-collapse_POP = collapse_NP . hcmap (Proxy :: Proxy SListI) (K . collapse_NP) . unPOP
+collapse_POP =
+  collapse_NP . cmap_NP (Proxy :: Proxy SListI) (K . collapse_NP) . unPOP
+{-# INLINE collapse_POP #-}
 
 type instance CollapseTo NP  a = [a]
 type instance CollapseTo POP a = [[a]]
@@ -553,11 +554,13 @@ instance HCollapse POP where hcollapse = collapse_POP
 ctraverse__NP ::
      forall c proxy xs f g. (All c xs, Applicative g)
   => proxy c -> (forall a. c a => f a -> g ()) -> NP f xs -> g ()
-ctraverse__NP _ f = go
-  where
-    go :: All c ys => NP f ys -> g ()
-    go Nil       = pure ()
-    go (x :* xs) = f x *> go xs
+ctraverse__NP _ f =
+  unK .
+  ccata_NP
+    (Proxy :: Proxy c)
+    (K (pure ()))
+    (\ x rec -> K (f x *> unK rec))
+{-# INLINE ctraverse__NP #-}
 
 -- | Specialization of 'htraverse_'.
 --
@@ -620,14 +623,15 @@ sequence'_NP  :: (SListI  xs , Applicative f) => NP  (f :.: g) xs  -> f (NP  g x
 -- | Specialization of 'hsequence''.
 sequence'_POP :: (SListI2 xss, Applicative f) => POP (f :.: g) xss -> f (POP g xss)
 
-sequence'_NP = apFnM
-  (cataSList
-    (FnM (\ Nil -> pure Nil))
-    (FnM . (\ r (mx :* mxs) -> (:*) <$> unComp mx <*> r mxs) . apFnM)
-  )
+sequence'_NP =
+  unComp .
+  cata_NP
+    (Comp (pure Nil))
+    (\ (Comp mx) (Comp r) -> Comp ((:*) <$> mx <*> r))
 {-# INLINE sequence'_NP #-}
 
-sequence'_POP = fmap POP . sequence'_NP . hcmap (Proxy :: Proxy SListI) (Comp . sequence'_NP) . unPOP
+sequence'_POP =
+  fmap POP . sequence'_NP . hcmap (Proxy :: Proxy SListI) (Comp . sequence'_NP) . unPOP
 {-# INLINE sequence'_POP #-}
 
 -- | Specialization of 'hctraverse''.
