@@ -554,10 +554,10 @@ instance HCollapse POP where hcollapse = collapse_POP
 ctraverse__NP ::
      forall c proxy xs f g. (All c xs, Applicative g)
   => proxy c -> (forall a. c a => f a -> g ()) -> NP f xs -> g ()
-ctraverse__NP _ f =
+ctraverse__NP p f =
   unK .
   ccata_NP
-    (Proxy :: Proxy c)
+    p
     (K (pure ()))
     (\ x rec -> K (f x *> unK rec))
 {-# INLINE ctraverse__NP #-}
@@ -569,11 +569,12 @@ ctraverse__NP _ f =
 traverse__NP ::
      forall xs f g. (SListI xs, Applicative g)
   => (forall a. f a -> g ()) -> NP f xs -> g ()
-traverse__NP f = go
-  where
-    go :: NP f ys -> g ()
-    go Nil       = pure ()
-    go (x :* xs) = f x *> go xs
+traverse__NP f =
+  unK .
+  cata_NP
+    (K (pure ()))
+    (\ x rec -> K (f x *> unK rec))
+{-# INLINE traverse__NP #-}
 
 -- | Specialization of 'hctraverse_'.
 --
@@ -582,7 +583,9 @@ traverse__NP f = go
 ctraverse__POP ::
      forall c proxy xss f g. (All2 c xss, Applicative g)
   => proxy c -> (forall a. c a => f a -> g ()) -> POP f xss -> g ()
-ctraverse__POP p f = ctraverse__NP (allP p) (ctraverse__NP p f) . unPOP
+ctraverse__POP p f =
+  ctraverse__NP (allP p) (ctraverse__NP p f) . unPOP
+{-# INLINE ctraverse__POP #-}
 
 -- | Specialization of 'htraverse_'.
 --
@@ -591,7 +594,9 @@ ctraverse__POP p f = ctraverse__NP (allP p) (ctraverse__NP p f) . unPOP
 traverse__POP ::
      forall xss f g. (SListI2 xss, Applicative g)
   => (forall a. f a -> g ()) -> POP f xss -> g ()
-traverse__POP f = ctraverse__NP sListP (traverse__NP f) . unPOP
+traverse__POP f =
+  ctraverse__NP sListP (traverse__NP f) . unPOP
+{-# INLINE traverse__POP #-}
 
 instance HTraverse_ NP  where
   hctraverse_ = ctraverse__NP
@@ -641,10 +646,13 @@ sequence'_POP =
 ctraverse'_NP  ::
      forall c proxy xs f f' g. (All c xs,  Applicative g)
   => proxy c -> (forall a. c a => f a -> g (f' a)) -> NP f xs  -> g (NP f' xs)
-ctraverse'_NP _ f = go where
-  go :: All c ys => NP f ys -> g (NP f' ys)
-  go Nil       = pure Nil
-  go (x :* xs) = (:*) <$> f x <*> go xs
+ctraverse'_NP p f =
+  unComp .
+  ccata_NP
+    p
+    (Comp (pure Nil))
+    (\ x (Comp r) -> Comp ((:*) <$> f x <*> r))
+{-# INLINE ctraverse'_NP #-}
 
 -- | Specialization of 'htraverse''.
 --
@@ -653,24 +661,30 @@ ctraverse'_NP _ f = go where
 traverse'_NP  ::
      forall xs f f' g. (SListI xs,  Applicative g)
   => (forall a. f a -> g (f' a)) -> NP f xs  -> g (NP f' xs)
-traverse'_NP f = go where
-  go :: NP f ys -> g (NP f' ys)
-  go Nil       = pure Nil
-  go (x :* xs) = (:*) <$> f x <*> go xs
+traverse'_NP f =
+  unComp .
+  cata_NP
+    (Comp (pure Nil))
+    (\ x (Comp r) -> Comp ((:*) <$> f x <*> r))
+{-# INLINE traverse'_NP #-}
 
 -- | Specialization of 'hctraverse''.
 --
 -- @since 0.3.2.0
 --
 ctraverse'_POP :: (All2 c xss, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> POP f xss -> g (POP f' xss)
-ctraverse'_POP p f = fmap POP . ctraverse'_NP (allP p) (ctraverse'_NP p f) . unPOP
+ctraverse'_POP p f =
+  fmap POP . ctraverse'_NP (allP p) (ctraverse'_NP p f) . unPOP
+{-# INLINE ctraverse'_POP #-}
 
 -- | Specialization of 'hctraverse''.
 --
 -- @since 0.3.2.0
 --
 traverse'_POP :: (SListI2 xss, Applicative g) => (forall a. f a -> g (f' a)) -> POP f xss -> g (POP f' xss)
-traverse'_POP f = fmap POP . ctraverse'_NP sListP (traverse'_NP f) . unPOP
+traverse'_POP f =
+  fmap POP . ctraverse'_NP sListP (traverse'_NP f) . unPOP
+{-# INLINE traverse'_POP #-}
 
 instance HSequence NP  where
   hsequence'  = sequence'_NP
