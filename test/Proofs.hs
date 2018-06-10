@@ -19,7 +19,8 @@
 -- {-# OPTIONS_GHC -dsuppress-idinfo -dsuppress-module-prefixes #-}
 {-# OPTIONS_GHC -O #-}
 {-# OPTIONS_GHC -fplugin Test.Inspection.Plugin #-}
--- {-# OPTIONS_GHC -funfolding-creation-threshold=5000 -funfolding-use-threshold=5000 #-}
+{-# OPTIONS_GHC -funfolding-use-threshold=10000 #-}
+-- {-# OPTIONS_GHC -funfolding-creation-threshold=500 -funfolding-use-threshold=500 #-}
 module Main where
 
 import Data.Monoid (Sum(..), Product(..), (<>))
@@ -1119,11 +1120,35 @@ eq_U10
 geq_E10 :: E10 -> E10 -> Bool
 geq_E10 = geq
 
-inspect $ 'geq_Bool ==- 'eq_Bool
-inspect $ 'geq_List ==- 'eq_List
-inspect $ 'geq_T3   ==- 'eq_T3
-inspect $ 'geq_T3'  ==- 'eq_T3'
-inspect $ 'geq_U10  ==- 'geq_U10
+eq_Tree :: Tree -> Tree -> Bool
+eq_Tree (Leaf i1) (Leaf i2) = i1 == i2
+eq_Tree (Node l1 r1) (Node l2 r2) = l1 == l2 && r1 == r2
+eq_Tree _ _ = False
+
+eq_Tree' :: Tree' -> Tree' -> Bool
+eq_Tree' (Leaf' i1) (Leaf' i2) = i1 == i2
+eq_Tree' (Node' l1 r1) (Node' l2 r2) = l1 == l2 && r1 == r2
+eq_Tree' _ _ = False
+
+instance Eq Tree where
+  (==) = eq_Tree
+
+instance Eq Tree' where
+  (==) = eq_Tree'
+
+geq_Tree :: Tree -> Tree -> Bool
+geq_Tree = geq
+
+geq_Tree' :: Tree' -> Tree' -> Bool
+geq_Tree' = geq
+
+inspect $ 'geq_Bool  ==- 'eq_Bool
+inspect $ 'geq_List  ==- 'eq_List
+inspect $ 'geq_T3    ==- 'eq_T3
+inspect $ 'geq_T3'   ==- 'eq_T3'
+inspect $ 'geq_U10   ==- 'eq_U10
+inspect $ 'geq_Tree  ==- 'eq_Tree
+inspect $ 'geq_Tree' ==- 'eq_Tree'
 
 main :: IO ()
 main = return ()

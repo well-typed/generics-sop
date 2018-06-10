@@ -312,6 +312,21 @@ data E50' =
 
 deriveGeneric ''E50'
 
+data Tree =
+    Leaf Int
+  | Node Tree Tree
+  deriving (GHC.Generic, Show)
+
+instance Generic Tree
+instance HasDatatypeInfo Tree
+
+data Tree' =
+    Leaf' Int
+  | Node' Tree' Tree'
+  deriving (GHC.Generic, Show)
+
+deriveGeneric ''Tree'
+
 productFrom :: IsProductType a xs => a -> NP I xs
 productFrom = unZ . unSOP . from
 {-# INLINE productFrom #-}

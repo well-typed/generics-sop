@@ -8,8 +8,9 @@ import Generics.SOP
 
 gshow ::
   (Generic a, HasDatatypeInfo a, All2 Show (Code a)) => a -> String
-gshow x =
+gshow = \ x ->
   gshowsPrec 0 x ""
+{-# INLINE gshow #-}
 
 gshowsPrec ::
   (Generic a, HasDatatypeInfo a, All2 Show (Code a)) => Int -> a -> ShowS
@@ -18,6 +19,7 @@ gshowsPrec d x =
   $ hczipWith pallshow (gshowsConstructor d)
       (constructorInfo (datatypeInfo (I x)))
       (unSOP (from x))
+{-# INLINE gshowsPrec #-}
 
 gshowsConstructor ::
   forall xs . (All Show xs) => Int -> ConstructorInfo xs -> NP I xs -> K ShowS xs
@@ -34,11 +36,13 @@ gshowsConstructor d i =
     Record n fi -> \ x -> K
       $ showParen (d > app_prec) -- could be even higher, but seems to match GHC behaviour
       $ showString n . showString " {" . gshowsRecordArgs fi x . showString "}"
+{-# INLINE gshowsConstructor #-}
 
 gshowsConstructorArgs ::
   (All Show xs) => Int -> NP I xs -> ShowS
 gshowsConstructorArgs d x =
   foldr (.) id $ hcollapse $ hcmap pshow (K . showsPrec d . unI) x
+{-# INLINE gshowsConstructorArgs #-}
 
 gshowsRecordArgs ::
   (All Show xs) => NP FieldInfo xs -> NP I xs -> ShowS
@@ -49,6 +53,7 @@ gshowsRecordArgs fi x =
   $ hczipWith pshow
       (\ (FieldInfo l) (I y) -> K (showString l . showString " = " . showsPrec 0 y))
       fi x
+{-# INLINE gshowsRecordArgs #-}
 
 pallshow :: Proxy (All Show)
 pallshow = Proxy

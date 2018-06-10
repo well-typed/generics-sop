@@ -5,8 +5,12 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# OPTIONS_GHC -funfolding-use-threshold=10000 #-}
 module SOPBench.Type where
 
+import Generics.SOP
 import qualified Generics.SOP as SOP
 import Generics.SOP.TH
 import qualified GHC.Generics as GHC
@@ -89,11 +93,28 @@ instance          SOP.HasDatatypeInfo (S2   'SOPGGP)
 
 deriveGenericSubst ''S2 (const (promotedT 'SOPTH))
 
+geq :: (Generic a, All2 Eq (Code a)) => a -> a -> Bool
+geq = \ x y ->
+  eq' (from x) (from y)
+{-# INLINE geq #-}
+
+eq' :: All2 Eq xss => SOP I xss -> SOP I xss -> Bool
+eq' =
+  ccompare_SOP
+    peq
+    False
+    (\ x y -> and (hcollapse (hczipWith peq (mapIIK (==)) x y)))
+    False
+{-# INLINE eq' #-}
+
+peq :: Proxy Eq
+peq = Proxy
+
 instance          Eq                  (S2   'SOPGGP) where
-  (==) = SOP.geq
+  (==) = geq
 
 instance          Eq                  (S2   'SOPTH)  where
-  (==) = SOP.geq
+  (==) = geq
 
 instance          Show                (S2   'SOPGGP) where
   showsPrec = SOP.gshowsPrec
@@ -112,10 +133,10 @@ instance          SOP.HasDatatypeInfo (S20  'SOPGGP)
 deriveGenericSubst ''S20 (const (promotedT 'SOPTH))
 
 instance          Eq                  (S20  'SOPGGP) where
-  (==) = SOP.geq
+  (==) = geq
 
 instance          Eq                  (S20  'SOPTH)  where
-  (==) = SOP.geq
+  (==) = geq
 
 instance          Show                (S20  'SOPGGP) where
   showsPrec = SOP.gshowsPrec
@@ -134,10 +155,10 @@ instance          SOP.HasDatatypeInfo (Tree 'SOPGGP)
 deriveGenericSubst ''Tree (const (promotedT 'SOPTH))
 
 instance          Eq                  (Tree 'SOPGGP) where
-  (==) = SOP.geq
+  (==) = geq
 
 instance          Eq                  (Tree 'SOPTH)  where
-  (==) = SOP.geq
+  (==) = geq
 
 instance          Show                (Tree 'SOPGGP) where
   showsPrec = SOP.gshowsPrec
