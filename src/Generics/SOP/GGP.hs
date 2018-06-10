@@ -71,6 +71,7 @@ class GDatatypeInfo' (a :: * -> *) where
 --
 isNewtype :: Datatype d => t d (f :: * -> *) a -> Bool
 isNewtype _ = False
+{-# INLINE isNewtype #-}
 
 #endif
 
@@ -86,6 +87,7 @@ instance (All SListI (ToSumCode a '[]), Datatype c, GConstructorInfos a) => GDat
     where
      p :: InfoProxy c a x
      p = InfoProxy
+  {-# INLINE gDatatypeInfo' #-}
 
 data IsNewtypeShape (xss :: [[*]]) where
   NewYes :: ConstructorInfo '[x] -> IsNewtypeShape '[ '[x] ]
@@ -98,15 +100,19 @@ isNewtypeShape (x :* Nil) = go shape x
     go (ShapeCons ShapeNil) c   = NewYes c
     go _                    _   = NewNo
 isNewtypeShape _          = NewNo
+{-# INLINE isNewtypeShape #-}
 
 class GConstructorInfos (a :: * -> *) where
   gConstructorInfos :: proxy a -> NP ConstructorInfo xss -> NP ConstructorInfo (ToSumCode a xss)
+  {-# INLINE gConstructorInfos #-}
 
 instance (GConstructorInfos a, GConstructorInfos b) => GConstructorInfos (a :+: b) where
   gConstructorInfos _ xss = gConstructorInfos (Proxy :: Proxy a) (gConstructorInfos (Proxy :: Proxy b) xss)
+  {-# INLINE gConstructorInfos #-}
 
 instance GConstructorInfos GHC.V1 where
   gConstructorInfos _ xss = xss
+  {-# INLINE gConstructorInfos #-}
 
 instance (Constructor c, GFieldInfos a, SListI (ToProductCode a '[])) => GConstructorInfos (M1 C c a) where
   gConstructorInfos _ xss
@@ -119,6 +125,7 @@ instance (Constructor c, GFieldInfos a, SListI (ToProductCode a '[])) => GConstr
     where
       p :: InfoProxy c a x
       p = InfoProxy
+  {-# INLINE gConstructorInfos #-}
 #endif
 
 #if MIN_VERSION_base(4,9,0)
@@ -155,54 +162,65 @@ class GFieldInfos (a :: * -> *) where
 
 instance (GFieldInfos a, GFieldInfos b) => GFieldInfos (a :*: b) where
   gFieldInfos _ xs = gFieldInfos (Proxy :: Proxy a) (gFieldInfos (Proxy :: Proxy b) xs)
+  {-# INLINE gFieldInfos #-}
 
 instance GFieldInfos U1 where
   gFieldInfos _ xs = xs
+  {-# INLINE gFieldInfos #-}
 
 instance (Selector c) => GFieldInfos (M1 S c a) where
   gFieldInfos _ xs = FieldInfo (selName p) :* xs
     where
       p :: InfoProxy c a x
       p = InfoProxy
+  {-# INLINE gFieldInfos #-}
 
 class GSingleFrom (a :: * -> *) where
   gSingleFrom :: a x -> ToSingleCode a
 
 instance GSingleFrom (K1 i a) where
   gSingleFrom (K1 a) = a
+  {-# INLINE gSingleFrom #-}
 
 class GProductFrom (a :: * -> *) where
   gProductFrom :: a x -> NP I xs -> NP I (ToProductCode a xs)
 
 instance (GProductFrom a, GProductFrom b) => GProductFrom (a :*: b) where
   gProductFrom (a :*: b) xs = gProductFrom a (gProductFrom b xs)
+  {-# INLINE gProductFrom #-}
 
 instance GProductFrom U1 where
   gProductFrom U1 xs = xs
+  {-# INLINE gProductFrom #-}
 
 instance GSingleFrom a => GProductFrom (M1 S c a) where
   gProductFrom (M1 a) xs = I (gSingleFrom a) :* xs
+  {-# INLINE gProductFrom #-}
 
 class GSingleTo (a :: * -> *) where
   gSingleTo :: ToSingleCode a -> a x
 
 instance GSingleTo (K1 i a) where
   gSingleTo a = K1 a
+  {-# INLINE gSingleTo #-}
 
 class GProductTo (a :: * -> *) where
   gProductTo :: NP I (ToProductCode a xs) -> (a x -> NP I xs -> r) -> r
 
 instance (GProductTo a, GProductTo b) => GProductTo (a :*: b) where
   gProductTo xs k = gProductTo xs (\ a ys -> gProductTo ys (\ b zs -> k (a :*: b) zs))
+  {-# INLINE gProductTo #-}
 
 instance GSingleTo a => GProductTo (M1 S c a) where
   gProductTo (SOP.I a :* xs) k = k (M1 (gSingleTo a)) xs
 #if __GLASGOW_HASKELL__ < 800
   gProductTo _               _ = error "inaccessible"
 #endif
+  {-# INLINE gProductTo #-}
 
 instance GProductTo U1 where
   gProductTo xs k = k U1 xs
+  {-# INLINE gProductTo #-}
 
 -- This can most certainly be simplified
 class GSumFrom (a :: * -> *) where
@@ -214,27 +232,36 @@ instance (GSumFrom a, GSumFrom b) => GSumFrom (a :+: b) where
   gSumFrom (R1 b) xss = gSumSkip (Proxy :: Proxy a) (gSumFrom b xss)
 
   gSumSkip _ xss = gSumSkip (Proxy :: Proxy a) (gSumSkip (Proxy :: Proxy b) xss)
+  {-# INLINE gSumFrom #-}
+  {-# INLINE gSumSkip #-}
 
 instance (GSumFrom a) => GSumFrom (M1 D c a) where
   gSumFrom (M1 a) xss = gSumFrom a xss
   gSumSkip _      xss = gSumSkip (Proxy :: Proxy a) xss
+  {-# INLINE gSumFrom #-}
+  {-# INLINE gSumSkip #-}
 
 instance (GProductFrom a) => GSumFrom (M1 C c a) where
   gSumFrom (M1 a) _    = SOP (Z (gProductFrom a Nil))
   gSumSkip _ (SOP xss) = SOP (S xss)
+  {-# INLINE gSumFrom #-}
+  {-# INLINE gSumSkip #-}
 
 class GSumTo (a :: * -> *) where
   gSumTo :: SOP I (ToSumCode a xss) -> (a x -> r) -> (SOP I xss -> r) -> r
 
 instance (GSumTo a, GSumTo b) => GSumTo (a :+: b) where
   gSumTo xss s k = gSumTo xss (s . L1) (\ r -> gSumTo r (s . R1) k)
+  {-# INLINE gSumTo #-}
 
 instance (GProductTo a) => GSumTo (M1 C c a) where
   gSumTo (SOP (Z xs)) s _ = s (M1 (gProductTo xs ((\ x Nil -> x) :: a x -> NP I '[] -> a x)))
   gSumTo (SOP (S xs)) _ k = k (SOP xs)
+  {-# INLINE gSumTo #-}
 
 instance (GSumTo a) => GSumTo (M1 D c a) where
   gSumTo xss s k = gSumTo xss (s . M1) k
+  {-# INLINE gSumTo #-}
 
 -- | Compute the SOP code of a datatype.
 --
@@ -277,6 +304,7 @@ type GDatatypeInfoOf (a :: *) = ToInfo (GHC.Rep a)
 --
 gfrom :: (GFrom a, GHC.Generic a) => a -> SOP I (GCode a)
 gfrom x = gSumFrom (GHC.from x) (error "gfrom: internal error" :: SOP.SOP SOP.I '[])
+{-# INLINE gfrom #-}
 
 -- | An automatically computed version of 'Generics.SOP.to'.
 --
@@ -288,6 +316,7 @@ gfrom x = gSumFrom (GHC.from x) (error "gfrom: internal error" :: SOP.SOP SOP.I 
 --
 gto :: forall a. (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
 gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.Rep a) x))
+{-# INLINE gto #-}
 
 -- | An automatically computed version of 'Generics.SOP.datatypeInfo'.
 --
@@ -303,4 +332,5 @@ gdatatypeInfo _ = SOP.T.demoteDatatypeInfo (Proxy :: Proxy (GDatatypeInfoOf a))
 #else
 gdatatypeInfo _ = gDatatypeInfo' (Proxy :: Proxy (GHC.Rep a))
 #endif
+{-# INLINE gdatatypeInfo #-}
 

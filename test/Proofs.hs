@@ -15,7 +15,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fshow-hole-constraints -Wall #-}
 -- {-# OPTIONS_GHC -ddump-simpl #-}
--- {-# OPTIONS_GHC -dsuppress-all #-}
+{-# OPTIONS_GHC -dsuppress-all #-}
 -- {-# OPTIONS_GHC -dsuppress-idinfo -dsuppress-module-prefixes #-}
 {-# OPTIONS_GHC -O #-}
 {-# OPTIONS_GHC -fplugin Test.Inspection.Plugin #-}
@@ -146,10 +146,7 @@ roundtrip_E5 = to . from
 id_E5 :: E5 -> E5
 id_E5 x = x
 
--- needs higher unfolding thresholds
--- needs unfolding-use-threshold of 100, but that makes other
--- equalities break
-inspect ('roundtrip_E5 === 'id_E5) { expectFail = True }
+inspect ('roundtrip_E5 === 'id_E5)
 
 roundtrip_E5' :: E5' -> E5'
 roundtrip_E5' = to . from
@@ -401,10 +398,9 @@ gshow_T1 :: (Show a) => T1 a -> String
 gshow_T1 = gshow
 
 show_T1 :: (Show a) => T1 a -> String
-show_T1 (T1 x) = show x
+show_T1 ~(T1 x) = show x
 
--- fails, due to GGP-conversion for single-constructor single-value datatype being lazy
-inspect ('gshow_T1 === 'show_T1) { expectFail = True }
+inspect ('gshow_T1 === 'show_T1)
 
 gshow_T1' :: (Show a) => T1' a -> String
 gshow_T1' = gshow
@@ -417,8 +413,7 @@ inspect $ 'gshow_T1' === 'show_T1'
 gproductShow_T1 :: (Show a) => T1 a -> String
 gproductShow_T1 = gproductShow
 
--- fails, due to GGP-conversion for single-constructor single-value datatype being lazy
-inspect ('gproductShow_T1 === 'show_T1) { expectFail = True }
+inspect ('gproductShow_T1 === 'show_T1)
 
 gproductShow_T1' :: (Show a) => T1' a -> String
 gproductShow_T1' = gproductShow
@@ -473,8 +468,7 @@ show_U10 (U10 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10) =
   ++ show a9
   ++ show a10
 
--- needs higher thresholds
-inspect ('gshow_U10 === 'show_U10) { expectFail = True }
+inspect ('gshow_U10 === 'show_U10)
 
 gshow_U10' :: (Show a) => U10' a -> String
 gshow_U10' = gshow
@@ -565,8 +559,7 @@ inspect $ 'gproductShow_T3' === 'show_T3'
 gproductShow_U10 :: (Show a) => U10 a -> String
 gproductShow_U10 = gproductShow
 
--- needs higher thresholds
-inspect ('gproductShow_U10 === 'show_U10) { expectFail = True }
+inspect ('gproductShow_U10 === 'show_U10)
 
 gproductShow_U10' :: (Show a) => U10' a -> String
 gproductShow_U10' = gproductShow
@@ -591,10 +584,9 @@ gmappend_T1 :: (Append a) => T1 a -> T1 a -> T1 a
 gmappend_T1 = gmappend
 
 mappend_T1 :: (Append a) => T1 a -> T1 a -> T1 a
-mappend_T1 (T1 a0) (T1 b0) = T1 (a0 <> b0)
+mappend_T1 ~(T1 a0) ~(T1 b0) = T1 (a0 <> b0)
 
--- fails, due to GGP-conversion for single-constructor single-value datatype being lazy
-inspect ('gmappend_T1 === 'mappend_T1) { expectFail = True }
+inspect ('gmappend_T1 === 'mappend_T1)
 
 gmappend_T1' :: (Append a) => T1' a -> T1' a -> T1' a
 gmappend_T1' = gmappend
@@ -653,8 +645,7 @@ mappend_U10 (U10 a0 a1 a2 a3 a4 a5 a6 a7 a8 a9) (U10 b0 b1 b2 b3 b4 b5 b6 b7 b8 
     (a8 <> b8)
     (a9 <> b9)
 
--- needs higher thresholds
-inspect ('gmappend_U10 === 'mappend_U10) { expectFail = True }
+inspect ('gmappend_U10 === 'mappend_U10)
 
 gmappend_U10' :: (Append a) => U10' a -> U10' a -> U10' a
 gmappend_U10' = gmappend
@@ -837,11 +828,10 @@ gtheConstructor_I10 :: I10 -> String
 gtheConstructor_I10 x =
   theConstructor x
 
--- TODO: should this be strict?
 theConstructor_I10 :: I10 -> String
 theConstructor_I10 _ = "I10"
 
--- fails due to a strange combination of casts not being eliminated
+-- fails due to lack of string inlining
 inspect ('gtheConstructor_I10 === 'theConstructor_I10) { expectFail = True }
 
 gtheConstructor_I10' :: I10' -> String
@@ -849,10 +839,9 @@ gtheConstructor_I10' x =
   theConstructor x
 
 theConstructor_I10' :: I10' -> String
-theConstructor_I10' !_ = "I10"
+theConstructor_I10' !_ = "I10'"
 
--- fails due to a strange combination of casts not being eliminated
-inspect ('gtheConstructor_I10' === 'theConstructor_I10) { expectFail = True }
+inspect ('gtheConstructor_I10' ==- 'theConstructor_I10')
 
 ---------------------------------------------------------------------
 -- injections
@@ -1054,8 +1043,7 @@ enum'_E10 :: NP (K E10) (Code E10)
 enum'_E10 =
   K E10_0 :* K E10_1 :* K E10_2 :* K E10_3 :* K E10_4 :* K E10_5 :* K E10_6 :* K E10_7 :* K E10_8 :* K E10_9 :* Nil
 
--- needs higher threshold
-inspect ('genum'_E10 === 'enum'_E10) { expectFail = True }
+inspect ('genum'_E10 === 'enum'_E10)
 
 genum'_E10' :: NP (K E10') (Code E10')
 genum'_E10' = genum'
