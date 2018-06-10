@@ -122,14 +122,16 @@ test-suite proofs
                        generics-sop,
                        inspection-testing   >= 0.1
 
-benchmark generics-sop-benchmark
+benchmark generics-sop-bench
   type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Benchmark.hs
-  other-modules:       TestInstances
-  build-depends:       base
-                     , generics-sop
-                     , criterion
-                     , deepseq
-  ghc-options:         -Wall -threaded
+  main-is:             SOPBench.hs
+  other-modules:       SOPBench.Type
+                       SOPBench.Eq
+                       SOPBench.Show
+  hs-source-dirs:      bench
   default-language:    Haskell2010
+  ghc-options:         -Wall
+  build-depends:       base                 >= 4.6  && < 5,
+                       criterion,
+                       generics-sop,
+                       template-haskell
