@@ -19,6 +19,9 @@ data S2 (tag :: Mode) =
     S2_0
   | S2_1
 
+s2 :: S2 tag
+s2 = S2_1
+
 data S20 (tag :: Mode) =
     S20_00
   | S20_01
@@ -41,9 +44,25 @@ data S20 (tag :: Mode) =
   | S20_18
   | S20_19
 
+s20 :: S20 tag
+s20 = S20_17
+
 data Tree (tag :: Mode) =
     Leaf Int
   | Node (Tree tag) (Tree tag)
+
+tree :: Tree tag
+tree = Node (Node (Leaf 1) (Leaf 2)) (Node (Leaf 3) (Leaf 4))
+
+tree_medium :: Tree tag
+tree_medium =
+  Node (Node tree (Node tree tree)) (Node (Node tree tree) tree)
+
+tree_large :: Tree tag
+tree_large =
+  Node
+    (Node tree_medium (Node tree_medium tree_medium))
+    (Node (Node tree_medium tree_medium) tree_medium)
 
 data Prop (tag :: Mode) =
     Var String
