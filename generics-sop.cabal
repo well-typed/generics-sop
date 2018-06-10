@@ -118,5 +118,6 @@ benchmark generics-sop-bench
   default-language:    Haskell2010
   ghc-options:         -Wall
   build-depends:       base                 >= 4.6  && < 5,
+                       criterion,
                        generics-sop,
                        template-haskell
