@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main (main, toTreeC) where
 
+import Data.Proxy
 import qualified GHC.Generics as GHC
 import Generics.SOP
 import Generics.SOP.TH
