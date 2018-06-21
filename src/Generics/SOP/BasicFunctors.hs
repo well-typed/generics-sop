@@ -1,4 +1,7 @@
 {-# LANGUAGE PolyKinds, DeriveGeneric #-}
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 -- | Basic functors.
 --
 -- Definitions of the type-level equivalents of

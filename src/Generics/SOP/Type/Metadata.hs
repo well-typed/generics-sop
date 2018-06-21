@@ -1,4 +1,7 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 -- | Type-level metadata
 --
 -- This module provides datatypes (to be used promoted) that can represent the

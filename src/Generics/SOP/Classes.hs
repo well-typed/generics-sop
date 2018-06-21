@@ -1,4 +1,7 @@
 {-# LANGUAGE PolyKinds #-}
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 -- | Classes for generalized combinators on SOP types.
 --
 -- In the SOP approach to generic programming, we're predominantly

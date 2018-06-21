@@ -1,4 +1,7 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 -- | n-ary products (and products of products)
 module Generics.SOP.NP
   ( -- * Datatypes

@@ -2,6 +2,9 @@
 #if __GLASGOW_HASKELL__ >= 780
 {-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 -- | Derive @generics-sop@ boilerplate instances from GHC's 'GHC.Generic'.
 --
 -- The technique being used here is described in the following paper:
