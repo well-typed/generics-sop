@@ -128,8 +128,8 @@ class (All SListI (Code a)) => Generic (a :: *) where
              => Rep a -> a
   to = gto
 
-instance All SListI a => Generic (SOP I a) where
-  type Code (SOP I a) = a
+instance (All SListI a, f ~ I) => Generic (SOP f a) where
+  type Code (SOP f a) = a
   from = id
   to = id
 
