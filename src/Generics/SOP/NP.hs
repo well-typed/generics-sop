@@ -137,6 +137,16 @@ data NP :: (k -> *) -> [k] -> * where
 
 infixr 5 :*
 
+-- | Stream version of n-ary products.
+--
+-- Used internally for optimisation purposes.
+--
+data NPStream :: (k -> *) -> [k] -> * where
+  NPStream ::
+       (forall y ys . s (y ': ys) -> (f y, s ys))
+    -> s xs
+    -> NPStream f xs
+
 -- This is written manually,
 -- because built-in deriving doesn't use associativity information!
 instance All (Show `Compose` f) xs => Show (NP f xs) where
