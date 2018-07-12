@@ -395,20 +395,21 @@ instance HApInjs SOP where
 -- * Application
 
 -- | Specialization of 'hap'.
-ap_NS :: SListI xs => NP (f -.-> g) xs -> NS f xs -> NS g xs
-ap_NS =
-  apFn_2 (cataSList (fn_2 nil) (fn_2 . cons . apFn_2))
+ap_NS :: forall xs f g . SListI xs => NP (f -.-> g) xs -> NS f xs -> NS g xs
+ap_NS fs xs =
+  unStream_NS (sap (stream_NP fs) (stream_NS xs))
   where
-    nil :: NP (f -.-> g) '[] -> NS f '[] -> NS g '[]
-    nil _ x = refute_NS x
-    {-# INLINE nil #-}
-
-    cons ::
-         (NP (f -.-> g) ys -> NS f ys -> NS g ys)
-      -> (NP (f -.-> g) (y ': ys) -> NS f (y ': ys) -> NS g (y ': ys))
-    cons _ (Fn f :* _ ) (Z x ) = Z (f x)
-    cons r (_    :* fs) (S xs) = S (r fs xs)
-    {-# INLINE cons #-}
+    sap :: NPStream (f -.-> g) xs -> NSStream f xs -> NSStream g xs
+    sap (NPStream nextf sf) (NSStream refutex decidex sx) =
+      NSStream
+        (\ (_ :*: gx) -> refutex gx)
+        (\ (gf :*: gx) -> case decidex gx of
+          Left nx -> Left (case nextf gf of
+            (nf, _) -> apFn nf nx)
+          Right ix -> Right (case nextf gf of
+            (_, nsx) -> nsx :*: ix))
+        (sf :*: sx)
+    {-# INLINE sap #-}
 {-# INLINE ap_NS #-}
 
 -- | Specialization of 'hap'.
@@ -623,10 +624,21 @@ collapse_NS  :: SListI     xs  => NS  (K a) xs  ->   a
 collapse_SOP :: All SListI xss => SOP (K a) xss ->  [a]
 
 collapse_NS =
-  unK .
-  cata_NS
-    (K . unK)
-    (K . unK)
+  scollapse . stream_NS
+  where
+    scollapse (NSStream refute decide s) =
+      ((unK .) . apFn)
+        (cataSList
+          (Fn refute)
+          (\ r ->
+            Fn (\ s' ->
+              case decide s' of
+                Left (K x) -> K x
+                Right i    -> K (unK (apFn r i))
+            )
+          )
+        ) s
+    {-# INLINE scollapse #-}
 {-# INLINE collapse_NS #-}
 
 collapse_SOP =
@@ -1161,3 +1173,37 @@ instance HTrans SOP SOP where
   hcoerce = coerce_SOP
   {-# INLINE htrans #-}
   {-# INLINE hcoerce #-}
+
+-- * Stream fusion
+
+-- | Stream version of n-ary sums.
+--
+-- Used internally for optimisation purposes.
+--
+data NSStream :: (k -> *) -> [k] -> * where
+  NSStream ::
+       (forall r . s '[] -> r)
+    -> (forall y ys . s (y ': ys) -> Either (f y) (s ys))
+    -> s xs -> NSStream f xs
+
+-- | Turns a sum into a corresponding stream.
+--
+stream_NS :: SListI xs => NS f xs -> NSStream f xs
+stream_NS = NSStream refute_NS decide
+  where
+    decide :: NS f (y ': ys) -> Either (f y) (NS f ys)
+    decide (Z x) = Left x
+    decide (S i) = Right i
+    {-# INLINE decide #-}
+{-# INLINE[0] stream_NS #-}
+
+-- | Turns a sum stream into a sum.
+--
+unStream_NS :: SListI xs => NSStream f xs -> NS f xs
+unStream_NS (NSStream refute decide s) = ana_NS refute decide s
+{-# INLINE[0] unStream_NS #-}
+
+{-# RULES
+  "stream_NS/unStream_NS"
+    forall ns . stream_NS (unStream_NS ns) = ns ;
+#-}

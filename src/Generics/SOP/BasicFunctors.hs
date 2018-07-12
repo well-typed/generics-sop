@@ -28,6 +28,7 @@ module Generics.SOP.BasicFunctors
   , unI
   , (:.:)(..)
   , unComp
+  , (:*:)(..)
     -- * Mapping functions
   , mapII
   , mapIK
@@ -257,6 +258,15 @@ instance (Foldable f, Foldable g) => Foldable (f :.: g) where
 instance (Traversable f, Traversable g) => Traversable (f :.: g) where
   traverse f (Comp t) = Comp <$> traverse (traverse f) t
 
+-- | Pairing of functors.
+--
+data (:*:) (f :: k -> *) (g :: k -> *) (x :: k) = f x :*: g x
+  deriving (GHC.Generic)
+
+infixl 6 :*:
+
+instance (Functor f, Functor g) => Functor (f :*: g) where
+  fmap f (x :*: y) = fmap f x :*: fmap f y
 
 -- Instances of lifted Prelude classes
 

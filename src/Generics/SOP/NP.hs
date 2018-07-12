@@ -85,6 +85,11 @@ module Generics.SOP.NP
   , fromI_POP
   , toI_NP
   , toI_POP
+    -- * Stream fusion
+  , NPStream(..)
+  , stream_NP
+  , unStream_NP
+  , allDict_NP
   ) where
 
 #if !(MIN_VERSION_base(4,8,0))
@@ -136,16 +141,6 @@ data NP :: (k -> *) -> [k] -> * where
   (:*) :: f x -> !(NP f xs) -> NP f (x ': xs)
 
 infixr 5 :*
-
--- | Stream version of n-ary products.
---
--- Used internally for optimisation purposes.
---
-data NPStream :: (k -> *) -> [k] -> * where
-  NPStream ::
-       (forall y ys . s (y ': ys) -> (f y, s ys))
-    -> s xs
-    -> NPStream f xs
 
 -- This is written manually,
 -- because built-in deriving doesn't use associativity information!
@@ -220,7 +215,7 @@ type instance SListIN POP = SListI2
 --
 pure_NP :: forall f xs. SListI xs => (forall a. f a) -> NP f xs
 pure_NP f =
-  cataSList Nil (f :*)
+  unStream_NP (NPStream (\ _ -> (f, K())) (K ()))
 {-# INLINE pure_NP #-}
 
 -- | Specialization of 'hpure'.
@@ -241,8 +236,8 @@ sListP = Proxy
 --
 cpure_NP :: forall c xs proxy f. All c xs
          => proxy c -> (forall a. c a => f a) -> NP f xs
-cpure_NP p f =
-  ccataSList p Nil (f :*)
+cpure_NP _ f =
+  map_NP (\ Dict -> f) (allDict_NP :: NP (Dict c) xs)
 {-# INLINE cpure_NP #-}
 
 -- | Specialization of 'hcpure'.
@@ -252,7 +247,8 @@ cpure_NP p f =
 --
 cpure_POP :: forall c xss proxy f. All2 c xss
           => proxy c -> (forall a. c a => f a) -> POP f xss
-cpure_POP p f = POP (cpure_NP (allP p) (cpure_NP p f))
+cpure_POP p f =
+  POP (cpure_NP (allP p) (cpure_NP p f))
 {-# INLINE cpure_POP #-}
 
 allP :: proxy c -> Proxy (All c)
@@ -298,19 +294,18 @@ fromList =
 -- Applies a product of (lifted) functions pointwise to a product of
 -- suitable arguments.
 --
-ap_NP :: SListI xs => NP (f -.-> g) xs -> NP f xs -> NP g xs
-ap_NP =
-  apFn_2 (cataSList (fn_2 nil) (fn_2 . cons . apFn_2))
+ap_NP :: forall xs f g . SListI xs => NP (f -.-> g) xs -> NP f xs -> NP g xs
+ap_NP fs xs =
+  unStream_NP (sap (stream_NP fs) (stream_NP xs))
   where
-    nil :: NP (f -.-> g) '[] -> NP f '[] -> NP g '[]
-    nil Nil Nil = Nil
-    {-# INLINE nil #-}
-
-    cons ::
-         (NP (f -.-> g) ys -> NP f ys -> NP g ys)
-      -> (NP (f -.-> g) (y ': ys) -> NP f (y ': ys) -> NP g (y ': ys))
-    cons r (Fn f :* fs) (x :* xs) = f x :* r fs xs
-    {-# INLINE cons #-}
+    sap :: NPStream (f -.-> g) xs -> NPStream f xs -> NPStream g xs
+    sap (NPStream nextf sf) (NPStream nextx sx) =
+      NPStream
+        (\ (gf :*: gx) -> case nextf gf of
+          (nf, nsf) -> case nextx gx of
+            (nx, nsx) -> (apFn nf nx, nsf :*: nsx))
+        (sf :*: sx)
+    {-# INLINE sap #-}
 {-# INLINE ap_NP #-}
 
 -- | Specialization of 'hap'.
@@ -319,7 +314,8 @@ ap_NP =
 -- suitable arguments.
 --
 ap_POP :: All SListI xss => POP (f -.-> g) xss -> POP  f xss -> POP  g xss
-ap_POP (POP fs) (POP xs) = POP (czipWith_NP (Proxy :: Proxy SListI) ap_NP fs xs)
+ap_POP (POP fs) (POP xs) =
+  POP (czipWith_NP (Proxy :: Proxy SListI) ap_NP fs xs)
 {-# INLINE ap_POP #-}
 
 -- The definition of 'ap_POP' is a more direct variant of
@@ -542,11 +538,19 @@ collapse_POP :: All SListI xss => POP (K a) xss -> [[a]]
 
 collapse_NP np =
   build $ \ cons nil ->
-  unK $
-  cata_NP
-    (K nil)
-    (\ (K x) (K r) -> K (x `cons` r))
-    np
+  let
+    scollapse (NPStream next s) =
+      ((unK .) . apFn)
+        (cataSList
+          (Fn (const (K nil)))
+          (\ r ->
+            Fn (\ s' ->
+              case next s' of
+                (K x, xs) -> K ((x `cons`) (unK (apFn r xs)))))
+        ) s
+    {-# INLINE scollapse #-}
+  in
+    scollapse (stream_NP np)
 {-# INLINE collapse_NP #-}
 
 collapse_POP =
@@ -973,3 +977,40 @@ instance HTrans NP NP where
 instance HTrans POP POP where
   htrans  = trans_POP
   hcoerce = coerce_POP
+
+-- * Stream fusion
+
+-- | Stream version of n-ary products.
+--
+-- Used internally for optimisation purposes.
+--
+data NPStream :: (k -> *) -> [k] -> * where
+  NPStream ::
+       (forall y ys . s (y ': ys) -> (f y, s ys))
+    -> s xs
+    -> NPStream f xs
+
+-- | Turns a product into a corresponding stream.
+--
+stream_NP :: SListI xs => NP f xs -> NPStream f xs
+stream_NP = NPStream uncons
+  where
+    uncons :: NP f (y ': ys) -> (f y, NP f ys)
+    uncons (x :* xs) = (x, xs)
+    {-# INLINE uncons #-}
+{-# INLINE[0] stream_NP #-}
+
+-- | Turns a product stream into a product.
+unStream_NP :: SListI xs => NPStream f xs -> NP f xs
+unStream_NP (NPStream next s) = ana_NP next s
+{-# INLINE[0] unStream_NP #-}
+
+{-# RULES
+  "stream_NP/unStream_NP"
+    forall np . stream_NP (unStream_NP np) = np ;
+#-}
+
+-- | Produce a product of dictionaries.
+allDict_NP :: forall c xs . All c xs => NP (Dict c) xs
+allDict_NP = ccataSList (Proxy :: Proxy c) Nil (Dict :*)
+{-# INLINE allDict_NP #-}

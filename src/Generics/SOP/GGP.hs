@@ -27,7 +27,7 @@ import Data.Proxy
 import GHC.Generics as GHC
 import Generics.SOP.NP as SOP
 import Generics.SOP.NS as SOP
-import Generics.SOP.BasicFunctors as SOP
+import Generics.SOP.BasicFunctors as SOP hiding ((:*:))
 #if !(MIN_VERSION_base(4,9,0))
 import Generics.SOP.Constraint as SOP
 #endif

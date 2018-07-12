@@ -24,20 +24,6 @@ import Generics.SOP.Constraint
 import Generics.SOP.NP
 import Generics.SOP.Sing
 
--- | An explicit dictionary carrying evidence of a
--- class constraint.
---
--- The constraint parameter is separated into a
--- second argument so that @'Dict' c@ is of the correct
--- kind to be used directly as a parameter to e.g. 'NP'.
---
--- @since 0.2
---
-data Dict (c :: k -> Constraint) (a :: k) where
-  Dict :: c a => Dict c a
-
-deriving instance Show (Dict c a)
-
 -- | A proof that the trivial constraint holds
 -- over all type-level lists.
 --

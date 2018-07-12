@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, UndecidableInstances #-}
+{-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
 #if __GLASGOW_HASKELL__ < 710
 {-# LANGUAGE OverlappingInstances #-}
 #endif
@@ -21,6 +21,20 @@ import Data.Coerce
 import GHC.Exts (Constraint)
 
 import Generics.SOP.Sing
+
+-- | An explicit dictionary carrying evidence of a
+-- class constraint.
+--
+-- The constraint parameter is separated into a
+-- second argument so that @'Dict' c@ is of the correct
+-- kind to be used directly as a parameter to e.g. 'NP'.
+--
+-- @since 0.2
+--
+data Dict (c :: k -> Constraint) (a :: k) where
+  Dict :: c a => Dict c a
+
+deriving instance Show (Dict c a)
 
 -- | Require a constraint for every element of a list.
 --
