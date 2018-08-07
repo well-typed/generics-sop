@@ -42,6 +42,24 @@ import Generics.SOP.Sing
 --
 -- means that 'f' can assume that all elements of the n-ary
 -- product satisfy 'Eq'.
+
+-- Note on superclasses: ghc cannot deduce superclasses from 'All'
+-- constraints.
+-- You might expect the following to compile
+-- > class (Eq a) => MyClass a
+-- >
+-- > foo :: (All Eq xs) => NP f xs -> z
+-- > foo = [..]
+-- >
+-- > bar :: (All MyClass xs) => NP f xs -> x
+-- > bar = foo
+-- but it will fail with an error saying that it was unable to
+-- satisfy the class constraint 'AllZip2 Eq xs' (or similar) in the
+-- definition of 'bar',
+-- In cases like this you can use 'Dict' from "Generics.SOP.Dict"
+-- to prove conversions between constraints.
+-- See [this answer on SO for more details](https://stackoverflow.com/questions/50777865/super-classes-with-all-from-generics-sop).
+
 --
 class (AllF f xs, SListI xs) => All (f :: k -> Constraint) (xs :: [k])
 instance (AllF f xs, SListI xs) => All f xs
