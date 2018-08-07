@@ -54,9 +54,9 @@ import Generics.SOP.Sing
 -- > bar :: (All MyClass xs) => NP f xs -> x
 -- > bar = foo
 -- but it will fail with an error saying that it was unable to
--- satisfy the class constraint 'AllZip2 Eq xs' (or similar) in the
--- definition of 'bar',
--- In cases like this you can use 'Dict' from "Generics.SOP.Dict"
+-- deduce the class constraint 'AllF Eq xs' (or similar) in the
+-- definition of 'bar'.
+-- In cases like this you can use 'Dict' from 'Generics.SOP.Dict'
 -- to prove conversions between constraints.
 -- See [this answer on SO for more details](https://stackoverflow.com/questions/50777865/super-classes-with-all-from-generics-sop).
 
