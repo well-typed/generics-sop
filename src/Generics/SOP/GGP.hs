@@ -209,6 +209,10 @@ class GSumFrom (a :: * -> *) where
   gSumFrom :: a x -> SOP I xss -> SOP I (ToSumCode a xss)
   gSumSkip :: proxy a -> SOP I xss -> SOP I (ToSumCode a xss)
 
+instance GSumFrom V1 where
+  gSumFrom x = x `seq` error "GSumFrom V1"
+  gSumSkip _ xss = xss
+
 instance (GSumFrom a, GSumFrom b) => GSumFrom (a :+: b) where
   gSumFrom (L1 a) xss = gSumFrom a (gSumSkip (Proxy :: Proxy b) xss)
   gSumFrom (R1 b) xss = gSumSkip (Proxy :: Proxy a) (gSumFrom b xss)
