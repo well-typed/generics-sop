@@ -61,11 +61,16 @@ module Generics.SOP.Classes
     -- * Collapsing homogeneous structures
   , CollapseTo
   , HCollapse(..)
-    -- * Sequencing effects
+    -- * Folding and sequencing
+  , HTraverse_(..)
   , HSequence(..)
     -- ** Derived functions
+  , hcfoldMap
+  , hcfor_
   , hsequence
   , hsequenceK
+  , hctraverse
+  , hcfor
     -- * Indexing into sums
   , HIndex(..)
     -- * Applying all injections
@@ -81,6 +86,7 @@ module Generics.SOP.Classes
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative (Applicative)
+import Data.Monoid (Monoid)
 #endif
 
 import Generics.SOP.BasicFunctors
@@ -394,6 +400,56 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
   --
   hcollapse :: SListIN h xs => h (K a) xs -> CollapseTo h a
 
+-- | A generalization of 'Data.Foldable.traverse_' or 'Data.Foldable.foldMap'.
+--
+-- @since 0.3.2.0
+--
+class HTraverse_ (h :: (k -> *) -> (l -> *)) where
+
+  -- | Corresponds to 'Data.Foldable.traverse_'.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hctraverse_', 'Generics.SOP.NP.ctraverse__NP'  :: ('All'  c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NP.NP'  f xs  -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NS.ctraverse__NS'  :: ('All2' c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NS.NS'  f xs  -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NP.ctraverse__POP' :: ('All'  c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NP.POP' f xss -> g ()
+  -- 'hctraverse_', 'Generics.SOP.NS.ctraverse__SOP' :: ('All2' c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g ()) -> 'Generics.SOP.NS.SOP' f xss -> g ()
+  -- @
+  --
+  -- @since 0.3.2.0
+  --
+  hctraverse_ :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g ()) -> h f xs -> g ()
+
+  -- | Unconstrained version of 'hctraverse_'.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'traverse_', 'Generics.SOP.NP.traverse__NP'  :: ('SListI'  xs , 'Applicative g') => (forall a. f a -> g ()) -> 'Generics.SOP.NP.NP'  f xs  -> g ()
+  -- 'traverse_', 'Generics.SOP.NS.traverse__NS'  :: ('SListI'  xs , 'Applicative g') => (forall a. f a -> g ()) -> 'Generics.SOP.NS.NS'  f xs  -> g ()
+  -- 'traverse_', 'Generics.SOP.NP.traverse__POP' :: ('SListI2' xss, 'Applicative g') => (forall a. f a -> g ()) -> 'Generics.SOP.NP.POP' f xss -> g ()
+  -- 'traverse_', 'Generics.SOP.NS.traverse__SOP' :: ('SListI2' xss, 'Applicative g') => (forall a. f a -> g ()) -> 'Generics.SOP.NS.SOP' f xss -> g ()
+  -- @
+  --
+  -- @since 0.3.2.0
+  --
+  htraverse_ :: (SListIN h xs, Applicative g) => (forall a. f a -> g ()) -> h f xs -> g ()
+
+-- | Flipped version of 'hctraverse_'.
+--
+-- @since 0.3.2.0
+--
+hcfor_ :: (HTraverse_ h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g ()) -> g ()
+hcfor_ p xs f = hctraverse_ p f xs
+
+-- | Special case of 'hctraverse_'.
+--
+-- @since 0.3.2.0
+--
+hcfoldMap :: (HTraverse_ h, AllN h c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> h f xs -> m
+hcfoldMap p f = unK . hctraverse_ p (K . f)
+
 -- * Sequencing effects
 
 -- | A generalization of 'Data.Traversable.sequenceA'.
@@ -414,7 +470,52 @@ class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
   --
   hsequence' :: (SListIN h xs, Applicative f) => h (f :.: g) xs -> f (h g xs)
 
+
+  -- | Corresponds to 'Data.Traversable.traverse'.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'hctraverse'', 'Generics.SOP.NP.ctraverse'_NP'  :: ('All'  c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.NP'  f xs  -> g ('Generics.SOP.NP.NP'  f' xs )
+  -- 'hctraverse'', 'Generics.SOP.NS.ctraverse'_NS'  :: ('All2' c xs , 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.NS'  f xs  -> g ('Generics.SOP.NS.NS'  f' xs )
+  -- 'hctraverse'', 'Generics.SOP.NP.ctraverse'_POP' :: ('All'  c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.POP' f xss -> g ('Generics.SOP.NP.POP' f' xss)
+  -- 'hctraverse'', 'Generics.SOP.NS.ctraverse'_SOP' :: ('All2' c xss, 'Applicative' g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.SOP' f xss -> g ('Generics.SOP.NS.SOP' f' xss)
+  -- @
+  --
+  -- @since 0.3.2.0
+  --
+  hctraverse' :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> h f xs -> g (h f' xs)
+
+  -- | Unconstrained variant of `htraverse'`.
+  --
+  -- /Instances:/
+  --
+  -- @
+  -- 'htraverse'', 'Generics.SOP.NP.traverse'_NP'  :: ('SListI'  xs , 'Applicative' g) => (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.NP'  f xs  -> g ('Generics.SOP.NP.NP'  f' xs )
+  -- 'htraverse'', 'Generics.SOP.NS.traverse'_NS'  :: ('SListI2' xs , 'Applicative' g) => (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.NS'  f xs  -> g ('Generics.SOP.NS.NS'  f' xs )
+  -- 'htraverse'', 'Generics.SOP.NP.traverse'_POP' :: ('SListI'  xss, 'Applicative' g) => (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NP.POP' f xss -> g ('Generics.SOP.NP.POP' f' xss)
+  -- 'htraverse'', 'Generics.SOP.NS.traverse'_SOP' :: ('SListI2' xss, 'Applicative' g) => (forall a. c a => f a -> g (f' a)) -> 'Generics.SOP.NS.SOP' f xss -> g ('Generics.SOP.NS.SOP' f' xss)
+  -- @
+  --
+  -- @since 0.3.2.0
+  --
+  htraverse' :: (SListIN h xs, Applicative g) => (forall a. f a -> g (f' a)) -> h f xs -> g (h f' xs)
+
 -- ** Derived functions
+
+-- | Special case of 'hctraverse'' where @f' = 'I'@.
+--
+-- @since 0.3.2.0
+--
+hctraverse :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> h f xs -> g (h I xs)
+hctraverse p f = hctraverse' p (fmap I . f)
+
+-- | Flipped version of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
+hcfor :: (HSequence h, AllN h c xs, Applicative g) => proxy c -> h f xs -> (forall a. c a => f a -> g a) -> g (h I xs)
+hcfor p xs f = hctraverse p f xs
 
 -- | Special case of 'hsequence'' where @g = 'I'@.
 hsequence :: (SListIN h xs, SListIN (Prod h) xs, HSequence h) => Applicative f => h f xs -> f (h I xs)

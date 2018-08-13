@@ -1,5 +1,5 @@
 name:                generics-sop
-version:             0.3.1.0
+version:             0.3.2.0
 synopsis:            Generic Programming using True Sums of Products
 description:
   A library to support the definition of generic functions.
@@ -34,16 +34,10 @@ license-file:        LICENSE
 author:              Edsko de Vries <edsko@well-typed.com>, Andres Löh <andres@well-typed.com>
 maintainer:          andres@well-typed.com
 category:            Generics
-build-type:          Custom
+build-type:          Simple
 cabal-version:       >=1.10
-extra-source-files:  CHANGELOG.md
-tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1, GHC == 8.0.2, GHC == 8.2.1, GHC == 8.3.*
-
-custom-setup
-  setup-depends:
-    base,
-    Cabal,
-    cabal-doctest >= 1.0.2 && <1.1
+extra-source-files:  CHANGELOG.md doctest.sh
+tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.4.3
 
 source-repository head
   type:                git
@@ -66,13 +60,11 @@ library
                        Generics.SOP.Universe
                        Generics.SOP.Sing
   build-depends:       base                 >= 4.7  && < 5,
-                       template-haskell     >= 2.8  && < 2.13,
+                       template-haskell     >= 2.8  && < 2.15,
                        ghc-prim             >= 0.3  && < 0.6,
                        deepseq              >= 1.3  && < 1.5
-  if !impl (ghc >= 7.8)
-    build-depends:     tagged               >= 0.7  && < 0.9
   if !impl (ghc >= 8.0)
-    build-depends:     transformers-compat  >= 0.3  && < 0.6,
+    build-depends:     transformers-compat  >= 0.3  && < 0.7,
                        transformers         >= 0.3  && < 0.6
 
   hs-source-dirs:      src
@@ -96,8 +88,7 @@ library
                        KindSignatures
                        DataKinds
                        FunctionalDependencies
-  if impl (ghc >= 7.8)
-    default-extensions:  AutoDeriveTypeable
+                       AutoDeriveTypeable
   other-extensions:    OverloadedStrings
                        PolyKinds
                        UndecidableInstances
@@ -106,19 +97,6 @@ library
                        StandaloneDeriving
   if impl (ghc < 7.10)
     other-extensions:    OverlappingInstances
-
-test-suite doctests
-  type:                exitcode-stdio-1.0
-  main-is:             doctests.hs
-  x-doctest-options:   --preserve-it
-  -- The following lines should be enabled once we're prepared to require Cabal 2.0:
-  -- other-modules:       Build_doctests
-  -- autogen-modules:     Build_doctests
-  hs-source-dirs:      test
-  default-language:    Haskell2010
-  build-depends:       base,
-                       doctest >= 0.13 && <0.14
-  ghc-options:         -Wall -threaded
 
 test-suite generics-sop-examples
   type:                exitcode-stdio-1.0

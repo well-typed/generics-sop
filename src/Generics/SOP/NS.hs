@@ -43,14 +43,31 @@ module Generics.SOP.NS
   , cmap_SOP
     -- * Dealing with @'All' c@
   , cliftA2'_NS
+    -- * Comparison
+  , compare_NS
+  , ccompare_NS
+  , compare_SOP
+  , ccompare_SOP
     -- * Collapsing
   , collapse_NS
   , collapse_SOP
-    -- * Sequencing
+    -- * Folding and sequencing
+  , ctraverse__NS
+  , ctraverse__SOP
+  , traverse__NS
+  , traverse__SOP
+  , cfoldMap_NS
+  , cfoldMap_SOP
   , sequence'_NS
   , sequence'_SOP
   , sequence_NS
   , sequence_SOP
+  , ctraverse'_NS
+  , ctraverse'_SOP
+  , traverse'_NS
+  , traverse'_SOP
+  , ctraverse_NS
+  , ctraverse_SOP
     -- * Catamorphism and anamorphism
   , cata_NS
   , ccata_NS
@@ -74,6 +91,7 @@ module Generics.SOP.NS
 
 #if !(MIN_VERSION_base(4,8,0))
 import Control.Applicative
+import Data.Monoid (Monoid)
 #endif
 import Data.Coerce
 import Data.Proxy
@@ -232,6 +250,9 @@ instance (NFData (NS (NP f) xss)) => NFData (SOP f xss) where
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
+
+type instance AllN NS  c = All  c
+type instance AllN SOP c = All2 c
 
 -- | Obtain the index from an n-ary sum of products.
 --
@@ -477,6 +498,95 @@ cliftA2'_NS :: All2 c xss => proxy c -> (forall xs. All c xs => f xs -> g xs -> 
 
 cliftA2'_NS = hcliftA2'
 
+-- * Comparison
+
+-- | Compare two sums with respect to the choice they
+-- are making.
+--
+-- A value that chooses the first option
+-- is considered smaller than one that chooses the second
+-- option.
+--
+-- If the choices are different, then either the first
+-- (if the first is smaller than the second)
+-- or the third (if the first is larger than the second)
+-- argument are called. If both choices are equal, then the
+-- second argument is called, which has access to the
+-- elements contained in the sums.
+--
+-- @since 0.3.2.0
+--
+compare_NS ::
+     forall r f g xs .
+     r                             -- ^ what to do if first is smaller
+  -> (forall x . f x -> g x -> r)  -- ^ what to do if both are equal
+  -> r                             -- ^ what to do if first is larger
+  -> NS f xs -> NS g xs
+  -> r
+compare_NS lt eq gt = go
+  where
+    go :: forall ys . NS f ys -> NS g ys -> r
+    go (Z x)  (Z y)  = eq x y
+    go (Z _)  (S _)  = lt
+    go (S _)  (Z _)  = gt
+    go (S xs) (S ys) = go xs ys
+
+-- | Constrained version of 'compare_NS'.
+--
+-- @since 0.3.2.0
+--
+ccompare_NS ::
+     forall c proxy r f g xs .
+     (All c xs)
+  => proxy c
+  -> r                                    -- ^ what to do if first is smaller
+  -> (forall x . c x => f x -> g x -> r)  -- ^ what to do if both are equal
+  -> r                                    -- ^ what to do if first is larger
+  -> NS f xs -> NS g xs
+  -> r
+ccompare_NS _ lt eq gt = go
+  where
+    go :: forall ys . (All c ys) => NS f ys -> NS g ys -> r
+    go (Z x)  (Z y)  = eq x y
+    go (Z _)  (S _)  = lt
+    go (S _)  (Z _)  = gt
+    go (S xs) (S ys) = go xs ys
+
+-- | Compare two sums of products with respect to the
+-- choice in the sum they are making.
+--
+-- Only the sum structure is used for comparison.
+-- This is a small wrapper around 'ccompare_NS' for
+-- a common special case.
+--
+-- @since 0.3.2.0
+--
+compare_SOP ::
+     forall r f g xss .
+     r                                      -- ^ what to do if first is smaller
+  -> (forall xs . NP f xs -> NP g xs -> r)  -- ^ what to do if both are equal
+  -> r                                      -- ^ what to do if first is larger
+  -> SOP f xss -> SOP g xss
+  -> r
+compare_SOP lt eq gt (SOP xs) (SOP ys) =
+  compare_NS lt eq gt xs ys
+
+-- | Constrained version of 'compare_SOP'.
+--
+-- @since 0.3.2.0
+--
+ccompare_SOP ::
+     forall c proxy r f g xss .
+     (All2 c xss)
+  => proxy c
+  -> r                                                  -- ^ what to do if first is smaller
+  -> (forall xs . All c xs => NP f xs -> NP g xs -> r)  -- ^ what to do if both are equal
+  -> r                                                  -- ^ what to do if first is larger
+  -> SOP f xss -> SOP g xss
+  -> r
+ccompare_SOP p lt eq gt (SOP xs) (SOP ys) =
+  ccompare_NS (allP p) lt eq gt xs ys
+
 -- * Collapsing
 
 -- | Specialization of 'hcollapse'.
@@ -507,6 +617,89 @@ type instance CollapseTo SOP a = [a]
 instance HCollapse NS  where hcollapse = collapse_NS
 instance HCollapse SOP where hcollapse = collapse_SOP
 
+-- * Folding
+
+-- | Specialization of 'hctraverse_'.
+--
+-- /Note:/ we don't need 'Applicative' constraint.
+--
+-- @since 0.3.2.0
+--
+ctraverse__NS ::
+     forall c proxy xs f g. (All c xs)
+  => proxy c -> (forall a. c a => f a -> g ()) -> NS f xs -> g ()
+ctraverse__NS _ f = go
+  where
+    go :: All c ys => NS f ys -> g ()
+    go (Z x)  = f x
+    go (S xs) = go xs
+
+-- | Specialization of 'htraverse_'.
+--
+-- /Note:/ we don't need 'Applicative' constraint.
+--
+-- @since 0.3.2.0
+--
+traverse__NS ::
+     forall xs f g. (SListI xs)
+  => (forall a. f a -> g ()) -> NS f xs -> g ()
+traverse__NS f = go
+  where
+    go :: NS f ys -> g ()
+    go (Z x)  = f x
+    go (S xs) = go xs
+
+-- | Specialization of 'hctraverse_'.
+--
+-- @since 0.3.2.0
+--
+ctraverse__SOP ::
+     forall c proxy xss f g. (All2 c xss, Applicative g)
+  => proxy c -> (forall a. c a => f a -> g ()) -> SOP f xss -> g ()
+ctraverse__SOP p f = ctraverse__NS (allP p) (ctraverse__NP p f) . unSOP
+
+-- | Specialization of 'htraverse_'.
+--
+-- @since 0.3.2.0
+--
+traverse__SOP ::
+     forall xss f g. (SListI2 xss, Applicative g)
+  => (forall a. f a -> g ()) -> SOP f xss -> g ()
+traverse__SOP f = ctraverse__NS sListP (traverse__NP f) . unSOP
+
+sListP :: Proxy SListI
+sListP = Proxy
+
+instance HTraverse_ NS  where
+  hctraverse_ = ctraverse__NS
+  htraverse_  = traverse__NS
+
+instance HTraverse_ SOP where
+  hctraverse_ = ctraverse__SOP
+  htraverse_  = traverse__SOP
+
+-- | Specialization of 'hcfoldMap'.
+--
+-- /Note:/ We don't need 'Monoid' instance.
+--
+-- @since 0.3.2.0
+--
+cfoldMap_NS ::
+     forall c proxy f xs m. (All c xs)
+  => proxy c -> (forall a. c a => f a -> m) -> NS f xs -> m
+cfoldMap_NS _ f = go
+  where
+    go :: All c ys => NS f ys -> m
+    go (Z x)  = f x
+    go (S xs) = go xs
+
+-- | Specialization of 'hcfoldMap'.
+--
+-- @since 0.3.2.0
+--
+cfoldMap_SOP :: (All2 c xs, Monoid m) => proxy c -> (forall a. c a => f a -> m) -> SOP f xs -> m
+cfoldMap_SOP = hcfoldMap
+
 -- * Sequencing
 
 -- | Specialization of 'hsequence''.
@@ -526,8 +719,57 @@ sequence'_NS = apFnM (cataSList (FnM refute_NS) (FnM . cons . apFnM))
 sequence'_SOP = fmap SOP . sequence'_NS . hcmap (Proxy :: Proxy SListI) (Comp . sequence'_NP) . unSOP
 {-# INLINE sequence'_SOP #-}
 
-instance HSequence NS  where hsequence' = sequence'_NS
-instance HSequence SOP where hsequence' = sequence'_SOP
+-- | Specialization of 'hctraverse''.
+--
+-- /Note:/ as 'NS' has exactly one element, the 'Functor' constraint is enough.
+--
+-- @since 0.3.2.0
+--
+ctraverse'_NS  ::
+     forall c proxy xs f f' g. (All c xs,  Functor g)
+  => proxy c -> (forall a. c a => f a -> g (f' a)) -> NS f xs  -> g (NS f' xs)
+ctraverse'_NS _ f = go where
+  go :: All c ys => NS f ys -> g (NS f' ys)
+  go (Z x)  = Z <$> f x
+  go (S xs) = S <$> go xs
+
+-- | Specialization of 'htraverse''.
+--
+-- /Note:/ as 'NS' has exactly one element, the 'Functor' constraint is enough.
+--
+-- @since 0.3.2.0
+--
+traverse'_NS  ::
+     forall xs f f' g. (SListI xs,  Functor g)
+  => (forall a. f a -> g (f' a)) -> NS f xs  -> g (NS f' xs)
+traverse'_NS f = go where
+  go :: NS f ys -> g (NS f' ys)
+  go (Z x)  = Z <$> f x
+  go (S xs) = S <$> go xs
+
+-- | Specialization of 'hctraverse''.
+--
+-- @since 0.3.2.0
+--
+ctraverse'_SOP :: (All2 c xss, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> SOP f xss -> g (SOP f' xss)
+ctraverse'_SOP p f = fmap SOP . ctraverse'_NS (allP p) (ctraverse'_NP p f) . unSOP
+
+-- | Specialization of 'htraverse''.
+--
+-- @since 0.3.2.0
+--
+traverse'_SOP :: (SListI2 xss, Applicative g) => (forall a. f a -> g (f' a)) -> SOP f xss -> g (SOP f' xss)
+traverse'_SOP f = fmap SOP . ctraverse'_NS sListP (traverse'_NP f) . unSOP
+
+instance HSequence NS  where
+  hsequence'  = sequence'_NS
+  hctraverse' = ctraverse'_NS
+  htraverse'  = traverse'_NS
+
+instance HSequence SOP where
+  hsequence'  = sequence'_SOP
+  hctraverse' = ctraverse'_SOP
+  htraverse'  = traverse'_SOP
 
 -- | Specialization of 'hsequence'.
 sequence_NS  :: (SListI xs,  Applicative f) => NS  f xs  -> f (NS  I xs)
@@ -537,6 +779,21 @@ sequence_SOP :: (All SListI xss, Applicative f) => SOP f xss -> f (SOP I xss)
 
 sequence_NS   = hsequence
 sequence_SOP  = hsequence
+
+-- | Specialization of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
+ctraverse_NS  :: (All  c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> NP  f xs -> g (NP  I xs)
+
+-- | Specialization of 'hctraverse'.
+--
+-- @since 0.3.2.0
+--
+ctraverse_SOP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> POP f xs -> g (POP I xs)
+
+ctraverse_NS = hctraverse
+ctraverse_SOP = hctraverse
 
 -- * Catamorphism and anamorphism
 
