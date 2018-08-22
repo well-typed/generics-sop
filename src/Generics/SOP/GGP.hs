@@ -230,6 +230,9 @@ instance (GProductFrom a) => GSumFrom (M1 C c a) where
 class GSumTo (a :: * -> *) where
   gSumTo :: SOP I (ToSumCode a xss) -> (a x -> r) -> (SOP I xss -> r) -> r
 
+instance GSumTo V1 where
+  gSumTo x _ k = k x
+
 instance (GSumTo a, GSumTo b) => GSumTo (a :+: b) where
   gSumTo xss s k = gSumTo xss (s . L1) (\ r -> gSumTo r (s . R1) k)
 
