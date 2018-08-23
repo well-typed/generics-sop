@@ -328,6 +328,8 @@ tl (_x :* xs) = xs
 
 -- | The type of projections from an n-ary product.
 --
+-- A projection is a function from the n-ary product to a single element.
+--
 type Projection (f :: k -> *) (xs :: [k]) = K (NP f xs) -.-> f
 
 -- | Compute all projections from an n-ary product.
