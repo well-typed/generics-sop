@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, UndecidableInstances #-}
+{-# LANGUAGE EmptyCase, PolyKinds, UndecidableInstances #-}
 #if __GLASGOW_HASKELL__ >= 780
 {-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
 #endif
@@ -210,7 +210,7 @@ class GSumFrom (a :: * -> *) where
   gSumSkip :: proxy a -> SOP I xss -> SOP I (ToSumCode a xss)
 
 instance GSumFrom V1 where
-  gSumFrom x = x `seq` error "GSumFrom V1"
+  gSumFrom x = case x of {}
   gSumSkip _ xss = xss
 
 instance (GSumFrom a, GSumFrom b) => GSumFrom (a :+: b) where
@@ -294,7 +294,7 @@ gfrom x = gSumFrom (GHC.from x) (error "gfrom: internal error" :: SOP.SOP SOP.I 
 -- For more info, see 'Generics.SOP.Generic'.
 --
 gto :: forall a. (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
-gto x = GHC.to (gSumTo x id ((\ _ -> error "inaccessible") :: SOP I '[] -> (GHC.Rep a) x))
+gto x = GHC.to (gSumTo x id ((\y -> case y of {}) :: SOP I '[] -> (GHC.Rep a) x))
 
 -- | An automatically computed version of 'Generics.SOP.datatypeInfo'.
 --

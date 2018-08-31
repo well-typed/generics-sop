@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -172,7 +173,7 @@ instance All (NFData `Compose` f) xs => NFData (NS f xs) where
 --
 unZ :: NS f '[x] -> f x
 unZ (Z x) = x
-unZ _     = error "inaccessible" -- needed even in GHC 8.0.1
+unZ (S x) = case x of {}
 
 -- | Obtain the index from an n-ary sum.
 --
@@ -357,7 +358,7 @@ instance HApInjs SOP where
 ap_NS :: NP (f -.-> g) xs -> NS f xs -> NS g xs
 ap_NS (Fn f  :* _)   (Z x)   = Z (f x)
 ap_NS (_     :* fs)  (S xs)  = S (ap_NS fs xs)
-ap_NS _ _ = error "inaccessible"
+ap_NS Nil            x       = case x of {}
 
 -- | Specialization of 'hap'.
 ap_SOP  :: POP (f -.-> g) xss -> SOP f xss -> SOP g xss
@@ -366,7 +367,7 @@ ap_SOP (POP fss') (SOP xss') = SOP (go fss' xss')
     go :: NP (NP (f -.-> g)) xss -> NS (NP f) xss -> NS (NP g) xss
     go (fs :* _  ) (Z xs ) = Z (ap_NP fs  xs )
     go (_  :* fss) (S xss) = S (go    fss xss)
-    go _           _       = error "inaccessible"
+    go Nil         x       = case x of {}
 
 -- The definition of 'ap_SOP' is a more direct variant of
 -- '_ap_SOP_spec'. The direct definition has the advantage
@@ -812,7 +813,7 @@ expand_NS d = go sList
     go :: forall ys . SList ys -> NS f ys -> NP f ys
     go SCons (Z x) = x :* hpure d
     go SCons (S i) = d :* go sList i
-    go SNil  _     = error "inaccessible" -- still required in ghc-8.0.*
+    go SNil  x     = case x of {}
 
 -- | Specialization of 'hcexpand'.
 --

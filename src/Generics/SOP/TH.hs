@@ -51,7 +51,7 @@ import Generics.SOP.Universe
 -- >
 -- >   to (SOP    (Z (I x :* Nil)))         = Leaf x
 -- >   to (SOP (S (Z (I l :* I r :* Nil)))) = Node l r
--- >   to _ = error "unreachable" -- to avoid GHC warnings
+-- >   to (SOP (S (S x)))                   = x `seq` error "inaccessible"
 -- >
 -- > instance HasDatatypeInfo Tree where
 -- >   type DatatypeInfoOf Tree =
@@ -95,7 +95,7 @@ deriveGenericOnly n = do
 -- > toTree :: SOP I TreeCode -> Tree
 -- > toTree (SOP    (Z (I x :* Nil)))         = Leaf x
 -- > toTree (SOP (S (Z (I l :* I r :* Nil)))) = Node l r
--- > toTree _ = error "unreachable" -- to avoid GHC warnings
+-- > toTree (SOP (S (S x)))                   = x `seq` error "inaccessible"
 --
 -- @since 0.2
 --
@@ -233,30 +233,43 @@ embedding fromName = funD fromName . go' (\e -> [| Z $e |])
              []
 
 projection :: Name -> [Con] -> Q Dec
-projection toName = funD toName . go' (\p -> conP 'Z [p])
+projection toName = funD toName . go'
   where
-    go' :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
-    go' _ [] = (:[]) $ do
+    go' :: [Con] -> [Q Clause]
+    go' [] = (:[]) $ do
       x <- newName "x"
       clause [varP x] (normalB (caseE (varE x) [])) []
-    go' br cs = go br cs
+    go' cs = go id cs
 
     go :: (Q Pat -> Q Pat) -> [Con] -> [Q Clause]
-    go _ [] = [unreachable]
+    go br [] = [mkUnreachableClause br]
     go br (c:cs) = mkClause br c : go (\p -> conP 'S [br p]) cs
+
+    -- Generates a final clause of the form:
+    --
+    --   to (S (... (S x))) = x `seq` error "inaccessible"
+    --
+    -- An equivalent way of achieving this would be:
+    --
+    --   to (S (... (S x))) = case x of {}
+    --
+    -- This, however, would require clients to enable the EmptyCase extension
+    -- in their own code, which is something which we have not previously
+    -- required. Therefore, we do not generate this code at the moment.
+    mkUnreachableClause :: (Q Pat -> Q Pat) -> Q Clause
+    mkUnreachableClause br = do
+      var <- newName "x"
+      clause [conP 'SOP [br (varP var)]]
+             (normalB [| $(varE var) `seq` error "inaccessible" |])
+             []
 
     mkClause :: (Q Pat -> Q Pat) -> Con -> Q Clause
     mkClause br c = do
       (n, ts) <- conInfo c
       vars    <- replicateM (length ts) (newName "x")
-      clause [conP 'SOP [br . npP . map (\v -> conP 'I [varP v]) $ vars]]
+      clause [conP 'SOP [br . conP 'Z . (:[]) . npP . map (\v -> conP 'I [varP v]) $ vars]]
              (normalB . appsE $ conE n : map varE vars)
              []
-
-unreachable :: Q Clause
-unreachable = clause [wildP]
-                     (normalB [| error "unreachable" |])
-                     []
 
 {-------------------------------------------------------------------------------
   Compute metadata
