@@ -29,9 +29,8 @@ import Generics.SOP.Universe
 --   * a 'Generic' instance
 --   * a 'HasDatatypeInfo' instance
 --
--- Note that the generated code will require the @TypeFamilies@,
--- @DataKinds@, and @EmptyCase@ extensions to be enabled for the
--- module.
+-- Note that the generated code will require the @TypeFamilies@ and
+-- @DataKinds@ extensions to be enabled for the module.
 --
 -- /Example:/ If you have the datatype
 --
