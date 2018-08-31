@@ -52,7 +52,7 @@ import Generics.SOP.Universe
 -- >
 -- >   to (SOP    (Z (I x :* Nil)))         = Leaf x
 -- >   to (SOP (S (Z (I l :* I r :* Nil)))) = Node l r
--- >   to (SOP (S (S x)))                   = case x of {}
+-- >   to (SOP (S (S x)))                   = x `seq` error "inaccessible"
 -- >
 -- > instance HasDatatypeInfo Tree where
 -- >   type DatatypeInfoOf Tree =
@@ -96,7 +96,7 @@ deriveGenericOnly n = do
 -- > toTree :: SOP I TreeCode -> Tree
 -- > toTree (SOP    (Z (I x :* Nil)))         = Leaf x
 -- > toTree (SOP (S (Z (I l :* I r :* Nil)))) = Node l r
--- > toTree (SOP (S (S x)))                   = case x of {}
+-- > toTree (SOP (S (S x)))                   = x `seq` error "inaccessible"
 --
 -- @since 0.2
 --
@@ -246,11 +246,22 @@ projection toName = funD toName . go'
     go br [] = [mkUnreachableClause br]
     go br (c:cs) = mkClause br c : go (\p -> conP 'S [br p]) cs
 
+    -- Generates a final clause of the form:
+    --
+    --   to (S (... (S x))) = x `seq` error "inaccessible"
+    --
+    -- An equivalent way of achieving this would be:
+    --
+    --   to (S (... (S x))) = case x of {}
+    --
+    -- This, however, would require clients to enable the EmptyCase extension
+    -- in their own code, which is something which we have not previously
+    -- required. Therefore, we do not generate this code at the moment.
     mkUnreachableClause :: (Q Pat -> Q Pat) -> Q Clause
     mkUnreachableClause br = do
       var <- newName "x"
       clause [conP 'SOP [br (varP var)]]
-             (normalB $ caseE (varE var) [])
+             (normalB [| $(varE var) `seq` error "inaccessible" |])
              []
 
     mkClause :: (Q Pat -> Q Pat) -> Con -> Q Clause
