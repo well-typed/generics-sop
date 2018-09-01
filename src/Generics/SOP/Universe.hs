@@ -128,6 +128,11 @@ class (All SListI (Code a)) => Generic (a :: *) where
              => Rep a -> a
   to = gto
 
+instance (All SListI a, f ~ I) => Generic (SOP f a) where
+  type Code (SOP f a) = a
+  from = id
+  to = id
+
 -- | A class of datatypes that have associated metadata.
 --
 -- It is possible to use the sum-of-products approach to generic programming
