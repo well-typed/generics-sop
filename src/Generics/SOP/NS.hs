@@ -4,6 +4,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 -- | n-ary sums (and sums of products)
 module Generics.SOP.NS

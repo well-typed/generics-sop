@@ -1,4 +1,7 @@
 {-# LANGUAGE StandaloneDeriving, UndecidableInstances #-}
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 -- | Metadata about what a datatype looks like
 --
 -- In @generics-sop@, the metadata is completely independent of the main

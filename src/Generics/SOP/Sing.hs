@@ -2,6 +2,9 @@
 #if MIN_VERSION_base(4,7,0)
 {-# LANGUAGE NoAutoDeriveTypeable #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the

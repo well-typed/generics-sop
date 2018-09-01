@@ -5,6 +5,9 @@
 #if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE UndecidableSuperClasses #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE StarIsType #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-deprecations #-}
 -- | Constraints for indexed datatypes.
 --
