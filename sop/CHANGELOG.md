@@ -1,3 +1,8 @@
+# 0.x.x.x (xxxx-xx-xx)
+
+* Split into `sop` and `generics-sop` packages
+
+
 # 0.3.2.0 (2018-01-08)
 
 * Make TH `deriveGenericFunctions` work properly with
