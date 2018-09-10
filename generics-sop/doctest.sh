@@ -21,4 +21,5 @@ doctest --preserve-it \
   -XKindSignatures \
   -XDataKinds \
   -XFunctionalDependencies \
+  -i../sop/src \
   $(find src -name '*.hs')
