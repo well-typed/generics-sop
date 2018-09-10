@@ -1,5 +1,5 @@
 name:                generics-sop
-version:             0.3.2.0
+version:             0.4.0.0
 synopsis:            Generic Programming using True Sums of Products
 description:
   A library to support the definition of generic functions.
@@ -37,7 +37,7 @@ category:            Generics
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  CHANGELOG.md doctest.sh
-tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.4.3
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.4.3
 
 source-repository head
   type:                git
@@ -47,27 +47,23 @@ library
   exposed-modules:     Generics.SOP
                        Generics.SOP.GGP
                        Generics.SOP.TH
-                       Generics.SOP.Dict
                        Generics.SOP.Type.Metadata
                        -- exposed via Generics.SOP:
+                       Generics.SOP.Instances
+                       Generics.SOP.Metadata
+                       Generics.SOP.Universe
+                       -- re-exported from Data.SOP:
+                       Generics.SOP.Dict
                        Generics.SOP.BasicFunctors
                        Generics.SOP.Classes
                        Generics.SOP.Constraint
-                       Generics.SOP.Instances
-                       Generics.SOP.Metadata
                        Generics.SOP.NP
                        Generics.SOP.NS
-                       Generics.SOP.Universe
                        Generics.SOP.Sing
-  build-depends:       base                 >= 4.7  && < 5,
-                       sop,
+  build-depends:       base                 >= 4.9  && < 5,
+                       sop                  >= 0.4  && < 0.5,
                        template-haskell     >= 2.8  && < 2.15,
                        ghc-prim             >= 0.3  && < 0.6
-  -- is transformers actually required?
-  if !impl (ghc >= 8.0)
-    build-depends:     transformers-compat  >= 0.3  && < 0.7,
-                       transformers         >= 0.3  && < 0.6
-
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -96,8 +92,6 @@ library
                        TemplateHaskell
                        DeriveGeneric
                        StandaloneDeriving
-  if impl (ghc < 7.10)
-    other-extensions:    OverlappingInstances
 
 test-suite generics-sop-examples
   type:                exitcode-stdio-1.0
@@ -106,5 +100,5 @@ test-suite generics-sop-examples
   hs-source-dirs:      test
   default-language:    Haskell2010
   ghc-options:         -Wall
-  build-depends:       base                 >= 4.6  && < 5,
+  build-depends:       base                 >= 4.9  && < 5,
                        generics-sop

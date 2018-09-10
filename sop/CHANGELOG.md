@@ -1,6 +1,8 @@
-# 0.x.x.x (xxxx-xx-xx)
+# 0.4.0.0 (xxxx-xx-xx)
 
-* Split into `sop` and `generics-sop` packages
+* Split into `sop` and `generics-sop` packages.
+
+* Drop support for GHC < 8.0.2, bump `base` dependency to `>= 4.9` and remove dependency on `transformers`.
 
 
 # 0.3.2.0 (2018-01-08)
