@@ -86,12 +86,12 @@ library
                        DataKinds
                        FunctionalDependencies
                        AutoDeriveTypeable
-  other-extensions:    OverloadedStrings
-                       PolyKinds
+  other-extensions:    PolyKinds
                        UndecidableInstances
                        TemplateHaskell
-                       DeriveGeneric
                        StandaloneDeriving
+                       EmptyCase
+                       UndecidableSuperClasses
 
 test-suite generics-sop-examples
   type:                exitcode-stdio-1.0
@@ -102,3 +102,17 @@ test-suite generics-sop-examples
   ghc-options:         -Wall
   build-depends:       base                 >= 4.9  && < 5,
                        generics-sop
+  other-extensions:    DeriveGeneric
+                       EmptyCase
+                       TemplateHaskell
+                       ConstraintKinds
+                       GADTs
+                       DataKinds
+                       TypeFamilies
+                       FlexibleContexts
+                       FlexibleInstances
+                       PolyKinds
+                       DefaultSignatures
+                       FunctionalDependencies
+                       MultiParamTypeClasses
+                       TypeFamilies

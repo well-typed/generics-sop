@@ -67,9 +67,10 @@ library
                        DataKinds
                        FunctionalDependencies
                        AutoDeriveTypeable
-  other-extensions:    OverloadedStrings
-                       PolyKinds
+  other-extensions:    PolyKinds
                        UndecidableInstances
-                       TemplateHaskell
                        DeriveGeneric
                        StandaloneDeriving
+                       EmptyCase
+                       UndecidableSuperClasses
+                       BangPatterns
