@@ -61,7 +61,7 @@ library
                        Generics.SOP.NS
                        Generics.SOP.Sing
   build-depends:       base                 >= 4.9  && < 5,
-                       sop                  >= 0.4  && < 0.5,
+                       sop-core             == 0.4.0.*,
                        template-haskell     >= 2.8  && < 2.15,
                        ghc-prim             >= 0.3  && < 0.6
   hs-source-dirs:      src

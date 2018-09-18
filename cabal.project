@@ -1,1 +1,1 @@
-packages: sop/ generics-sop/
+packages: sop-core/ generics-sop/
