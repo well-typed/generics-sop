@@ -87,10 +87,6 @@ module Data.SOP.NP
   , toI_POP
   ) where
 
-#if !(MIN_VERSION_base(4,8,0))
-import Control.Applicative
-import Data.Monoid (Monoid (..))
-#endif
 import Data.Coerce
 import Data.Proxy (Proxy(..))
 import Unsafe.Coerce
@@ -276,9 +272,6 @@ fromList = go sList
 ap_NP :: NP (f -.-> g) xs -> NP f xs -> NP g xs
 ap_NP Nil           Nil        = Nil
 ap_NP (Fn f :* fs)  (x :* xs)  = f x :* ap_NP fs xs
-#if __GLASGOW_HASKELL__ < 800
-ap_NP _ _ = error "inaccessible"
-#endif
 
 -- | Specialization of 'hap'.
 --
@@ -291,9 +284,6 @@ ap_POP (POP fss') (POP xss') = POP (go fss' xss')
     go :: NP (NP (f -.-> g)) xss -> NP (NP f) xss -> NP (NP g) xss
     go Nil         Nil         = Nil
     go (fs :* fss) (xs :* xss) = ap_NP fs xs :* go fss xss
-#if __GLASGOW_HASKELL__ < 800
-    go _           _           = error "inaccessible"
-#endif
 
 -- The definition of 'ap_POP' is a more direct variant of
 -- '_ap_POP_spec'. The direct definition has the advantage
@@ -807,21 +797,16 @@ coerce_NP ::
 coerce_NP =
   unsafeCoerce
 
--- There is a bug in the way coerce works for higher-kinded
--- type variables that seems to occur only in GHC 7.10.
+-- | Safe version of 'coerce_NP'.
 --
--- Therefore, the safe versions of the coercion functions
--- are excluded below. This is harmless because they're only
--- present for documentation purposes and not exported.
-
-#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+-- For documentation purposes only; not exported.
+--
 _safe_coerce_NP ::
      forall f g xs ys .
      AllZip (LiftedCoercible f g) xs ys
   => NP f xs -> NP g ys
 _safe_coerce_NP =
   trans_NP (Proxy :: Proxy (LiftedCoercible f g)) coerce
-#endif
 
 -- | Specialization of 'hcoerce'.
 --
@@ -834,14 +819,16 @@ coerce_POP ::
 coerce_POP =
   unsafeCoerce
 
-#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+-- | Safe version of 'coerce_POP'.
+--
+-- For documentation purposes only; not exported.
+--
 _safe_coerce_POP ::
      forall f g xss yss .
      AllZip2 (LiftedCoercible f g) xss yss
   => POP f xss -> POP g yss
 _safe_coerce_POP =
   trans_POP (Proxy :: Proxy (LiftedCoercible f g)) coerce
-#endif
 
 -- | Specialization of 'hfromI'.
 --

@@ -1,11 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-#if __GLASGOW_HASKELL__ >= 800
 {-# OPTIONS_GHC -freduction-depth=100 #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
-#else
-{-# OPTIONS_GHC -fcontext-stack=50 #-}
-#endif
 -- | Instances for 'Generic' and 'HasMetadata'.
 --
 -- We define instances for datatypes from @generics-sop@ and
@@ -23,18 +19,13 @@ import Data.Data
 import Data.Fixed
 import Data.Monoid
 import Data.Ord
-#if !(MIN_VERSION_base(4,7,0))
-import Data.Proxy
-#endif
 import Data.Version
 import Foreign.C.Error
 import Foreign.C.Types
 import System.Console.GetOpt
 import System.Exit
 import System.IO
-#if MIN_VERSION_base(4,7,0)
 import Text.Printf
-#endif
 import Text.Read.Lex
 
 import Generics.SOP.BasicFunctors
@@ -193,19 +184,15 @@ deriveGeneric ''NewlineMode
 
 -- From Text.Printf:
 
-#if MIN_VERSION_base(4,7,0)
 deriveGeneric ''FieldFormat
 deriveGeneric ''FormatAdjustment
 deriveGeneric ''FormatSign
 deriveGeneric ''FormatParse
-#endif
 
 -- From Text.Read.Lex:
 
 deriveGeneric ''Lexeme
-#if MIN_VERSION_base(4,7,0)
 deriveGeneric ''Number
-#endif
 
 -- Abstract / primitive datatypes (we don't derive Generic for these):
 --

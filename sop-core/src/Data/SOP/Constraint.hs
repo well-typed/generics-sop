@@ -1,10 +1,5 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
-#if __GLASGOW_HASKELL__ < 710
-{-# LANGUAGE OverlappingInstances #-}
-#endif
-#if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE UndecidableSuperClasses #-}
-#endif
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-deprecations #-}
 -- | Constraints for indexed datatypes.
 --
@@ -240,15 +235,11 @@ type family AllZipN (h :: (k -> *) -> (l -> *)) (c :: k1 -> k2 -> Constraint) ::
 type family SListIN (h :: (k -> *) -> (l -> *)) :: l -> Constraint
 
 instance
-#if __GLASGOW_HASKELL__ >= 710
   {-# OVERLAPPABLE #-}
-#endif
   SListI xs => SingI (xs :: [k]) where
   sing = sList
 
 instance
-#if __GLASGOW_HASKELL__ >= 710
   {-# OVERLAPPING #-}
-#endif
   (All SListI xss, SListI xss) => SingI (xss :: [[k]]) where
   sing = sList

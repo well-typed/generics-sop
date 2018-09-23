@@ -81,11 +81,6 @@ module Data.SOP.Classes
   , htoI
   ) where
 
-#if !(MIN_VERSION_base(4,8,0))
-import Control.Applicative (Applicative)
-import Data.Monoid (Monoid)
-#endif
-
 import Data.SOP.BasicFunctors
 import Data.SOP.Constraint
 
