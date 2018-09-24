@@ -43,7 +43,7 @@ module Data.SOP.BasicFunctors
   , mapKKK
   ) where
 
-import Data.Monoid ((<>))
+import Data.Semigroup (Semigroup (..))
 import qualified GHC.Generics as GHC
 
 import Data.Functor.Classes
@@ -100,9 +100,16 @@ instance (Read a) => Read (K a b) where
 instance (Show a) => Show (K a b) where
     showsPrec d (K x) = showsUnaryWith showsPrec "K" d x
 
+instance Semigroup a => Semigroup (K a b) where
+  K x <> K y = K (x <> y)
+
+instance Monoid a => Monoid (K a b) where
+  mempty              = K mempty
+  mappend (K x) (K y) = K (mappend x y)
+
 instance Monoid a => Applicative (K a) where
   pure _      = K mempty
-  K x <*> K y = K (x <> y)
+  K x <*> K y = K (mappend x y)
 
 -- | Extract the contents of a 'K' value.
 unK :: K a b -> a
@@ -114,6 +121,13 @@ unK (K x) = x
 --
 newtype I (a :: *) = I a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
+
+instance Semigroup a => Semigroup (I a) where
+  I x <> I y = I (x <> y)
+
+instance Monoid a => Monoid (I a) where
+  mempty              = I mempty
+  mappend (I x) (I y) = I (mappend x y)
 
 instance Applicative I where
   pure = I
@@ -156,6 +170,13 @@ newtype (:.:) (f :: l -> *) (g :: k -> l) (p :: k) = Comp (f (g p))
   deriving (GHC.Generic)
 
 infixr 7 :.:
+
+instance (Semigroup (f (g x))) => Semigroup ((f :.: g) x) where
+  Comp x <> Comp y = Comp (x <> y)
+
+instance (Monoid (f (g x))) => Monoid ((f :.: g) x) where
+  mempty                    = Comp mempty
+  mappend (Comp x) (Comp y) = Comp (mappend x y)
 
 instance (Functor f, Functor g) => Functor (f :.: g) where
   fmap f (Comp x) = Comp (fmap (fmap f) x)

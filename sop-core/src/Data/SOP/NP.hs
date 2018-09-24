@@ -90,6 +90,7 @@ module Data.SOP.NP
 import Data.Coerce
 import Data.Proxy (Proxy(..))
 import Unsafe.Coerce
+import Data.Semigroup (Semigroup (..))
 
 import Control.DeepSeq (NFData(..))
 
@@ -144,6 +145,17 @@ instance All (Show `Compose` f) xs => Show (NP f xs) where
 deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
 
+instance All (Semigroup `Compose` f) xs => Semigroup (NP f xs) where
+  (<>) = czipWith_NP (Proxy :: Proxy (Semigroup `Compose` f)) (<>)
+
+instance (All (Monoid `Compose` f) xs
+#if MIN_VERSION_base(4,11,0)
+  , All (Semigroup `Compose` f) xs  -- GHC isn't smart enough to figure this out
+#endif
+  ) => Monoid (NP f xs) where
+  mempty  = cpure_NP (Proxy :: Proxy (Monoid `Compose` f)) mempty
+  mappend = czipWith_NP (Proxy :: Proxy (Monoid `Compose` f)) mappend
+
 -- | @since 0.2.5.0
 instance All (NFData `Compose` f) xs => NFData (NP f xs) where
     rnf Nil       = ()
@@ -168,6 +180,13 @@ newtype POP (f :: (k -> *)) (xss :: [[k]]) = POP (NP (NP f) xss)
 deriving instance (Show (NP (NP f) xss)) => Show (POP f xss)
 deriving instance (Eq   (NP (NP f) xss)) => Eq   (POP f xss)
 deriving instance (Ord  (NP (NP f) xss)) => Ord  (POP f xss)
+
+instance (Semigroup (NP (NP f) xss)) => Semigroup (POP f xss) where
+  POP xss <> POP yss = POP (xss <> yss)
+
+instance (Monoid (NP (NP f) xss)) => Monoid (POP f xss) where
+  mempty                      = POP mempty
+  mappend (POP xss) (POP yss) = POP (mappend xss yss)
 
 -- | @since 0.2.5.0
 instance (NFData (NP (NP f) xss)) => NFData (POP f xss) where
