@@ -13,8 +13,7 @@ module Data.SOP.Constraint
   ) where
 
 import Data.Coerce
-import Data.Kind (Type)
-import GHC.Exts (Constraint)
+import Data.Kind (Type, Constraint)
 
 import Data.SOP.Sing
 

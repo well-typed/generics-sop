@@ -22,8 +22,8 @@
 -- various classes in this module that allow the necessary
 -- generalization.
 --
--- The classes typically lift concepts that exist for kinds @*@ or
--- @* -> Type@ to datatypes of kind @(k -> Type) -> (l -> Type)@. This module
+-- The classes typically lift concepts that exist for kinds @Type@ or
+-- @Type -> Type@ to datatypes of kind @(k -> Type) -> (l -> Type)@. This module
 -- also derives a number of derived combinators.
 --
 -- The actual instances are defined in "Data.SOP.NP" and
