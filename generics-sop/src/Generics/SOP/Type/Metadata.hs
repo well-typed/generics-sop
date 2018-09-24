@@ -31,7 +31,8 @@ module Generics.SOP.Type.Metadata
   , Associativity(..)
   ) where
 
-import Data.Proxy
+import Data.Kind (Type)
+import Data.Proxy (Proxy (..))
 import GHC.Generics (Associativity(..))
 import GHC.Types
 import GHC.TypeLits
@@ -108,7 +109,7 @@ type Fixity          = Nat
 --
 -- @since 0.3.0.0
 --
-class DemoteDatatypeInfo (x :: DatatypeInfo) (xss :: [[*]]) where
+class DemoteDatatypeInfo (x :: DatatypeInfo) (xss :: [[Type]]) where
   -- | Given a proxy of some type-level datatype information,
   -- return the corresponding term-level information.
   --
@@ -139,7 +140,7 @@ instance
 --
 -- @since 0.3.0.0
 --
-class DemoteConstructorInfos (cs :: [ConstructorInfo]) (xss :: [[*]]) where
+class DemoteConstructorInfos (cs :: [ConstructorInfo]) (xss :: [[Type]]) where
   -- | Given a proxy of some type-level constructor information,
   -- return the corresponding term-level information as a product.
   --
@@ -161,7 +162,7 @@ instance
 --
 -- @since 0.3.0.0
 --
-class DemoteConstructorInfo (x :: ConstructorInfo) (xs :: [*]) where
+class DemoteConstructorInfo (x :: ConstructorInfo) (xs :: [Type]) where
   -- | Given a proxy of some type-level constructor information,
   -- return the corresponding term-level information.
   --
@@ -190,7 +191,7 @@ instance (KnownSymbol s, DemoteFieldInfos fs xs) => DemoteConstructorInfo ('Reco
 --
 -- @since 0.3.0.0
 --
-class SListI xs => DemoteFieldInfos (fs :: [FieldInfo]) (xs :: [*]) where
+class SListI xs => DemoteFieldInfos (fs :: [FieldInfo]) (xs :: [Type]) where
   -- | Given a proxy of some type-level field information,
   -- return the corresponding term-level information as a product.
   --
@@ -211,7 +212,7 @@ instance
 --
 -- @since 0.3.0.0
 --
-class DemoteFieldInfo (x :: FieldInfo) (a :: *) where
+class DemoteFieldInfo (x :: FieldInfo) (a :: Type) where
   -- | Given a proxy of some type-level field information,
   -- return the corresponding term-level information.
   --

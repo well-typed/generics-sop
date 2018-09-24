@@ -89,7 +89,8 @@ module Data.SOP.NS
   ) where
 
 import Data.Coerce
-import Data.Proxy
+import Data.Kind (Type)
+import Data.Proxy (Proxy (..))
 import Unsafe.Coerce
 
 import Control.DeepSeq (NFData(..))
@@ -142,7 +143,7 @@ import Data.SOP.Sing
 -- > S (Z (I True)) :: NS I       '[ Char, Bool ]
 -- > S (Z (K 1))    :: NS (K Int) '[ Char, Bool ]
 --
-data NS :: (k -> *) -> [k] -> * where
+data NS :: (k -> Type) -> [k] -> Type where
   Z :: f x -> NS f (x ': xs)
   S :: NS f xs -> NS f (x ': xs)
 
@@ -209,7 +210,7 @@ instance HIndex NS where
 -- constructors, the product structure represents the arguments of
 -- each constructor.
 --
-newtype SOP (f :: (k -> *)) (xss :: [[k]]) = SOP (NS (NP f) xss)
+newtype SOP (f :: (k -> Type)) (xss :: [[k]]) = SOP (NS (NP f) xss)
 
 deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
 deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
@@ -262,7 +263,7 @@ instance HIndex SOP where
 -- If we pick @a@ to be an element of @xs@, this indeed corresponds to an
 -- injection into the sum.
 --
-type Injection (f :: k -> *) (xs :: [k]) = f -.-> K (NS f xs)
+type Injection (f :: k -> Type) (xs :: [k]) = f -.-> K (NS f xs)
 
 -- | Compute all injections into an n-ary sum.
 --
