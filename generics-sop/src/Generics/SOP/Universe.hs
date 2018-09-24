@@ -1,7 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
-#if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE UndecidableSuperClasses #-}
-#endif
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
@@ -141,11 +139,7 @@ class (All SListI (Code a)) => Generic (a :: *) where
 class HasDatatypeInfo a where
   -- | Type-level datatype info
   type DatatypeInfoOf a :: T.DatatypeInfo
-#if MIN_VERSION_base(4,9,0)
   type DatatypeInfoOf a = GDatatypeInfoOf a
-#else
-  type DatatypeInfoOf a = DatatypeInfoOf a
-#endif
 
   -- | Term-level datatype info; by default, the term-level datatype info is produced
   -- from the type-level info.

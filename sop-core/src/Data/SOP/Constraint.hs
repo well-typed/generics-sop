@@ -1,10 +1,5 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
-#if __GLASGOW_HASKELL__ < 710
-{-# LANGUAGE OverlappingInstances #-}
-#endif
-#if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE UndecidableSuperClasses #-}
-#endif
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-deprecations #-}
 -- | Constraints for indexed datatypes.
 --
@@ -12,15 +7,15 @@
 -- elements of an indexed structure must satisfy a particular
 -- constraint.
 --
-module Generics.SOP.Constraint
-  ( module Generics.SOP.Constraint
+module Data.SOP.Constraint
+  ( module Data.SOP.Constraint
   , Constraint
   ) where
 
 import Data.Coerce
 import GHC.Exts (Constraint)
 
-import Generics.SOP.Sing
+import Data.SOP.Sing
 
 -- | Require a constraint for every element of a list.
 --
@@ -57,7 +52,7 @@ import Generics.SOP.Sing
 -- but it will fail with an error saying that it was unable to
 -- deduce the class constraint @'AllF' 'Eq' xs@ (or similar) in the
 -- definition of 'bar'.
--- In cases like this you can use 'Generics.SOP.Dict.Dict' from "Generics.SOP.Dict"
+-- In cases like this you can use 'Data.SOP.Dict.Dict' from "Data.SOP.Dict"
 -- to prove conversions between constraints.
 -- See [this answer on SO for more details](https://stackoverflow.com/questions/50777865/super-classes-with-all-from-generics-sop).
 
@@ -240,15 +235,11 @@ type family AllZipN (h :: (k -> *) -> (l -> *)) (c :: k1 -> k2 -> Constraint) ::
 type family SListIN (h :: (k -> *) -> (l -> *)) :: l -> Constraint
 
 instance
-#if __GLASGOW_HASKELL__ >= 710
   {-# OVERLAPPABLE #-}
-#endif
   SListI xs => SingI (xs :: [k]) where
   sing = sList
 
 instance
-#if __GLASGOW_HASKELL__ >= 710
   {-# OVERLAPPING #-}
-#endif
   (All SListI xss, SListI xss) => SingI (xss :: [[k]]) where
   sing = sList

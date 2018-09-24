@@ -1,7 +1,4 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving #-}
-#if MIN_VERSION_base(4,7,0)
-{-# LANGUAGE NoAutoDeriveTypeable #-}
-#endif
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the
@@ -9,7 +6,7 @@
 -- See the <http://www.andres-loeh.de/TrueSumsOfProducts "True Sums of Products">
 -- paper for details.
 --
-module Generics.SOP.Sing
+module Data.SOP.Sing
   ( -- * Singletons
     SList(..)
   , SListI(..)

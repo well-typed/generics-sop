@@ -33,9 +33,7 @@ module Generics.SOP.Type.Metadata
 
 import Data.Proxy
 import GHC.Generics (Associativity(..))
-#if __GLASGOW_HASKELL__ >= 800
 import GHC.Types
-#endif
 import GHC.TypeLits
 
 import qualified Generics.SOP.Metadata as M
@@ -61,51 +59,30 @@ import Generics.SOP.Sing
 -- @since 0.3.0.0
 --
 data DatatypeInfo =
-#if __GLASGOW_HASKELL__ >= 800
     ADT ModuleName DatatypeName [ConstructorInfo]
     -- ^ Standard algebraic datatype
   | Newtype ModuleName DatatypeName ConstructorInfo
     -- ^ Newtype
-#else
-    ADT Symbol Symbol [ConstructorInfo]
-    -- ^ Standard algebraic datatype
-  | Newtype Symbol Symbol ConstructorInfo
-    -- ^ Newtype
-#endif
 
 -- | Metadata for a single constructors (to be used promoted).
 --
 -- @since 0.3.0.0
 --
 data ConstructorInfo =
-#if __GLASGOW_HASKELL__ >= 800
     Constructor ConstructorName
     -- ^ Normal constructor
   | Infix ConstructorName Associativity Fixity
     -- ^ Infix constructor
   | Record ConstructorName [FieldInfo]
     -- ^ Record constructor
-#else
-    Constructor Symbol
-    -- ^ Normal constructor
-  | Infix Symbol Associativity Nat
-    -- ^ Infix constructor
-  | Record Symbol [FieldInfo]
-    -- ^ Record constructor
-#endif
 
 -- | Metadata for a single record field (to be used promoted).
 --
 -- @since 0.3.0.0
 --
 data FieldInfo =
-#if __GLASGOW_HASKELL__ >= 800
     FieldInfo FieldName
-#else
-    FieldInfo Symbol
-#endif
 
-#if __GLASGOW_HASKELL__ >= 800
 -- | The name of a datatype.
 type DatatypeName    = Symbol
 
@@ -120,7 +97,6 @@ type FieldName       = Symbol
 
 -- | The fixity of an infix constructor.
 type Fixity          = Nat
-#endif
 
 -- Demotion
 --

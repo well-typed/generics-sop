@@ -169,11 +169,7 @@ deriveMetadataType n datatypeInfoName = do
 deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
 deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
   let typ = appTyVars name bndrs
-#if MIN_VERSION_template_haskell(2,9,0)
   let codeSyn = tySynInstD ''Code $ tySynEqn [typ] (codeFor cons)
-#else
-  let codeSyn = tySynInstD ''Code [typ] (codeFor cons)
-#endif
   inst <- instanceD
             (cxt [])
             [t| Generic $typ |]
@@ -300,24 +296,13 @@ metadata' isNewtype typeName cs = md
                                                $(npE (map mdField ts))
                              |]
     mdCon (InfixC _ n _)  = do
-#if MIN_VERSION_template_haskell(2,11,0)
       fixity <- reifyFixity n
       case fromMaybe defaultFixity fixity of
         Fixity f a ->
-#else
-      i <- reify n
-      case i of
-        DataConI _ _ _ (Fixity f a) ->
-#endif
                             [| SOP.Infix       $(stringE (nameBase n)) $(mdAssociativity a) f |]
-#if !MIN_VERSION_template_haskell(2,11,0)
-        _                -> fail "Strange infix operator"
-#endif
     mdCon (ForallC _ _ _) = fail "Existentials not supported"
-#if MIN_VERSION_template_haskell(2,11,0)
     mdCon (GadtC _ _ _)    = fail "GADTs not supported"
     mdCon (RecGadtC _ _ _) = fail "GADTs not supported"
-#endif
 
     mdField :: VarStrictType -> Q Exp
     mdField (n, _, _) = [| SOP.FieldInfo $(stringE (nameBase n)) |]
@@ -348,24 +333,13 @@ metadataType' isNewtype typeName cs = md
                                                    $(promotedTypeList (map mdField ts))
                               |]
     mdCon (InfixC _ n _)  = do
-#if MIN_VERSION_template_haskell(2,11,0)
       fixity <- reifyFixity n
       case fromMaybe defaultFixity fixity of
         Fixity f a ->
-#else
-      i <- reify n
-      case i of
-        DataConI _ _ _ (Fixity f a) ->
-#endif
                             [t| 'SOP.T.Infix       $(stringT (nameBase n)) $(mdAssociativity a) $(natT f) |]
-#if !MIN_VERSION_template_haskell(2,11,0)
-        _                -> fail "Strange infix operator"
-#endif
     mdCon (ForallC _ _ _) = fail "Existentials not supported"
-#if MIN_VERSION_template_haskell(2,11,0)
     mdCon (GadtC _ _ _)    = fail "GADTs not supported"
     mdCon (RecGadtC _ _ _) = fail "GADTs not supported"
-#endif
 
     mdField :: VarStrictType -> Q Type
     mdField (n, _, _) = [t| 'SOP.T.FieldInfo $(stringT (nameBase n)) |]
@@ -407,10 +381,8 @@ conInfo (NormalC n ts) = return (n, map (return . (\(_, t)    -> t)) ts)
 conInfo (RecC    n ts) = return (n, map (return . (\(_, _, t) -> t)) ts)
 conInfo (InfixC (_, t) n (_, t')) = return (n, map return [t, t'])
 conInfo (ForallC _ _ _) = fail "Existentials not supported"
-#if MIN_VERSION_template_haskell(2,11,0)
 conInfo (GadtC _ _ _)    = fail "GADTs not supported"
 conInfo (RecGadtC _ _ _) = fail "GADTs not supported"
-#endif
 
 stringT :: String -> Q Type
 stringT = litT . strTyLit
@@ -437,20 +409,13 @@ reifyDec name =
                   _          -> fail "Info must be type declaration type."
 
 withDataDec :: Dec -> (Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q a) -> Q a
-#if MIN_VERSION_template_haskell(2,11,0)
 withDataDec (DataD    ctxt name bndrs _ cons derivs) f = f False ctxt name bndrs cons  derivs
 withDataDec (NewtypeD ctxt name bndrs _ con  derivs) f = f True  ctxt name bndrs [con] derivs
-#else
-withDataDec (DataD    ctxt name bndrs cons derivs) f = f False ctxt name bndrs cons  derivs
-withDataDec (NewtypeD ctxt name bndrs con  derivs) f = f True  ctxt name bndrs [con] derivs
-#endif
 withDataDec _ _ = fail "Can only derive labels for datatypes and newtypes."
 
 -- | Utility type synonym to cover changes in the TH code
 #if MIN_VERSION_template_haskell(2,12,0)
 type Derivings = [DerivClause]
-#elif MIN_VERSION_template_haskell(2,11,0)
-type Derivings = Cxt
 #else
-type Derivings = [Name]
+type Derivings = Cxt
 #endif
