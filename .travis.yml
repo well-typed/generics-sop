@@ -67,7 +67,7 @@ install:
   - "sed -i.bak 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config"
   - rm -fv cabal.project cabal.project.local
   - grep -Ev -- '^\s*--' ${HOME}/.cabal/config | grep -Ev '^\s*$'
-  - echo '' | cabal new-repl -w ${HC} --build-dep fail
+  - (cd /tmp && echo '' | cabal new-repl -w ${HC} --build-dep fail)
   - if [ $HCNUMVER -ge 80000 ]; then cabal new-install -w ${HC} -j2 --symlink-bindir=$HOME/.local/bin doctest --constraint='doctest ==0.16.*'; fi
   - "printf 'packages: \"sop-core\" \"generics-sop\"\\n' > cabal.project"
   - touch cabal.project.local
