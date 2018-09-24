@@ -137,7 +137,7 @@ class (All SListI (Code a)) => Generic (a :: Type) where
 -- rather derive the class instance automatically. See the documentation
 -- of 'Generic' for the options.
 --
-class HasDatatypeInfo a where
+class Generic a => HasDatatypeInfo a where
   -- | Type-level datatype info
   type DatatypeInfoOf a :: T.DatatypeInfo
   type DatatypeInfoOf a = GDatatypeInfoOf a
