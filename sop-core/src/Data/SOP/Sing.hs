@@ -19,6 +19,8 @@ module Data.SOP.Sing
   , lengthSing
   ) where
 
+import Data.Kind (Type)
+
 -- * Singletons
 
 -- | Explicit singleton list.
@@ -34,7 +36,7 @@ module Data.SOP.Sing
 --
 -- @since 0.2
 --
-data SList :: [k] -> * where
+data SList :: [k] -> Type where
   SNil  :: SList '[]
   SCons :: SListI xs => SList (x ': xs)
 
@@ -83,7 +85,7 @@ type Sing = SList
 
 -- | Occassionally it is useful to have an explicit, term-level, representation
 -- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108)
-data Shape :: [k] -> * where
+data Shape :: [k] -> Type where
   ShapeNil  :: Shape '[]
   ShapeCons :: SListI xs => Shape xs -> Shape (x ': xs)
 

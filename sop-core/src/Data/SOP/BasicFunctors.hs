@@ -44,6 +44,7 @@ module Data.SOP.BasicFunctors
   ) where
 
 import Data.Semigroup (Semigroup (..))
+import Data.Kind (Type)
 import qualified GHC.Generics as GHC
 
 import Data.Functor.Classes
@@ -60,7 +61,7 @@ import Control.DeepSeq (NFData1(..), NFData2(..))
 -- Like 'Data.Functor.Constant.Constant', but kind-polymorphic
 -- in its second argument and with a shorter name.
 --
-newtype K (a :: *) (b :: k) = K a
+newtype K (a :: Type) (b :: k) = K a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
 
 -- | @since 0.2.4.0
@@ -119,7 +120,7 @@ unK (K x) = x
 --
 -- Like 'Data.Functor.Identity.Identity', but with a shorter name.
 --
-newtype I (a :: *) = I a
+newtype I (a :: Type) = I a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
 
 instance Semigroup a => Semigroup (I a) where
@@ -166,7 +167,7 @@ unI (I x) = x
 -- Like 'Data.Functor.Compose.Compose', but kind-polymorphic
 -- and with a shorter name.
 --
-newtype (:.:) (f :: l -> *) (g :: k -> l) (p :: k) = Comp (f (g p))
+newtype (:.:) (f :: l -> Type) (g :: k -> l) (p :: k) = Comp (f (g p))
   deriving (GHC.Generic)
 
 infixr 7 :.:

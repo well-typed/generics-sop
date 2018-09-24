@@ -5,16 +5,16 @@
 -- concerned with four structured datatypes:
 --
 -- @
---   'Data.SOP.NP.NP'  :: (k -> *) -> ( [k]  -> *)   -- n-ary product
---   'Data.SOP.NS.NS'  :: (k -> *) -> ( [k]  -> *)   -- n-ary sum
---   'Data.SOP.NP.POP' :: (k -> *) -> ([[k]] -> *)   -- product of products
---   'Data.SOP.NS.SOP' :: (k -> *) -> ([[k]] -> *)   -- sum of products
+--   'Data.SOP.NP.NP'  :: (k -> Type) -> ( [k]  -> Type)   -- n-ary product
+--   'Data.SOP.NS.NS'  :: (k -> Type) -> ( [k]  -> Type)   -- n-ary sum
+--   'Data.SOP.NP.POP' :: (k -> Type) -> ([[k]] -> Type)   -- product of products
+--   'Data.SOP.NS.SOP' :: (k -> Type) -> ([[k]] -> Type)   -- sum of products
 -- @
 --
 -- All of these have a kind that fits the following pattern:
 --
 -- @
---   (k -> *) -> (l -> *)
+--   (k -> Type) -> (l -> Type)
 -- @
 --
 -- These four types support similar interfaces. In order to allow
@@ -22,8 +22,8 @@
 -- various classes in this module that allow the necessary
 -- generalization.
 --
--- The classes typically lift concepts that exist for kinds @*@ or
--- @* -> *@ to datatypes of kind @(k -> *) -> (l -> *)@. This module
+-- The classes typically lift concepts that exist for kinds @Type@ or
+-- @Type -> Type@ to datatypes of kind @(k -> Type) -> (l -> Type)@. This module
 -- also derives a number of derived combinators.
 --
 -- The actual instances are defined in "Data.SOP.NP" and
@@ -81,6 +81,7 @@ module Data.SOP.Classes
   , htoI
   ) where
 
+import Data.Kind (Type)
 import Data.SOP.BasicFunctors
 import Data.SOP.Constraint
 
@@ -90,7 +91,7 @@ import Data.SOP.Constraint
 
 -- | A generalization of 'Control.Applicative.pure' or
 -- 'Control.Monad.return' to higher kinds.
-class HPure (h :: (k -> *) -> (l -> *)) where
+class HPure (h :: (k -> Type) -> (l -> Type)) where
   -- | Corresponds to 'Control.Applicative.pure' directly.
   --
   -- /Instances:/
@@ -154,14 +155,14 @@ fn_3 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> f x x' x''
 fn_4 f = Fn $ \x -> Fn $ \x' -> Fn $ \x'' -> Fn $ \x''' -> f x x' x'' x'''
 
 -- | Maps a structure to the same structure.
-type family Same (h :: (k1 -> *) -> (l1 -> *)) :: (k2 -> *) -> (l2 -> *)
+type family Same (h :: (k1 -> Type) -> (l1 -> Type)) :: (k2 -> Type) -> (l2 -> Type)
 
 -- | Maps a structure containing sums to the corresponding
 -- product structure.
-type family Prod (h :: (k -> *) -> (l -> *)) :: (k -> *) -> (l -> *)
+type family Prod (h :: (k -> Type) -> (l -> Type)) :: (k -> Type) -> (l -> Type)
 
 -- | A generalization of 'Control.Applicative.<*>'.
-class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> *) -> (l -> *)) where
+class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> Type) -> (l -> Type)) where
 
   -- | Corresponds to 'Control.Applicative.<*>'.
   --
@@ -349,11 +350,11 @@ hczipWith3 = hcliftA3
 -- * Collapsing homogeneous structures
 
 -- | Maps products to lists, and sums to identities.
-type family CollapseTo (h :: (k -> *) -> (l -> *)) (x :: *) :: *
+type family CollapseTo (h :: (k -> Type) -> (l -> Type)) (x :: Type) :: Type
 
 -- | A class for collapsing a heterogeneous structure into
 -- a homogeneous one.
-class HCollapse (h :: (k -> *) -> (l -> *)) where
+class HCollapse (h :: (k -> Type) -> (l -> Type)) where
 
   -- | Collapse a heterogeneous structure with homogeneous elements
   -- into a homogeneous structure.
@@ -379,7 +380,7 @@ class HCollapse (h :: (k -> *) -> (l -> *)) where
 --
 -- @since 0.3.2.0
 --
-class HTraverse_ (h :: (k -> *) -> (l -> *)) where
+class HTraverse_ (h :: (k -> Type) -> (l -> Type)) where
 
   -- | Corresponds to 'Data.Foldable.traverse_'.
   --
@@ -428,7 +429,7 @@ hcfoldMap p f = unK . hctraverse_ p (K . f)
 -- * Sequencing effects
 
 -- | A generalization of 'Data.Traversable.sequenceA'.
-class HAp h => HSequence (h :: (k -> *) -> (l -> *)) where
+class HAp h => HSequence (h :: (k -> Type) -> (l -> Type)) where
 
   -- | Corresponds to 'Data.Traversable.sequenceA'.
   --
@@ -505,7 +506,7 @@ hsequenceK = hsequence' . hliftA (Comp . fmap K . unK)
 -- | A class for determining which choice in a sum-like structure
 -- a value represents.
 --
-class HIndex (h :: (k -> *) -> (l -> *)) where
+class HIndex (h :: (k -> Type) -> (l -> Type)) where
 
   -- | If 'h' is a sum-like structure representing a choice
   -- between @n@ different options, and @x@ is a value of
@@ -540,12 +541,12 @@ class HIndex (h :: (k -> *) -> (l -> *)) where
 --
 -- @since 0.2.4.0
 --
-type family UnProd (h :: (k -> *) -> (l -> *)) :: (k -> *) -> (l -> *)
+type family UnProd (h :: (k -> Type) -> (l -> Type)) :: (k -> Type) -> (l -> Type)
 
 -- | A class for applying all injections corresponding to a sum-like
 -- structure to a table containing suitable arguments.
 --
-class (UnProd (Prod h) ~ h) => HApInjs (h :: (k -> *) -> (l -> *)) where
+class (UnProd (Prod h) ~ h) => HApInjs (h :: (k -> Type) -> (l -> Type)) where
 
   -- | For a given table (product-like structure), produce a list where
   -- each element corresponds to the application of an injection function
@@ -580,7 +581,7 @@ class (UnProd (Prod h) ~ h) => HApInjs (h :: (k -> *) -> (l -> *)) where
 --
 -- @since 0.2.5.0
 --
-class HExpand (h :: (k -> *) -> (l -> *)) where
+class HExpand (h :: (k -> Type) -> (l -> Type)) where
 
   -- | Expand a given sum structure into a corresponding product
   -- structure by placing the value contained in the sum into the
@@ -631,7 +632,7 @@ class HExpand (h :: (k -> *) -> (l -> *)) where
 --
 -- @since 0.3.1.0
 --
-class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> *) -> (l1 -> *)) (h2 :: (k2 -> *) -> (l2 -> *)) where
+class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> Type) -> (l1 -> Type)) (h2 :: (k2 -> Type) -> (l2 -> Type)) where
 
   -- | Transform a structure into a related structure given a conversion
   -- function for the elements.

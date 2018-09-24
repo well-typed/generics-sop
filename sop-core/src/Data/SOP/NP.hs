@@ -88,6 +88,7 @@ module Data.SOP.NP
   ) where
 
 import Data.Coerce
+import Data.Kind (Type)
 import Data.Proxy (Proxy(..))
 import Unsafe.Coerce
 import Data.Semigroup (Semigroup (..))
@@ -127,7 +128,7 @@ import Data.SOP.Sing
 -- > K 0      :* K 1     :* Nil  ::  NP (K Int) '[ Char, Bool ]
 -- > Just 'x' :* Nothing :* Nil  ::  NP Maybe   '[ Char, Bool ]
 --
-data NP :: (k -> *) -> [k] -> * where
+data NP :: (k -> Type) -> [k] -> Type where
   Nil  :: NP f '[]
   (:*) :: f x -> NP f xs -> NP f (x ': xs)
 
@@ -175,7 +176,7 @@ instance All (NFData `Compose` f) xs => NFData (NP f xs) where
 -- information that is available for all arguments of all constructors
 -- of a datatype.
 --
-newtype POP (f :: (k -> *)) (xss :: [[k]]) = POP (NP (NP f) xss)
+newtype POP (f :: (k -> Type)) (xss :: [[k]]) = POP (NP (NP f) xss)
 
 deriving instance (Show (NP (NP f) xss)) => Show (POP f xss)
 deriving instance (Eq   (NP (NP f) xss)) => Eq   (POP f xss)
@@ -339,7 +340,7 @@ tl (_x :* xs) = xs
 --
 -- A projection is a function from the n-ary product to a single element.
 --
-type Projection (f :: k -> *) (xs :: [k]) = K (NP f xs) -.-> f
+type Projection (f :: k -> Type) (xs :: [k]) = K (NP f xs) -.-> f
 
 -- | Compute all projections from an n-ary product.
 --
@@ -507,7 +508,7 @@ collapse_NP  ::              NP  (K a) xs  ->  [a]
 --
 -- /Example:/
 --
--- >>> collapse_POP (POP ((K 'a' :* Nil) :* (K 'b' :* K 'c' :* Nil) :* Nil) :: POP (K Char) '[ '[(a :: *)], '[b, c] ])
+-- >>> collapse_POP (POP ((K 'a' :* Nil) :* (K 'b' :* K 'c' :* Nil) :* Nil) :: POP (K Char) '[ '[(a :: Type)], '[b, c] ])
 -- ["a","bc"]
 --
 -- (The type signature is only necessary in this case to fix the kind of the type variables.)

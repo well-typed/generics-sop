@@ -13,7 +13,7 @@ module Data.SOP.Constraint
   ) where
 
 import Data.Coerce
-import GHC.Exts (Constraint)
+import Data.Kind (Type, Constraint)
 
 import Data.SOP.Sing
 
@@ -218,21 +218,21 @@ instance Top x
 -- The family 'AllN' expands to 'All' or 'All2' depending on whether
 -- the argument is indexed by a list or a list of lists.
 --
-type family AllN (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) :: l -> Constraint
+type family AllN (h :: (k -> Type) -> (l -> Type)) (c :: k -> Constraint) :: l -> Constraint
 
 -- | A generalization of 'AllZip' and 'AllZip2'.
 --
 -- The family 'AllZipN' expands to 'AllZip' or 'AllZip2' depending on
 -- whther the argument is indexed by a list or a list of lists.
 --
-type family AllZipN (h :: (k -> *) -> (l -> *)) (c :: k1 -> k2 -> Constraint) :: l1 -> l2 -> Constraint
+type family AllZipN (h :: (k -> Type) -> (l -> Type)) (c :: k1 -> k2 -> Constraint) :: l1 -> l2 -> Constraint
 
 -- | A generalization of 'SListI'.
 --
 -- The family 'SListIN' expands to 'SListI' or 'SListI2' depending
 -- on whether the argument is indexed by a list or a list of lists.
 --
-type family SListIN (h :: (k -> *) -> (l -> *)) :: l -> Constraint
+type family SListIN (h :: (k -> Type) -> (l -> Type)) :: l -> Constraint
 
 instance
   {-# OVERLAPPABLE #-}
