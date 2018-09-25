@@ -22,7 +22,6 @@ import GHC.Generics (Associativity(..))
 
 import Generics.SOP.Constraint
 import Generics.SOP.NP
-import Generics.SOP.Sing
 
 -- | Metadata for a datatype.
 --
