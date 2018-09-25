@@ -104,6 +104,8 @@ module Data.SOP (
     -- ** Mapping constraints
   , All
   , All2
+  , cpara_SList
+  , ccase_SList
   , AllZip
   , AllZip2
   , AllN
@@ -116,15 +118,15 @@ module Data.SOP (
   , SameShapeAs
     -- ** Singletons
   , SList(..)
-  , SListI(..)
+  , SListI
   , SListI2
-  , Sing
-  , SingI(..)
+  , sList
+  , para_SList
+  , case_SList
     -- *** Shape of type-level lists
   , Shape(..)
   , shape
   , lengthSList
-  , lengthSing
     -- ** Re-exports
 
 -- Workaround for lack of MIN_TOOL_VERSION macro in Cabal 1.18, see:

@@ -1,4 +1,6 @@
-{-# LANGUAGE PolyKinds, UndecidableInstances #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 -- | Type-level metadata
 --
 -- This module provides datatypes (to be used promoted) that can represent the
