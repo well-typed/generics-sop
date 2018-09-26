@@ -17,6 +17,7 @@ module Generics.SOP.Metadata
   , Associativity(..)
   ) where
 
+import Data.Kind (Type)
 import GHC.Generics (Associativity(..))
 
 import Generics.SOP.Constraint
@@ -33,7 +34,7 @@ import Generics.SOP.Sing
 -- The constructor indicates whether the datatype has been declared using @newtype@
 -- or not.
 --
-data DatatypeInfo :: [[*]] -> * where
+data DatatypeInfo :: [[Type]] -> Type where
   -- Standard algebraic datatype
   ADT     :: ModuleName -> DatatypeName -> NP ConstructorInfo xss -> DatatypeInfo xss
   -- Newtype
@@ -71,7 +72,7 @@ deriving instance (All (Eq `Compose` ConstructorInfo) xs, All (Ord `Compose` Con
 --
 -- This is indexed by the product structure of the constructor components.
 --
-data ConstructorInfo :: [*] -> * where
+data ConstructorInfo :: [Type] -> Type where
   -- Normal constructor
   Constructor :: SListI xs => ConstructorName -> ConstructorInfo xs
   -- Infix constructor
@@ -93,7 +94,7 @@ deriving instance All (Eq   `Compose` FieldInfo) xs => Eq   (ConstructorInfo xs)
 deriving instance (All (Eq `Compose` FieldInfo) xs, All (Ord `Compose` FieldInfo) xs) => Ord (ConstructorInfo xs)
 
 -- | For records, this functor maps the component to its selector name.
-data FieldInfo :: * -> * where
+data FieldInfo :: Type -> Type where
   FieldInfo :: FieldName -> FieldInfo a
   deriving (Show, Eq, Ord, Functor)
 

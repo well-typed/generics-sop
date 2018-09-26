@@ -16,13 +16,13 @@
 -- considered even less stable than that of the rest of the
 -- library. Feedback is very welcome though.
 --
-module Generics.SOP.Dict where
+module Data.SOP.Dict where
 
 import Data.Proxy
-import Generics.SOP.Classes
-import Generics.SOP.Constraint
-import Generics.SOP.NP
-import Generics.SOP.Sing
+import Data.SOP.Classes
+import Data.SOP.Constraint
+import Data.SOP.NP
+import Data.SOP.Sing
 
 -- | An explicit dictionary carrying evidence of a
 -- class constraint.

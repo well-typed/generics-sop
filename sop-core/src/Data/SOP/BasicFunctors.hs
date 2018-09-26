@@ -20,7 +20,7 @@
 -- (yet) powerful enough, particularly exhaustiveness check doesn't work
 -- properly. See <https://ghc.haskell.org/trac/ghc/ticket/8779>.
 --
-module Generics.SOP.BasicFunctors
+module Data.SOP.BasicFunctors
   ( -- * Basic functors
     K(..)
   , unK
@@ -43,29 +43,11 @@ module Generics.SOP.BasicFunctors
   , mapKKK
   ) where
 
-#if MIN_VERSION_base(4,8,0)
-import Data.Monoid ((<>))
-#else
-import Control.Applicative
-import Data.Foldable (Foldable(..))
-import Data.Monoid (Monoid, mempty, (<>))
-import Data.Traversable (Traversable(..))
-#endif
+import Data.Semigroup (Semigroup (..))
+import Data.Kind (Type)
 import qualified GHC.Generics as GHC
 
 import Data.Functor.Classes
-
-#if MIN_VERSION_base(4,9,0)
-#define LIFTED_CLASSES 1
-#else
-#if MIN_VERSION_transformers(0,5,0)
-#define LIFTED_CLASSES 1
-#else
-#if MIN_VERSION_transformers_compat(0,5,0) && !MIN_VERSION_transformers(0,4,0)
-#define LIFTED_CLASSES 1
-#endif
-#endif
-#endif
 
 import Control.DeepSeq (NFData(..))
 #if MIN_VERSION_deepseq(1,4,3)
@@ -79,24 +61,9 @@ import Control.DeepSeq (NFData1(..), NFData2(..))
 -- Like 'Data.Functor.Constant.Constant', but kind-polymorphic
 -- in its second argument and with a shorter name.
 --
-newtype K (a :: *) (b :: k) = K a
-#if MIN_VERSION_base(4,7,0)
+newtype K (a :: Type) (b :: k) = K a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
-#else
-  deriving (GHC.Generic)
 
-instance Functor (K a) where
-  fmap _ (K x) = K x
-
-instance Foldable (K a) where
-  foldr _ z (K _) = z
-  foldMap _ (K _) = mempty
-
-instance Traversable (K a) where
-  traverse _ (K x) = pure (K x)
-#endif
-
-#ifdef LIFTED_CLASSES
 -- | @since 0.2.4.0
 instance Eq2 K where
     liftEq2 eq _ (K x) (K y) = eq x y
@@ -123,41 +90,27 @@ instance (Read a) => Read1 (K a) where
 -- | @since 0.2.4.0
 instance (Show a) => Show1 (K a) where
     liftShowsPrec = liftShowsPrec2 showsPrec showList
-#else
--- | @since 0.2.4.0
-instance (Eq a) => Eq1 (K a) where
-    eq1 (K x) (K y) = x == y
--- | @since 0.2.4.0
-instance (Ord a) => Ord1 (K a) where
-    compare1 (K x) (K y) = compare x y
--- | @since 0.2.4.0
-instance (Read a) => Read1 (K a) where
-    readsPrec1 = readsData $ readsUnary "K" K
--- | @since 0.2.4.0
-instance (Show a) => Show1 (K a) where
-    showsPrec1 d (K x) = showsUnary "K" d x
-#endif
 
 -- This have to be implemented manually, K is polykinded.
 instance (Eq a) => Eq (K a b) where
     K x == K y = x == y
 instance (Ord a) => Ord (K a b) where
     compare (K x) (K y) = compare x y
-#ifdef LIFTED_CLASSES
 instance (Read a) => Read (K a b) where
     readsPrec = readsData $ readsUnaryWith readsPrec "K" K
 instance (Show a) => Show (K a b) where
     showsPrec d (K x) = showsUnaryWith showsPrec "K" d x
-#else
-instance (Read a) => Read (K a b) where
-    readsPrec = readsData $ readsUnary "K" K
-instance (Show a) => Show (K a b) where
-    showsPrec d (K x) = showsUnary "K" d x
-#endif
+
+instance Semigroup a => Semigroup (K a b) where
+  K x <> K y = K (x <> y)
+
+instance Monoid a => Monoid (K a b) where
+  mempty              = K mempty
+  mappend (K x) (K y) = K (mappend x y)
 
 instance Monoid a => Applicative (K a) where
   pure _      = K mempty
-  K x <*> K y = K (x <> y)
+  K x <*> K y = K (mappend x y)
 
 -- | Extract the contents of a 'K' value.
 unK :: K a b -> a
@@ -167,22 +120,15 @@ unK (K x) = x
 --
 -- Like 'Data.Functor.Identity.Identity', but with a shorter name.
 --
-newtype I (a :: *) = I a
-#if MIN_VERSION_base(4,7,0)
+newtype I (a :: Type) = I a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
-#else
-  deriving (GHC.Generic)
 
-instance Functor I where
-  fmap f (I x) = I (f x)
+instance Semigroup a => Semigroup (I a) where
+  I x <> I y = I (x <> y)
 
-instance Foldable I where
-  foldr f z (I x) = f x z
-  foldMap f (I x) = f x
-
-instance Traversable I where
-  traverse f (I x) = fmap I (f x)
-#endif
+instance Monoid a => Monoid (I a) where
+  mempty              = I mempty
+  mappend (I x) (I y) = I (mappend x y)
 
 instance Applicative I where
   pure = I
@@ -193,7 +139,6 @@ instance Monad I where
   I x >>= f = f x
 
 
-#ifdef LIFTED_CLASSES
 -- | @since 0.2.4.0
 instance Eq1 I where
     liftEq eq (I x) (I y) = eq x y
@@ -207,20 +152,6 @@ instance Read1 I where
 -- | @since 0.2.4.0
 instance Show1 I where
     liftShowsPrec sp _ d (I x) = showsUnaryWith sp "I" d x
-#else
--- | @since 0.2.4.0
-instance Eq1 I where
-    eq1 (I x) (I y) = x == y
--- | @since 0.2.4.0
-instance Ord1 I where
-    compare1 (I x) (I y) = compare x y
--- | @since 0.2.4.0
-instance Read1 I where
-    readsPrec1 = readsData $ readsUnary "I" I
--- | @since 0.2.4.0
-instance Show1 I where
-    showsPrec1 d (I x) = showsUnary "I" d x
-#endif
 
 instance (Eq a) => Eq (I a) where (==) = eq1
 instance (Ord a) => Ord (I a) where compare = compare1
@@ -236,10 +167,17 @@ unI (I x) = x
 -- Like 'Data.Functor.Compose.Compose', but kind-polymorphic
 -- and with a shorter name.
 --
-newtype (:.:) (f :: l -> *) (g :: k -> l) (p :: k) = Comp (f (g p))
+newtype (:.:) (f :: l -> Type) (g :: k -> l) (p :: k) = Comp (f (g p))
   deriving (GHC.Generic)
 
 infixr 7 :.:
+
+instance (Semigroup (f (g x))) => Semigroup ((f :.: g) x) where
+  Comp x <> Comp y = Comp (x <> y)
+
+instance (Monoid (f (g x))) => Monoid ((f :.: g) x) where
+  mempty                    = Comp mempty
+  mappend (Comp x) (Comp y) = Comp (mappend x y)
 
 instance (Functor f, Functor g) => Functor (f :.: g) where
   fmap f (Comp x) = Comp (fmap (fmap f) x)
@@ -260,7 +198,6 @@ instance (Traversable f, Traversable g) => Traversable (f :.: g) where
 
 -- Instances of lifted Prelude classes
 
-#ifdef LIFTED_CLASSES
 -- | @since 0.2.4.0
 instance (Eq1 f, Eq1 g) => Eq1 (f :.: g) where
     liftEq eq (Comp x) (Comp y) = liftEq (liftEq eq) x y
@@ -290,49 +227,6 @@ instance (Eq1 f, Eq1 g, Eq a) => Eq ((f :.: g) a) where (==) = eq1
 instance (Ord1 f, Ord1 g, Ord a) => Ord ((f :.: g) a) where compare = compare1
 instance (Read1 f, Read1 g, Read a) => Read ((f :.: g) a) where readsPrec = readsPrec1
 instance (Show1 f, Show1 g, Show a) => Show ((f :.: g) a) where showsPrec = showsPrec1
-#else
--- kludge to get type with the same instances as g a
-newtype Apply g a = Apply (g a)
-
-getApply :: Apply g a -> g a
-getApply (Apply x) = x
-
-instance (Eq1 g, Eq a) => Eq (Apply g a) where
-    Apply x == Apply y = eq1 x y
-
-instance (Ord1 g, Ord a) => Ord (Apply g a) where
-    compare (Apply x) (Apply y) = compare1 x y
-
-instance (Read1 g, Read a) => Read (Apply g a) where
-    readsPrec d s = [(Apply a, t) | (a, t) <- readsPrec1 d s]
-
-instance (Show1 g, Show a) => Show (Apply g a) where
-    showsPrec d (Apply x) = showsPrec1 d x
-
-instance (Functor f, Eq1 f, Eq1 g, Eq a) => Eq ((f :.: g) a) where
-    Comp x == Comp y = eq1 (fmap Apply x) (fmap Apply y)
-
-instance (Functor f, Ord1 f, Ord1 g, Ord a) => Ord ((f :.: g) a) where
-    compare (Comp x) (Comp y) = compare1 (fmap Apply x) (fmap Apply y)
-
-instance (Functor f, Read1 f, Read1 g, Read a) => Read ((f :.: g) a) where
-    readsPrec = readsData $ readsUnary1 "Comp" (Comp . fmap getApply)
-
-instance (Functor f, Show1 f, Show1 g, Show a) => Show ((f :.: g) a) where
-    showsPrec d (Comp x) = showsUnary1 "Comp" d (fmap Apply x)
-
--- | @since 0.2.4.0
-instance (Functor f, Eq1 f, Eq1 g) => Eq1 (f :.: g) where eq1 = (==)
--- | @since 0.2.4.0
-instance (Functor f, Ord1 f, Ord1 g) => Ord1 (f :.: g) where
-    compare1 = compare
--- | @since 0.2.4.0
-instance (Functor f, Read1 f, Read1 g) => Read1 (f :.: g) where
-    readsPrec1 = readsPrec
--- | @since 0.2.4.0
-instance (Functor f, Show1 f, Show1 g) => Show1 (f :.: g) where
-    showsPrec1 = showsPrec
-#endif
 
 -- NFData Instances
 

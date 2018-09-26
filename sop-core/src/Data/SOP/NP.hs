@@ -1,6 +1,6 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
 -- | n-ary products (and products of products)
-module Generics.SOP.NP
+module Data.SOP.NP
   ( -- * Datatypes
     NP(..)
   , POP(..)
@@ -87,20 +87,18 @@ module Generics.SOP.NP
   , toI_POP
   ) where
 
-#if !(MIN_VERSION_base(4,8,0))
-import Control.Applicative
-import Data.Monoid (Monoid (..))
-#endif
 import Data.Coerce
+import Data.Kind (Type)
 import Data.Proxy (Proxy(..))
 import Unsafe.Coerce
+import Data.Semigroup (Semigroup (..))
 
 import Control.DeepSeq (NFData(..))
 
-import Generics.SOP.BasicFunctors
-import Generics.SOP.Classes
-import Generics.SOP.Constraint
-import Generics.SOP.Sing
+import Data.SOP.BasicFunctors
+import Data.SOP.Classes
+import Data.SOP.Constraint
+import Data.SOP.Sing
 
 -- | An n-ary product.
 --
@@ -130,7 +128,7 @@ import Generics.SOP.Sing
 -- > K 0      :* K 1     :* Nil  ::  NP (K Int) '[ Char, Bool ]
 -- > Just 'x' :* Nothing :* Nil  ::  NP Maybe   '[ Char, Bool ]
 --
-data NP :: (k -> *) -> [k] -> * where
+data NP :: (k -> Type) -> [k] -> Type where
   Nil  :: NP f '[]
   (:*) :: f x -> NP f xs -> NP f (x ': xs)
 
@@ -147,6 +145,17 @@ instance All (Show `Compose` f) xs => Show (NP f xs) where
 
 deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
+
+instance All (Semigroup `Compose` f) xs => Semigroup (NP f xs) where
+  (<>) = czipWith_NP (Proxy :: Proxy (Semigroup `Compose` f)) (<>)
+
+instance (All (Monoid `Compose` f) xs
+#if MIN_VERSION_base(4,11,0)
+  , All (Semigroup `Compose` f) xs  -- GHC isn't smart enough to figure this out
+#endif
+  ) => Monoid (NP f xs) where
+  mempty  = cpure_NP (Proxy :: Proxy (Monoid `Compose` f)) mempty
+  mappend = czipWith_NP (Proxy :: Proxy (Monoid `Compose` f)) mappend
 
 -- | @since 0.2.5.0
 instance All (NFData `Compose` f) xs => NFData (NP f xs) where
@@ -167,11 +176,18 @@ instance All (NFData `Compose` f) xs => NFData (NP f xs) where
 -- information that is available for all arguments of all constructors
 -- of a datatype.
 --
-newtype POP (f :: (k -> *)) (xss :: [[k]]) = POP (NP (NP f) xss)
+newtype POP (f :: (k -> Type)) (xss :: [[k]]) = POP (NP (NP f) xss)
 
 deriving instance (Show (NP (NP f) xss)) => Show (POP f xss)
 deriving instance (Eq   (NP (NP f) xss)) => Eq   (POP f xss)
 deriving instance (Ord  (NP (NP f) xss)) => Ord  (POP f xss)
+
+instance (Semigroup (NP (NP f) xss)) => Semigroup (POP f xss) where
+  POP xss <> POP yss = POP (xss <> yss)
+
+instance (Monoid (NP (NP f) xss)) => Monoid (POP f xss) where
+  mempty                      = POP mempty
+  mappend (POP xss) (POP yss) = POP (mappend xss yss)
 
 -- | @since 0.2.5.0
 instance (NFData (NP (NP f) xss)) => NFData (POP f xss) where
@@ -276,9 +292,6 @@ fromList = go sList
 ap_NP :: NP (f -.-> g) xs -> NP f xs -> NP g xs
 ap_NP Nil           Nil        = Nil
 ap_NP (Fn f :* fs)  (x :* xs)  = f x :* ap_NP fs xs
-#if __GLASGOW_HASKELL__ < 800
-ap_NP _ _ = error "inaccessible"
-#endif
 
 -- | Specialization of 'hap'.
 --
@@ -291,9 +304,6 @@ ap_POP (POP fss') (POP xss') = POP (go fss' xss')
     go :: NP (NP (f -.-> g)) xss -> NP (NP f) xss -> NP (NP g) xss
     go Nil         Nil         = Nil
     go (fs :* fss) (xs :* xss) = ap_NP fs xs :* go fss xss
-#if __GLASGOW_HASKELL__ < 800
-    go _           _           = error "inaccessible"
-#endif
 
 -- The definition of 'ap_POP' is a more direct variant of
 -- '_ap_POP_spec'. The direct definition has the advantage
@@ -328,7 +338,9 @@ tl (_x :* xs) = xs
 
 -- | The type of projections from an n-ary product.
 --
-type Projection (f :: k -> *) (xs :: [k]) = K (NP f xs) -.-> f
+-- A projection is a function from the n-ary product to a single element.
+--
+type Projection (f :: k -> Type) (xs :: [k]) = K (NP f xs) -.-> f
 
 -- | Compute all projections from an n-ary product.
 --
@@ -457,7 +469,7 @@ czipWith3_POP = hczipWith3
 --
 -- @
 -- 'hcliftA'' :: 'All2' c xss => proxy c -> (forall xs. 'All' c xs => f xs -> f' xs) -> 'NP' f xss -> 'NP' f' xss
--- 'hcliftA'' :: 'All2' c xss => proxy c -> (forall xs. 'All' c xs => f xs -> f' xs) -> 'Generics.SOP.NS.NS' f xss -> 'Generics.SOP.NS.NS' f' xss
+-- 'hcliftA'' :: 'All2' c xss => proxy c -> (forall xs. 'All' c xs => f xs -> f' xs) -> 'Data.SOP.NS.NS' f xss -> 'Data.SOP.NS.NS' f' xss
 -- @
 --
 {-# DEPRECATED hcliftA' "Use 'hcliftA' or 'hcmap' instead." #-}
@@ -496,7 +508,7 @@ collapse_NP  ::              NP  (K a) xs  ->  [a]
 --
 -- /Example:/
 --
--- >>> collapse_POP (POP ((K 'a' :* Nil) :* (K 'b' :* K 'c' :* Nil) :* Nil) :: POP (K Char) '[ '[(a :: *)], '[b, c] ])
+-- >>> collapse_POP (POP ((K 'a' :* Nil) :* (K 'b' :* K 'c' :* Nil) :* Nil) :: POP (K Char) '[ '[(a :: Type)], '[b, c] ])
 -- ["a","bc"]
 --
 -- (The type signature is only necessary in this case to fix the kind of the type variables.)
@@ -805,21 +817,16 @@ coerce_NP ::
 coerce_NP =
   unsafeCoerce
 
--- There is a bug in the way coerce works for higher-kinded
--- type variables that seems to occur only in GHC 7.10.
+-- | Safe version of 'coerce_NP'.
 --
--- Therefore, the safe versions of the coercion functions
--- are excluded below. This is harmless because they're only
--- present for documentation purposes and not exported.
-
-#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+-- For documentation purposes only; not exported.
+--
 _safe_coerce_NP ::
      forall f g xs ys .
      AllZip (LiftedCoercible f g) xs ys
   => NP f xs -> NP g ys
 _safe_coerce_NP =
   trans_NP (Proxy :: Proxy (LiftedCoercible f g)) coerce
-#endif
 
 -- | Specialization of 'hcoerce'.
 --
@@ -832,14 +839,16 @@ coerce_POP ::
 coerce_POP =
   unsafeCoerce
 
-#if __GLASGOW_HASKELL__ < 710 || __GLASGOW_HASKELL__ >= 800
+-- | Safe version of 'coerce_POP'.
+--
+-- For documentation purposes only; not exported.
+--
 _safe_coerce_POP ::
      forall f g xss yss .
      AllZip2 (LiftedCoercible f g) xss yss
   => POP f xss -> POP g yss
 _safe_coerce_POP =
   trans_POP (Proxy :: Proxy (LiftedCoercible f g)) coerce
-#endif
 
 -- | Specialization of 'hfromI'.
 --

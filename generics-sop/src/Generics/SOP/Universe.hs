@@ -1,10 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
-#if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE UndecidableSuperClasses #-}
-#endif
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
+import Data.Kind (Type)
 import Data.Coerce (Coercible)
 import qualified GHC.Generics as GHC
 
@@ -94,7 +93,7 @@ type Rep a = SOP I (Code a)
 --
 -- still holds.
 --
-class (All SListI (Code a)) => Generic (a :: *) where
+class (All SListI (Code a)) => Generic (a :: Type) where
   -- | The code of a datatype.
   --
   -- This is a list of lists of its components. The outer list contains
@@ -112,7 +111,7 @@ class (All SListI (Code a)) => Generic (a :: *) where
   -- >    , '[ Tree, Tree ]
   -- >    ]
   --
-  type Code a :: [[*]]
+  type Code a :: [[Type]]
   type Code a = GCode a
 
   -- | Converts from a value to its structural representation.
@@ -138,14 +137,10 @@ class (All SListI (Code a)) => Generic (a :: *) where
 -- rather derive the class instance automatically. See the documentation
 -- of 'Generic' for the options.
 --
-class HasDatatypeInfo a where
+class Generic a => HasDatatypeInfo a where
   -- | Type-level datatype info
   type DatatypeInfoOf a :: T.DatatypeInfo
-#if MIN_VERSION_base(4,9,0)
   type DatatypeInfoOf a = GDatatypeInfoOf a
-#else
-  type DatatypeInfoOf a = DatatypeInfoOf a
-#endif
 
   -- | Term-level datatype info; by default, the term-level datatype info is produced
   -- from the type-level info.
@@ -162,7 +157,7 @@ class HasDatatypeInfo a where
 --
 -- @since 0.3.1.0
 --
-type IsProductType (a :: *) (xs :: [*]) =
+type IsProductType (a :: Type) (xs :: [Type]) =
   (Generic a, Code a ~ '[ xs ])
 
 -- | Constraint that captures that a datatype is an enumeration type,
@@ -170,7 +165,7 @@ type IsProductType (a :: *) (xs :: [*]) =
 --
 -- @since 0.3.1.0
 --
-type IsEnumType (a :: *) =
+type IsEnumType (a :: Type) =
   (Generic a, All ((~) '[]) (Code a))
 
 -- | Constraint that captures that a datatype is a single-constructor,
@@ -181,7 +176,7 @@ type IsEnumType (a :: *) =
 --
 -- @since 0.3.1.0
 --
-type IsWrappedType (a :: *) (x :: *) =
+type IsWrappedType (a :: Type) (x :: Type) =
   (Generic a, Code a ~ '[ '[ x ] ])
 
 -- | Constraint that captures that a datatype is a newtype.
@@ -190,5 +185,5 @@ type IsWrappedType (a :: *) (x :: *) =
 --
 -- @since 0.3.1.0
 --
-type IsNewtype (a :: *) (x :: *) =
+type IsNewtype (a :: Type) (x :: Type) =
   (IsWrappedType a x, Coercible a x)

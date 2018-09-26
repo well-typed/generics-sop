@@ -1,7 +1,4 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving #-}
-#if MIN_VERSION_base(4,7,0)
-{-# LANGUAGE NoAutoDeriveTypeable #-}
-#endif
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the
@@ -9,7 +6,7 @@
 -- See the <http://www.andres-loeh.de/TrueSumsOfProducts "True Sums of Products">
 -- paper for details.
 --
-module Generics.SOP.Sing
+module Data.SOP.Sing
   ( -- * Singletons
     SList(..)
   , SListI(..)
@@ -21,6 +18,8 @@ module Generics.SOP.Sing
   , lengthSList
   , lengthSing
   ) where
+
+import Data.Kind (Type)
 
 -- * Singletons
 
@@ -37,7 +36,7 @@ module Generics.SOP.Sing
 --
 -- @since 0.2
 --
-data SList :: [k] -> * where
+data SList :: [k] -> Type where
   SNil  :: SList '[]
   SCons :: SListI xs => SList (x ': xs)
 
@@ -86,7 +85,7 @@ type Sing = SList
 
 -- | Occassionally it is useful to have an explicit, term-level, representation
 -- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108)
-data Shape :: [k] -> * where
+data Shape :: [k] -> Type where
   ShapeNil  :: Shape '[]
   ShapeCons :: SListI xs => Shape xs -> Shape (x ': xs)
 

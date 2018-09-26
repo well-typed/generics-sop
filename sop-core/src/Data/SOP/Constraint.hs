@@ -1,10 +1,5 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
-#if __GLASGOW_HASKELL__ < 710
-{-# LANGUAGE OverlappingInstances #-}
-#endif
-#if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE UndecidableSuperClasses #-}
-#endif
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-deprecations #-}
 -- | Constraints for indexed datatypes.
 --
@@ -12,15 +7,15 @@
 -- elements of an indexed structure must satisfy a particular
 -- constraint.
 --
-module Generics.SOP.Constraint
-  ( module Generics.SOP.Constraint
+module Data.SOP.Constraint
+  ( module Data.SOP.Constraint
   , Constraint
   ) where
 
 import Data.Coerce
-import GHC.Exts (Constraint)
+import Data.Kind (Type, Constraint)
 
-import Generics.SOP.Sing
+import Data.SOP.Sing
 
 -- | Require a constraint for every element of a list.
 --
@@ -42,6 +37,25 @@ import Generics.SOP.Sing
 --
 -- means that 'f' can assume that all elements of the n-ary
 -- product satisfy 'Eq'.
+--
+-- Note on superclasses: ghc cannot deduce superclasses from 'All'
+-- constraints.
+-- You might expect the following to compile
+--
+-- > class (Eq a) => MyClass a
+-- >
+-- > foo :: (All Eq xs) => NP f xs -> z
+-- > foo = [..]
+-- >
+-- > bar :: (All MyClass xs) => NP f xs -> x
+-- > bar = foo
+-- but it will fail with an error saying that it was unable to
+-- deduce the class constraint @'AllF' 'Eq' xs@ (or similar) in the
+-- definition of 'bar'.
+-- In cases like this you can use 'Data.SOP.Dict.Dict' from "Data.SOP.Dict"
+-- to prove conversions between constraints.
+-- See [this answer on SO for more details](https://stackoverflow.com/questions/50777865/super-classes-with-all-from-generics-sop).
+
 --
 class (AllF f xs, SListI xs) => All (f :: k -> Constraint) (xs :: [k])
 instance (AllF f xs, SListI xs) => All f xs
@@ -204,32 +218,28 @@ instance Top x
 -- The family 'AllN' expands to 'All' or 'All2' depending on whether
 -- the argument is indexed by a list or a list of lists.
 --
-type family AllN (h :: (k -> *) -> (l -> *)) (c :: k -> Constraint) :: l -> Constraint
+type family AllN (h :: (k -> Type) -> (l -> Type)) (c :: k -> Constraint) :: l -> Constraint
 
 -- | A generalization of 'AllZip' and 'AllZip2'.
 --
 -- The family 'AllZipN' expands to 'AllZip' or 'AllZip2' depending on
 -- whther the argument is indexed by a list or a list of lists.
 --
-type family AllZipN (h :: (k -> *) -> (l -> *)) (c :: k1 -> k2 -> Constraint) :: l1 -> l2 -> Constraint
+type family AllZipN (h :: (k -> Type) -> (l -> Type)) (c :: k1 -> k2 -> Constraint) :: l1 -> l2 -> Constraint
 
 -- | A generalization of 'SListI'.
 --
 -- The family 'SListIN' expands to 'SListI' or 'SListI2' depending
 -- on whether the argument is indexed by a list or a list of lists.
 --
-type family SListIN (h :: (k -> *) -> (l -> *)) :: l -> Constraint
+type family SListIN (h :: (k -> Type) -> (l -> Type)) :: l -> Constraint
 
 instance
-#if __GLASGOW_HASKELL__ >= 710
   {-# OVERLAPPABLE #-}
-#endif
   SListI xs => SingI (xs :: [k]) where
   sing = sList
 
 instance
-#if __GLASGOW_HASKELL__ >= 710
   {-# OVERLAPPING #-}
-#endif
   (All SListI xss, SListI xss) => SingI (xss :: [[k]]) where
   sing = sList
