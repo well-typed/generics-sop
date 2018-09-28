@@ -15,7 +15,7 @@ module Data.SOP.Constraint
 import Data.Coerce
 import Data.Kind (Type, Constraint)
 
-import Data.SOP.Sing
+-- import Data.SOP.Sing
 
 -- | Require a constraint for every element of a list.
 --
@@ -57,8 +57,44 @@ import Data.SOP.Sing
 -- See [this answer on SO for more details](https://stackoverflow.com/questions/50777865/super-classes-with-all-from-generics-sop).
 
 --
-class (AllF f xs, SListI xs) => All (f :: k -> Constraint) (xs :: [k])
-instance (AllF f xs, SListI xs) => All f xs
+class (AllF c xs, SListI xs) => All (c :: k -> Constraint) (xs :: [k]) where
+
+  -- | Constrained paramorphism for a type-level list.
+  --
+  -- The advantage of writing functions in terms of 'cpara_SList' is that
+  -- they are then typically not recursive, and can be unfolded statically if
+  -- the type-level list is statically known.
+  --
+  -- @since 0.4.0.0
+  --
+  cpara_SList ::
+       proxy c
+    -> r '[]
+    -> (forall y ys . (c y, All c ys) => r ys -> r (y ': ys))
+    -> r xs
+
+instance All c '[] where
+  cpara_SList _p nil _cons = nil
+  {-# INLINE cpara_SList #-}
+
+instance (c x, All c xs) => All c (x ': xs) where
+  cpara_SList p nil cons =
+    cons (cpara_SList p nil cons)
+  {-# INLINE cpara_SList #-}
+
+-- | Constrained case distinction on a type-level list.
+--
+-- @since 0.4.0.0
+--
+ccase_SList ::
+     All c xs
+  => proxy c
+  -> r '[]
+  -> (forall y ys . (c y, All c ys) => r (y ': ys))
+  -> r xs
+ccase_SList p nil cons =
+  cpara_SList p nil (const cons)
+{-# INLINE ccase_SList #-}
 
 -- | Type family used to implement 'All'.
 --
@@ -70,11 +106,25 @@ type family
 -- | Require a singleton for every inner list in a list of lists.
 type SListI2 = All SListI
 
+-- | Implicit singleton list.
+--
+-- A singleton list can be used to reveal the structure of
+-- a type-level list argument that the function is quantified
+-- over.
+--
+-- This is defined in terms of 'All'. A singleton list provides
+-- a witness for a type-level list where the elements adhere
+-- to no additional constraints.
+--
+-- @since 0.2
+--
+type SListI = All Top
+
 -- | Require a constraint for every element of a list of lists.
 --
 -- If you have a datatype that is indexed over a type-level
 -- list of lists, then you can use 'All2' to indicate that all
--- elements of the innert lists must satisfy a given constraint.
+-- elements of the inner lists must satisfy a given constraint.
 --
 -- /Example:/ The constraint
 --
@@ -91,18 +141,7 @@ type SListI2 = All SListI
 -- means that 'f' can assume that all elements of the sum
 -- of product satisfy 'Eq'.
 --
-class (AllF (All f) xss, SListI xss) => All2 f xss
-instance (AllF (All f) xss, SListI xss) => All2 f xss
---
--- NOTE:
---
--- The definition
---
--- type All2 f = All (All f)
---
--- is more direct, but has the unfortunate disadvantage the
--- it triggers GHC's superclass cycle check when used in a
--- class context.
+type All2 c = All (All c)
 
 -- | Require a constraint for pointwise for every pair of
 -- elements from two lists.
@@ -234,12 +273,3 @@ type family AllZipN (h :: (k -> Type) -> (l -> Type)) (c :: k1 -> k2 -> Constrai
 --
 type family SListIN (h :: (k -> Type) -> (l -> Type)) :: l -> Constraint
 
-instance
-  {-# OVERLAPPABLE #-}
-  SListI xs => SingI (xs :: [k]) where
-  sing = sList
-
-instance
-  {-# OVERLAPPING #-}
-  (All SListI xss, SListI xss) => SingI (xss :: [[k]]) where
-  sing = sList

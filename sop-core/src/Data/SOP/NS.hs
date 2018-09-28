@@ -474,6 +474,10 @@ compare_NS lt eq gt = go
     go (Z _)  (S _)  = lt
     go (S _)  (Z _)  = gt
     go (S xs) (S ys) = go xs ys
+--
+-- NOTE: The above could be written in terms of
+-- ccompare_NS, but the direct definition avoids the
+-- SListI constraint. We may change this in the future.
 
 -- | Constrained version of 'compare_NS'.
 --
@@ -597,10 +601,12 @@ ctraverse__SOP p f = ctraverse__NS (allP p) (ctraverse__NP p f) . unSOP
 traverse__SOP ::
      forall xss f g. (SListI2 xss, Applicative g)
   => (forall a. f a -> g ()) -> SOP f xss -> g ()
-traverse__SOP f = ctraverse__NS sListP (traverse__NP f) . unSOP
+traverse__SOP f =
+  ctraverse__SOP topP f
+{-# INLINE traverse__SOP #-}
 
-sListP :: Proxy SListI
-sListP = Proxy
+topP :: Proxy Top
+topP = Proxy
 
 instance HTraverse_ NS  where
   hctraverse_ = ctraverse__NS
@@ -666,10 +672,9 @@ ctraverse'_NS _ f = go where
 traverse'_NS  ::
      forall xs f f' g. (SListI xs,  Functor g)
   => (forall a. f a -> g (f' a)) -> NS f xs  -> g (NS f' xs)
-traverse'_NS f = go where
-  go :: NS f ys -> g (NS f' ys)
-  go (Z x)  = Z <$> f x
-  go (S xs) = S <$> go xs
+traverse'_NS f =
+  ctraverse'_NS topP f
+{-# INLINE traverse'_NS #-}
 
 -- | Specialization of 'hctraverse''.
 --
@@ -683,7 +688,9 @@ ctraverse'_SOP p f = fmap SOP . ctraverse'_NS (allP p) (ctraverse'_NP p f) . unS
 -- @since 0.3.2.0
 --
 traverse'_SOP :: (SListI2 xss, Applicative g) => (forall a. f a -> g (f' a)) -> SOP f xss -> g (SOP f' xss)
-traverse'_SOP f = fmap SOP . ctraverse'_NS sListP (traverse'_NP f) . unSOP
+traverse'_SOP f =
+  ctraverse'_SOP topP f
+{-# INLINE traverse'_SOP #-}
 
 instance HSequence NS  where
   hsequence'  = sequence'_NS
@@ -768,13 +775,9 @@ ana_NS ::
   -> (forall y ys . s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
-ana_NS refute decide = go sList
-  where
-    go :: forall ys . SList ys -> s ys -> NS f ys
-    go SNil  s = refute s
-    go SCons s = case decide s of
-      Left x   -> Z x
-      Right s' -> S (go sList s')
+ana_NS refute decide =
+  cana_NS topP refute decide
+{-# INLINE ana_NS #-}
 
 -- | Constrained anamorphism for 'NS'.
 --
@@ -805,12 +808,9 @@ expand_NS :: forall f xs .
      (SListI xs)
   => (forall x . f x)
   -> NS f xs -> NP f xs
-expand_NS d = go sList
-  where
-    go :: forall ys . SList ys -> NS f ys -> NP f ys
-    go SCons (Z x) = x :* hpure d
-    go SCons (S i) = d :* go sList i
-    go SNil  x     = case x of {}
+expand_NS d =
+  cexpand_NS topP d
+{-# INLINE expand_NS #-}
 
 -- | Specialization of 'hcexpand'.
 --
@@ -835,7 +835,8 @@ expand_SOP :: forall f xss .
   => (forall x . f x)
   -> SOP f xss -> POP f xss
 expand_SOP d =
-  POP . cexpand_NS (Proxy :: Proxy SListI) (hpure d) . unSOP
+  cexpand_SOP topP d
+{-# INLINE cexpand_SOP #-}
 
 -- | Specialization of 'hcexpand'.
 --

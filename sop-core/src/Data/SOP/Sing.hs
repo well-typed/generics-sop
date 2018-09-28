@@ -9,17 +9,20 @@
 module Data.SOP.Sing
   ( -- * Singletons
     SList(..)
-  , SListI(..)
-  , Sing
-  , SingI(..)
+  , SListI
+  , sList
+  , para_SList
+  , case_SList
     -- ** Shape of type-level lists
   , Shape(..)
   , shape
   , lengthSList
-  , lengthSing
   ) where
 
 import Data.Kind (Type)
+import Data.Proxy (Proxy(..))
+
+import Data.SOP.Constraint
 
 -- * Singletons
 
@@ -44,47 +47,43 @@ deriving instance Show (SList (xs :: [k]))
 deriving instance Eq   (SList (xs :: [k]))
 deriving instance Ord  (SList (xs :: [k]))
 
--- | Implicit singleton list.
+-- | Paramorphism for a type-level list.
 --
--- A singleton list can be used to reveal the structure of
--- a type-level list argument that the function is quantified
--- over.
+-- @since 0.4.0.0
 --
--- The class 'SListI' should have instances that match the
--- constructors of 'SList'.
---
--- @since 0.2
---
-class SListI (xs :: [k]) where
-  -- | Get hold of the explicit singleton (that one can then
-  -- pattern match on).
-  sList :: SList xs
+para_SList ::
+     SListI xs
+  => r '[]
+  -> (forall y ys . (SListI ys) => r ys -> r (y ': ys))
+  -> r xs
+para_SList nil cons =
+  cpara_SList (Proxy :: Proxy Top) nil cons
+{-# INLINE para_SList #-}
 
-instance SListI '[] where
-  sList = SNil
-
-instance SListI xs => SListI (x ': xs) where
-  sList = SCons
-
--- | General class for implicit singletons.
+-- | Case distinction on a type-level list.
 --
--- Just provided for limited backward compatibility.
+-- @since 0.4.0.0
 --
-{-# DEPRECATED SingI "Use 'SListI' instead." #-}
-{-# DEPRECATED sing "Use 'sList' instead." #-}
-class SListI xs => SingI (xs :: [k]) where
-  sing :: Sing xs
+case_SList ::
+     SListI xs
+  => r '[]
+  -> (forall y ys . (SListI ys) => r (y ': ys))
+  -> r xs
+case_SList nil cons =
+  ccase_SList (Proxy :: Proxy Top) nil cons
+{-# INLINE case_SList #-}
 
--- | Explicit singleton type.
+-- | Get hold of an explicit singleton (that one can then
+-- pattern match on) for a type-level list
 --
--- Just provided for limited backward compatibility.
-{-# DEPRECATED Sing "Use 'SList' instead." #-}
-type Sing = SList
+sList :: SListI xs => SList xs
+sList = ccase_SList (Proxy :: Proxy Top) SNil SCons
 
 -- * Shape of type-level lists
 
 -- | Occassionally it is useful to have an explicit, term-level, representation
 -- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108)
+--
 data Shape :: [k] -> Type where
   ShapeNil  :: Shape '[]
   ShapeCons :: SListI xs => Shape xs -> Shape (x ': xs)
@@ -110,7 +109,3 @@ lengthSList _ = lengthShape (shape :: Shape xs)
     lengthShape ShapeNil      = 0
     lengthShape (ShapeCons s) = 1 + lengthShape s
 
--- | Old name for 'lengthSList'.
-{-# DEPRECATED lengthSing "Use 'lengthSList' instead." #-}
-lengthSing :: SListI xs => proxy xs -> Int
-lengthSing = lengthSList

@@ -221,9 +221,8 @@ type instance SListIN POP = SListI2
 -- K 0 :* K 0 :* K 0 :* Nil
 --
 pure_NP :: forall f xs. SListI xs => (forall a. f a) -> NP f xs
-pure_NP f = case sList :: SList xs of
-  SNil   -> Nil
-  SCons  -> f :* pure_NP f
+pure_NP f = cpure_NP topP f
+{-# INLINE pure_NP #-}
 
 -- | Specialization of 'hpure'.
 --
@@ -231,10 +230,11 @@ pure_NP f = case sList :: SList xs of
 -- in every element position.
 --
 pure_POP :: All SListI xss => (forall a. f a) -> POP f xss
-pure_POP f = POP (cpure_NP sListP (pure_NP f))
+pure_POP f = cpure_POP topP f
+{-# INLINE pure_POP #-}
 
-sListP :: Proxy SListI
-sListP = Proxy
+topP :: Proxy Top
+topP = Proxy
 
 -- | Specialization of 'hcpure'.
 --
@@ -548,11 +548,9 @@ ctraverse__NP _ f = go
 traverse__NP ::
      forall xs f g. (SListI xs, Applicative g)
   => (forall a. f a -> g ()) -> NP f xs -> g ()
-traverse__NP f = go
-  where
-    go :: NP f ys -> g ()
-    go Nil       = pure ()
-    go (x :* xs) = f x *> go xs
+traverse__NP f =
+  ctraverse__NP topP f
+{-# INLINE traverse__NP #-}
 
 -- | Specialization of 'hctraverse_'.
 --
@@ -570,7 +568,9 @@ ctraverse__POP p f = ctraverse__NP (allP p) (ctraverse__NP p f) . unPOP
 traverse__POP ::
      forall xss f g. (SListI2 xss, Applicative g)
   => (forall a. f a -> g ()) -> POP f xss -> g ()
-traverse__POP f = ctraverse__NP sListP (traverse__NP f) . unPOP
+traverse__POP f =
+  ctraverse__POP topP f
+{-# INLINE traverse__POP #-}
 
 instance HTraverse_ NP  where
   hctraverse_ = ctraverse__NP
@@ -624,10 +624,9 @@ ctraverse'_NP _ f = go where
 traverse'_NP  ::
      forall xs f f' g. (SListI xs,  Applicative g)
   => (forall a. f a -> g (f' a)) -> NP f xs  -> g (NP f' xs)
-traverse'_NP f = go where
-  go :: NP f ys -> g (NP f' ys)
-  go Nil       = pure Nil
-  go (x :* xs) = (:*) <$> f x <*> go xs
+traverse'_NP f =
+  ctraverse'_NP topP f
+{-# INLINE traverse'_NP #-}
 
 -- | Specialization of 'hctraverse''.
 --
@@ -641,7 +640,9 @@ ctraverse'_POP p f = fmap POP . ctraverse'_NP (allP p) (ctraverse'_NP p f) . unP
 -- @since 0.3.2.0
 --
 traverse'_POP :: (SListI2 xss, Applicative g) => (forall a. f a -> g (f' a)) -> POP f xss -> g (POP f' xss)
-traverse'_POP f = fmap POP . ctraverse'_NP sListP (traverse'_NP f) . unPOP
+traverse'_POP f =
+  ctraverse'_POP topP f
+{-# INLINE traverse'_POP #-}
 
 instance HSequence NP  where
   hsequence'  = sequence'_NP
@@ -751,12 +752,9 @@ ana_NP ::
   => (forall y ys . s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
-ana_NP uncons = go sList
-  where
-    go :: forall ys . SList ys -> s ys -> NP f ys
-    go SNil  _ = Nil
-    go SCons s = case uncons s of
-      (x, s') -> x :* go sList s'
+ana_NP uncons =
+  cana_NP topP uncons
+{-# INLINE ana_NP #-}
 
 -- | Constrained anamorphism for 'NP'.
 --
