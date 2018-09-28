@@ -3,12 +3,15 @@
 module Generics.SOP.TH
   ( deriveGeneric
   , deriveGenericOnly
+  , deriveGenericSubst
+  , deriveGenericOnlySubst
   , deriveGenericFunctions
   , deriveMetadataValue
   , deriveMetadataType
   ) where
 
 import Control.Monad (replicateM)
+import Data.List (foldl')
 import Data.Maybe (fromMaybe)
 import Data.Proxy
 import Language.Haskell.TH
@@ -66,17 +69,33 @@ import Generics.SOP.Universe
 -- datatypes with unboxed fields.
 --
 deriveGeneric :: Name -> Q [Dec]
-deriveGeneric n = do
-  dec <- reifyDec n
-  ds1 <- withDataDec dec deriveGenericForDataDec
-  ds2 <- withDataDec dec deriveMetadataForDataDec
-  return (ds1 ++ ds2)
+deriveGeneric n =
+  deriveGenericSubst n varT
 
 -- | Like 'deriveGeneric', but omit the 'HasDatatypeInfo' instance.
 deriveGenericOnly :: Name -> Q [Dec]
-deriveGenericOnly n = do
+deriveGenericOnly n =
+  deriveGenericOnlySubst n varT
+
+-- | Variant of 'deriveGeneric' that allows to restrict the type parameters.
+--
+-- Experimental function, exposed primarily for benchmarking.
+--
+deriveGenericSubst :: Name -> (Name -> Q Type) -> Q [Dec]
+deriveGenericSubst n f = do
   dec <- reifyDec n
-  withDataDec dec deriveGenericForDataDec
+  ds1 <- withDataDec dec (deriveGenericForDataDec  f)
+  ds2 <- withDataDec dec (deriveMetadataForDataDec f)
+  return (ds1 ++ ds2)
+
+-- | Variant of 'deriveGenericOnly' that allows to restrict the type parameters.
+--
+-- Experimental function, exposed primarily for benchmarking.
+--
+deriveGenericOnlySubst :: Name -> (Name -> Q Type) -> Q [Dec]
+deriveGenericOnlySubst n f = do
+  dec <- reifyDec n
+  withDataDec dec (deriveGenericForDataDec f)
 
 -- | Like 'deriveGenericOnly', but don't derive class instance, only functions.
 --
@@ -106,9 +125,9 @@ deriveGenericFunctions n codeName fromName toName = do
   let toName'   = mkName toName
   dec <- reifyDec n
   withDataDec dec $ \_isNewtype _cxt name bndrs cons _derivs -> do
-    let codeType = codeFor cons                        -- '[ '[Int], '[Tree, Tree] ]
-    let origType = appTyVars name bndrs                -- Tree
-    let repType  = [t| SOP I $(appTyVars codeName' bndrs) |] -- SOP I TreeCode
+    let codeType = codeFor varT cons                     -- '[ '[Int], '[Tree, Tree] ]
+    let origType = appTyVars varT name bndrs             -- Tree
+    let repType  = [t| SOP I $(appTyVars varT codeName' bndrs) |] -- SOP I TreeCode
     sequence
       [ tySynD codeName' bndrs codeType                 -- type TreeCode = '[ '[Int], '[Tree, Tree] ]
       , sigD fromName' [t| $origType -> $repType |]     -- fromTree :: Tree -> SOP I TreeCode
@@ -166,19 +185,29 @@ deriveMetadataType n datatypeInfoName = do
     sequence
       [ tySynD datatypeInfoName' [] (metadataType' isNewtype name cons) ]
 
-deriveGenericForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
-deriveGenericForDataDec _isNewtype _cxt name bndrs cons _derivs = do
-  let typ = appTyVars name bndrs
-  let codeSyn = tySynInstD ''Code $ tySynEqn [typ] (codeFor cons)
+deriveGenericForDataDec ::
+  (Name -> Q Type) -> Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
+deriveGenericForDataDec f _isNewtype _cxt name bndrs cons _derivs = do
+  let typ = appTyVars f name bndrs
+  deriveGenericForDataType f typ cons
+
+deriveGenericForDataType :: (Name -> Q Type) -> Q Type -> [Con] -> Q [Dec]
+deriveGenericForDataType f typ cons = do
+  let codeSyn = tySynInstD ''Code $ tySynEqn [typ] (codeFor f cons)
   inst <- instanceD
             (cxt [])
             [t| Generic $typ |]
             [codeSyn, embedding 'from cons, projection 'to cons]
   return [inst]
 
-deriveMetadataForDataDec :: Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
-deriveMetadataForDataDec isNewtype _cxt name bndrs cons _derivs = do
-  let typ = appTyVars name bndrs
+deriveMetadataForDataDec ::
+  (Name -> Q Type) -> Bool -> Cxt -> Name -> [TyVarBndr] -> [Con] -> Derivings -> Q [Dec]
+deriveMetadataForDataDec f isNewtype _cxt name bndrs cons _derivs = do
+  let typ = appTyVars f name bndrs
+  deriveMetadataForDataType isNewtype name typ cons
+
+deriveMetadataForDataType :: Bool -> Name -> Q Type -> [Con] -> Q [Dec]
+deriveMetadataForDataType isNewtype name typ cons = do
   md   <- instanceD (cxt [])
             [t| HasDatatypeInfo $typ |]
             [ metadataType typ isNewtype name cons
@@ -191,17 +220,16 @@ deriveMetadataForDataDec isNewtype _cxt name bndrs cons _derivs = do
             -- [metadata isNewtype name cons]
   return [md]
 
-
 {-------------------------------------------------------------------------------
   Computing the code for a data type
 -------------------------------------------------------------------------------}
 
-codeFor :: [Con] -> Q Type
-codeFor = promotedTypeList . map go
+codeFor :: (Name -> Q Type) -> [Con] -> Q Type
+codeFor f = promotedTypeList . map go
   where
     go :: Con -> Q Type
     go c = do (_, ts) <- conInfo c
-              promotedTypeList ts
+              promotedTypeListSubst f ts
 
 {-------------------------------------------------------------------------------
   Computing the embedding/projection pair
@@ -394,13 +422,32 @@ promotedTypeList :: [Q Type] -> Q Type
 promotedTypeList []     = promotedNilT
 promotedTypeList (t:ts) = [t| $promotedConsT $t $(promotedTypeList ts) |]
 
-appTyVars :: Name -> [TyVarBndr] -> Q Type
-appTyVars n = go (conT n)
+promotedTypeListSubst :: (Name -> Q Type) -> [Q Type] -> Q Type
+promotedTypeListSubst _ []     = promotedNilT
+promotedTypeListSubst f (t:ts) = [t| $promotedConsT $(t >>= substType f) $(promotedTypeListSubst f ts) |]
+
+appsT :: Name -> [Q Type] -> Q Type
+appsT n = foldl' appT (conT n)
+
+bndrToName :: TyVarBndr -> Name
+bndrToName (PlainTV  v  ) = v
+bndrToName (KindedTV v _) = v
+
+appTyVars :: (Name -> Q Type) -> Name -> [TyVarBndr] -> Q Type
+appTyVars f n bndrs =
+  appsT n (map (f . bndrToName) bndrs)
+
+substType :: (Name -> Q Type) -> Type -> Q Type
+substType f = go
   where
-    go :: Q Type -> [TyVarBndr] -> Q Type
-    go t []                  = t
-    go t (PlainTV  v   : vs) = go [t| $t $(varT v) |] vs
-    go t (KindedTV v _ : vs) = go [t| $t $(varT v) |] vs
+    go (VarT n)     = f n
+    go (AppT t1 t2) = AppT <$> go t1 <*> go t2
+    go ListT        = return ListT
+    go (ConT n)     = return (ConT n)
+    go ArrowT       = return ArrowT
+    go t            = error (show t) -- return t
+      -- TODO: This is incorrect, but we only need substitution to work
+      -- in simple cases for now.
 
 reifyDec :: Name -> Q Dec
 reifyDec name =

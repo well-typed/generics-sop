@@ -118,3 +118,17 @@ test-suite generics-sop-examples
                        FunctionalDependencies
                        MultiParamTypeClasses
                        TypeFamilies
+
+benchmark generics-sop-bench
+  type:                exitcode-stdio-1.0
+  main-is:             SOPBench.hs
+  other-modules:       SOPBench.Type
+                       SOPBench.Eq
+                       SOPBench.Show
+  hs-source-dirs:      bench
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  build-depends:       base                 >= 4.6  && < 5,
+                       criterion,
+                       generics-sop,
+                       template-haskell
