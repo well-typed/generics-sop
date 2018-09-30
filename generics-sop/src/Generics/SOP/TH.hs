@@ -445,9 +445,13 @@ substType f = go
     go ListT        = return ListT
     go (ConT n)     = return (ConT n)
     go ArrowT       = return ArrowT
-    go t            = error (show t) -- return t
+    go (TupleT i)   = return (TupleT i)
+    go t            = return t -- error (show t)
       -- TODO: This is incorrect, but we only need substitution to work
-      -- in simple cases for now.
+      -- in simple cases for now. The reason is that substitution is normally
+      -- the identity, except if we use TH derivation for the tagged datatypes
+      -- in the benchmarking suite. So we can fall back on identity in all
+      -- but the cases we need for the benchmarking suite.
 
 reifyDec :: Name -> Q Dec
 reifyDec name =
