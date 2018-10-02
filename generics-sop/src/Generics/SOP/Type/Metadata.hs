@@ -35,7 +35,12 @@ module Generics.SOP.Type.Metadata
 
 import Data.Kind (Type)
 import Data.Proxy (Proxy (..))
-import GHC.Generics (Associativity(..))
+import GHC.Generics
+  ( Associativity(..)
+  , DecidedStrictness(..)
+  , SourceStrictness(..)
+  , SourceUnpackedness(..)
+  )
 import GHC.Types
 import GHC.TypeLits
 
@@ -62,7 +67,7 @@ import Generics.SOP.Sing
 -- @since 0.3.0.0
 --
 data DatatypeInfo =
-    ADT ModuleName DatatypeName [ConstructorInfo]
+    ADT ModuleName DatatypeName [ConstructorInfo] [[StrictnessInfo]]
     -- ^ Standard algebraic datatype
   | Newtype ModuleName DatatypeName ConstructorInfo
     -- ^ Newtype
@@ -78,6 +83,13 @@ data ConstructorInfo =
     -- ^ Infix constructor
   | Record ConstructorName [FieldInfo]
     -- ^ Record constructor
+
+-- | Strictness information for a single field (to be used promoted).
+--
+-- @since 0.4.0.0
+--
+data StrictnessInfo =
+    StrictnessInfo SourceUnpackedness SourceStrictness DecidedStrictness
 
 -- | Metadata for a single record field (to be used promoted).
 --
@@ -120,13 +132,18 @@ class DemoteDatatypeInfo (x :: DatatypeInfo) (xss :: [[Type]]) where
   demoteDatatypeInfo :: proxy x -> M.DatatypeInfo xss
 
 instance
-     (KnownSymbol m, KnownSymbol d, DemoteConstructorInfos cs xss)
-  => DemoteDatatypeInfo ('ADT m d cs) xss where
+     ( KnownSymbol m
+     , KnownSymbol d
+     , DemoteConstructorInfos cs xss
+     , DemoteStrictnessInfoss sss xss
+     )
+  => DemoteDatatypeInfo ('ADT m d cs sss) xss where
   demoteDatatypeInfo _ =
     M.ADT
       (symbolVal (Proxy :: Proxy m))
       (symbolVal (Proxy :: Proxy d))
       (demoteConstructorInfos (Proxy :: Proxy cs))
+      (POP (demoteStrictnessInfoss (Proxy :: Proxy sss)))
 
 instance
      (KnownSymbol m, KnownSymbol d, DemoteConstructorInfo c '[ x ])
@@ -188,6 +205,48 @@ instance (KnownSymbol s, DemoteFieldInfos fs xs) => DemoteConstructorInfo ('Reco
   demoteConstructorInfo _ =
     M.Record (symbolVal (Proxy :: Proxy s)) (demoteFieldInfos (Proxy :: Proxy fs))
 
+
+class DemoteStrictnessInfoss (sss :: [[StrictnessInfo]]) (xss :: [[Type]]) where
+  demoteStrictnessInfoss :: proxy sss -> NP (NP M.StrictnessInfo) xss
+
+instance DemoteStrictnessInfoss '[] '[] where
+  demoteStrictnessInfoss _ = Nil
+
+instance
+     (DemoteStrictnessInfos ss xs, DemoteStrictnessInfoss sss xss)
+  => DemoteStrictnessInfoss (ss ': sss) (xs ': xss) where
+  demoteStrictnessInfoss _ =
+       demoteStrictnessInfos  (Proxy :: Proxy ss )
+    :* demoteStrictnessInfoss (Proxy :: Proxy sss)
+
+class DemoteStrictnessInfos (ss :: [StrictnessInfo]) (xs :: [Type]) where
+  demoteStrictnessInfos :: proxy ss -> NP M.StrictnessInfo xs
+
+instance DemoteStrictnessInfos '[] '[] where
+  demoteStrictnessInfos _ = Nil
+
+instance
+     (DemoteStrictnessInfo s x, DemoteStrictnessInfos ss xs)
+  => DemoteStrictnessInfos (s ': ss) (x ': xs) where
+  demoteStrictnessInfos _ =
+       demoteStrictnessInfo  (Proxy :: Proxy s )
+    :* demoteStrictnessInfos (Proxy :: Proxy ss)
+
+class DemoteStrictnessInfo (s :: StrictnessInfo) (x :: Type) where
+  demoteStrictnessInfo :: proxy s -> M.StrictnessInfo x
+
+instance
+     ( DemoteSourceUnpackedness su
+     , DemoteSourceStrictness   ss
+     , DemoteDecidedStrictness  ds
+     )
+  => DemoteStrictnessInfo ('StrictnessInfo su ss ds) x where
+  demoteStrictnessInfo _ =
+    M.StrictnessInfo
+      (demoteSourceUnpackedness (Proxy :: Proxy su))
+      (demoteSourceStrictness   (Proxy :: Proxy ss))
+      (demoteDecidedStrictness  (Proxy :: Proxy ds))
+
 -- | Class for computing term-level field information from
 -- type-level field information.
 --
@@ -246,4 +305,70 @@ instance DemoteAssociativity 'RightAssociative where
 
 instance DemoteAssociativity 'NotAssociative where
   demoteAssociativity _ = M.NotAssociative
+
+-- | Class for computing term-level source unpackedness information
+-- from type-level source unpackedness information.
+--
+-- @since 0.4.0.0
+--
+class DemoteSourceUnpackedness (a :: SourceUnpackedness) where
+  -- | Given a proxy of some type-level source unpackedness information,
+  -- return the corresponding term-level information.
+  --
+  -- @since 0.4.0.0
+  --
+  demoteSourceUnpackedness :: proxy a -> M.SourceUnpackedness
+
+instance DemoteSourceUnpackedness 'NoSourceUnpackedness where
+  demoteSourceUnpackedness _ = M.NoSourceUnpackedness
+
+instance DemoteSourceUnpackedness 'SourceNoUnpack where
+  demoteSourceUnpackedness _ = M.SourceNoUnpack
+
+instance DemoteSourceUnpackedness 'SourceUnpack where
+  demoteSourceUnpackedness _ = M.SourceUnpack
+
+-- | Class for computing term-level source strictness information
+-- from type-level source strictness information.
+--
+-- @since 0.4.0.0
+--
+class DemoteSourceStrictness (a :: SourceStrictness) where
+  -- | Given a proxy of some type-level source strictness information,
+  -- return the corresponding term-level information.
+  --
+  -- @since 0.4.0.0
+  --
+  demoteSourceStrictness :: proxy a -> M.SourceStrictness
+
+instance DemoteSourceStrictness 'NoSourceStrictness where
+  demoteSourceStrictness _ = M.NoSourceStrictness
+
+instance DemoteSourceStrictness 'SourceLazy where
+  demoteSourceStrictness _ = M.SourceLazy
+
+instance DemoteSourceStrictness 'SourceStrict where
+  demoteSourceStrictness _ = M.SourceStrict
+
+-- | Class for computing term-level decided strictness information
+-- from type-level decided strictness information.
+--
+-- @since 0.4.0.0
+--
+class DemoteDecidedStrictness (a :: DecidedStrictness) where
+  -- | Given a proxy of some type-level source strictness information,
+  -- return the corresponding term-level information.
+  --
+  -- @since 0.4.0.0
+  --
+  demoteDecidedStrictness :: proxy a -> M.DecidedStrictness
+
+instance DemoteDecidedStrictness 'DecidedLazy where
+  demoteDecidedStrictness _ = M.DecidedLazy
+
+instance DemoteDecidedStrictness 'DecidedStrict where
+  demoteDecidedStrictness _ = M.DecidedStrict
+
+instance DemoteDecidedStrictness 'DecidedUnpack where
+  demoteDecidedStrictness _ = M.DecidedUnpack
 

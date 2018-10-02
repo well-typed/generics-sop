@@ -10,7 +10,7 @@ module Generics.SOP.TH
   , deriveMetadataType
   ) where
 
-import Control.Monad (replicateM)
+import Control.Monad (join, replicateM)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
 import Data.Proxy
@@ -315,8 +315,26 @@ metadata' isNewtype typeName cs = md
        | otherwise = [| SOP.ADT     $(stringE (nameModule' typeName))
                                     $(stringE (nameBase typeName))
                                     $(npE $ map mdCon cs)
+                                    $(popE $ map mdStrictness cs)
                       |]
 
+    mdStrictness :: Con -> Q [Q Exp]
+    mdStrictness (NormalC n bts)            = mdConStrictness n (map fst bts)
+    mdStrictness (RecC n vbts)              = mdConStrictness n (map (\ (_, b, _) -> b) vbts)
+    mdStrictness (InfixC (b1, _) n (b2, _)) = mdConStrictness n [b1, b2]
+    mdStrictness (ForallC _ _ _)            = fail "Existentials not supported"
+    mdStrictness (GadtC _ _ _)              = fail "GADTs not supported"
+    mdStrictness (RecGadtC _ _ _)           = fail "GADTs not supported"
+
+    mdConStrictness :: Name -> [Bang] -> Q [Q Exp]
+    mdConStrictness n bs = do
+      dss <- reifyConStrictness n
+      return (zipWith (\ (Bang su ss) ds ->
+        [| SOP.StrictnessInfo
+          $(mdSourceUnpackedness su)
+          $(mdSourceStrictness   ss)
+          $(mdDecidedStrictness  ds)
+        |]) bs dss)
 
     mdCon :: Con -> Q Exp
     mdCon (NormalC n _)   = [| SOP.Constructor $(stringE (nameBase n)) |]
@@ -335,6 +353,21 @@ metadata' isNewtype typeName cs = md
     mdField :: VarStrictType -> Q Exp
     mdField (n, _, _) = [| SOP.FieldInfo $(stringE (nameBase n)) |]
 
+    mdSourceUnpackedness :: SourceUnpackedness -> Q Exp
+    mdSourceUnpackedness NoSourceUnpackedness = [| SOP.NoSourceUnpackedness |]
+    mdSourceUnpackedness SourceNoUnpack       = [| SOP.SourceNoUnpack       |]
+    mdSourceUnpackedness SourceUnpack         = [| SOP.SourceUnpack         |]
+
+    mdSourceStrictness :: SourceStrictness -> Q Exp
+    mdSourceStrictness NoSourceStrictness = [| SOP.NoSourceStrictness |]
+    mdSourceStrictness SourceLazy         = [| SOP.SourceLazy         |]
+    mdSourceStrictness SourceStrict       = [| SOP.SourceStrict       |]
+
+    mdDecidedStrictness :: DecidedStrictness -> Q Exp
+    mdDecidedStrictness DecidedLazy   = [| SOP.DecidedLazy   |]
+    mdDecidedStrictness DecidedStrict = [| SOP.DecidedStrict |]
+    mdDecidedStrictness DecidedUnpack = [| SOP.DecidedUnpack |]
+
     mdAssociativity :: FixityDirection -> Q Exp
     mdAssociativity InfixL = [| SOP.LeftAssociative  |]
     mdAssociativity InfixR = [| SOP.RightAssociative |]
@@ -352,8 +385,26 @@ metadataType' isNewtype typeName cs = md
        | otherwise = [t| 'SOP.T.ADT     $(stringT (nameModule' typeName))
                                         $(stringT (nameBase typeName))
                                         $(promotedTypeList $ map mdCon cs)
+                                        $(promotedTypeListOfList $ map mdStrictness cs)
                        |]
 
+    mdStrictness :: Con -> Q [Q Type]
+    mdStrictness (NormalC n bts)            = mdConStrictness n (map fst bts)
+    mdStrictness (RecC n vbts)              = mdConStrictness n (map (\ (_, b, _) -> b) vbts)
+    mdStrictness (InfixC (b1, _) n (b2, _)) = mdConStrictness n [b1, b2]
+    mdStrictness (ForallC _ _ _)            = fail "Existentials not supported"
+    mdStrictness (GadtC _ _ _)              = fail "GADTs not supported"
+    mdStrictness (RecGadtC _ _ _)           = fail "GADTs not supported"
+
+    mdConStrictness :: Name -> [Bang] -> Q [Q Type]
+    mdConStrictness n bs = do
+      dss <- reifyConStrictness n
+      return (zipWith (\ (Bang su ss) ds ->
+        [t| 'SOP.T.StrictnessInfo
+          $(mdSourceUnpackedness su)
+          $(mdSourceStrictness   ss)
+          $(mdDecidedStrictness  ds)
+        |]) bs dss)
 
     mdCon :: Con -> Q Type
     mdCon (NormalC n _)   = [t| 'SOP.T.Constructor $(stringT (nameBase n)) |]
@@ -371,6 +422,21 @@ metadataType' isNewtype typeName cs = md
 
     mdField :: VarStrictType -> Q Type
     mdField (n, _, _) = [t| 'SOP.T.FieldInfo $(stringT (nameBase n)) |]
+
+    mdSourceUnpackedness :: SourceUnpackedness -> Q Type
+    mdSourceUnpackedness NoSourceUnpackedness = [t| 'SOP.NoSourceUnpackedness |]
+    mdSourceUnpackedness SourceNoUnpack       = [t| 'SOP.SourceNoUnpack       |]
+    mdSourceUnpackedness SourceUnpack         = [t| 'SOP.SourceUnpack         |]
+
+    mdSourceStrictness :: SourceStrictness -> Q Type
+    mdSourceStrictness NoSourceStrictness = [t| 'SOP.NoSourceStrictness |]
+    mdSourceStrictness SourceLazy         = [t| 'SOP.SourceLazy         |]
+    mdSourceStrictness SourceStrict       = [t| 'SOP.SourceStrict       |]
+
+    mdDecidedStrictness :: DecidedStrictness -> Q Type
+    mdDecidedStrictness DecidedLazy   = [t| 'SOP.DecidedLazy   |]
+    mdDecidedStrictness DecidedStrict = [t| 'SOP.DecidedStrict |]
+    mdDecidedStrictness DecidedUnpack = [t| 'SOP.DecidedUnpack |]
 
     mdAssociativity :: FixityDirection -> Q Type
     mdAssociativity InfixL = [t| 'SOP.T.LeftAssociative  |]
@@ -394,6 +460,11 @@ nameModule' = fromMaybe "" . nameModule
 npE :: [Q Exp] -> Q Exp
 npE []     = [| Nil |]
 npE (e:es) = [| $e :* $(npE es) |]
+
+-- Construct a POP.
+popE :: [Q [Q Exp]] -> Q Exp
+popE ess =
+  [| POP $(npE (map (join . fmap npE) ess)) |]
 
 -- Like npE, but construct a pattern instead
 npP :: [Q Pat] -> Q Pat
@@ -421,6 +492,10 @@ natT = litT . numTyLit . fromIntegral
 promotedTypeList :: [Q Type] -> Q Type
 promotedTypeList []     = promotedNilT
 promotedTypeList (t:ts) = [t| $promotedConsT $t $(promotedTypeList ts) |]
+
+promotedTypeListOfList :: [Q [Q Type]] -> Q Type
+promotedTypeListOfList =
+  promotedTypeList . map (join . fmap promotedTypeList)
 
 promotedTypeListSubst :: (Name -> Q Type) -> [Q Type] -> Q Type
 promotedTypeListSubst _ []     = promotedNilT
