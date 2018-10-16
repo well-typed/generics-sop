@@ -49,6 +49,12 @@ data S20 (tag :: Mode) =
 s20 :: S20 tag
 s20 = S20_17
 
+data PB2 (tag :: Mode) =
+    PB2 Bool Bool
+
+pb2 :: PB2 tag
+pb2 = PB2 True False
+
 data Tree (tag :: Mode) =
     Leaf Int
   | Node (Tree tag) (Tree tag)
@@ -134,6 +140,22 @@ instance          NFData              (S20  'SOPGGP     ) where
 instance          NFData              (S20  'SOPTH      ) where
   rnf = rnfS20
 
+rnfPB2 :: PB2 tag -> ()
+rnfPB2 (PB2 b0 b1) =
+  rnf b0 `seq` rnf b1
+
+instance          NFData              (PB2  'GHCDeriving) where
+  rnf = rnfPB2
+
+instance          NFData              (PB2  'GHCGeneric ) where
+  rnf = rnfPB2
+
+instance          NFData              (PB2  'SOPGGP     ) where
+  rnf = rnfPB2
+
+instance          NFData              (PB2  'SOPTH      ) where
+  rnf = rnfPB2
+
 deriving instance Eq                  (S2   'GHCDeriving)
 deriving instance Show                (S2   'GHCDeriving)
 
@@ -194,6 +216,37 @@ instance          Show                (S20  'SOPGGP) where
   showsPrec = SOP.gshowsPrec
 
 instance          Show                (S20  'SOPTH)  where
+  showsPrec = SOP.gshowsPrec
+
+instance          Roundtrip           (PB2  'GHCGeneric) where
+  roundtrip = ghcroundtrip
+
+instance          Roundtrip           (PB2  'SOPGGP) where
+  roundtrip = soproundtrip
+
+instance          Roundtrip           (PB2  'SOPTH) where
+  roundtrip = soproundtrip
+
+deriving instance Eq                  (PB2  'GHCDeriving)
+deriving instance Show                (PB2  'GHCDeriving)
+
+deriving instance GHC.Generic         (PB2  'GHCGeneric)
+deriving instance GHC.Generic         (PB2  'SOPGGP)
+instance          SOP.Generic         (PB2  'SOPGGP)
+instance          SOP.HasDatatypeInfo (PB2  'SOPGGP)
+
+deriveGenericSubst ''PB2 (const (promotedT 'SOPTH))
+
+instance          Eq                  (PB2  'SOPGGP) where
+  (==) = SOP.geq
+
+instance          Eq                  (PB2  'SOPTH) where
+  (==) = SOP.geq
+
+instance          Show                (PB2  'SOPGGP) where
+  showsPrec = SOP.gshowsPrec
+
+instance          Show                (PB2  'SOPTH) where
   showsPrec = SOP.gshowsPrec
 
 deriving instance Eq                  (Tree 'GHCDeriving)
