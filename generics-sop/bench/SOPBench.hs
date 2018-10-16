@@ -3,11 +3,18 @@ module Main where
 
 import Criterion.Main
 import SOPBench.Type
+import SOPBench.Roundtrip
 
 main :: IO ()
 main =
   defaultMainWith defaultConfig
-    [ bench "Eq / S2 / GHCDeriving"           $ nf ((==) s2) (s2 :: S2 'GHCDeriving)
+    [ bench "Roundtrip / S2 / GHCGeneric"     $ nf roundtrip (s2 :: S2 'GHCGeneric)
+    , bench "Roundtrip / S2 / SOPGGP"         $ nf roundtrip (s2 :: S2 'SOPGGP    )
+    , bench "Roundtrip / S2 / SOPTH"          $ nf roundtrip (s2 :: S2 'SOPTH     )
+    , bench "Roundtrip / S20 / GHCGeneric"    $ nf roundtrip (s20 :: S20 'GHCGeneric)
+    , bench "Roundtrip / S20 / SOPGGP"        $ nf roundtrip (s20 :: S20 'SOPGGP    )
+    , bench "Roundtrip / S20 / SOPTH"         $ nf roundtrip (s20 :: S20 'SOPTH     )
+    , bench "Eq / S2 / GHCDeriving"           $ nf ((==) s2) (s2 :: S2 'GHCDeriving)
     , bench "Eq / S2 / SOPGGP"                $ nf ((==) s2) (s2 :: S2 'SOPGGP     )
     , bench "Eq / S2 / SOPTH"                 $ nf ((==) s2) (s2 :: S2 'SOPTH      )
     , bench "Eq / S20 / GHCDeriving"          $ nf ((==) s20) (s20 :: S20 'GHCDeriving)

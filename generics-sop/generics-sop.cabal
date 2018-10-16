@@ -123,6 +123,7 @@ benchmark generics-sop-bench
   type:                exitcode-stdio-1.0
   main-is:             SOPBench.hs
   other-modules:       SOPBench.Type
+                       SOPBench.Roundtrip
                        SOPBench.Eq
                        SOPBench.Show
   hs-source-dirs:      bench
@@ -130,5 +131,6 @@ benchmark generics-sop-bench
   ghc-options:         -Wall
   build-depends:       base                 >= 4.6  && < 5,
                        criterion,
+                       deepseq,
                        generics-sop,
                        template-haskell
