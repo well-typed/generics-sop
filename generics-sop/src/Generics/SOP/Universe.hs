@@ -161,21 +161,29 @@ class Generic a => HasDatatypeInfo a where
 type IsProductType (a :: Type) (xs :: [Type]) =
   (Generic a, Code a ~ '[ xs ])
 
+-- | Direct access to the part of the code that is relevant
+-- for a product type.
+--
+-- @since 0.4.0.0
+--
+type ProductCode (a :: Type) =
+  Head (Code a)
+
 -- | Convert from a product type to its product representation.
 --
 -- @since 0.3.3.0
 --
-productFrom :: IsProductType a xs => a -> NP I xs
-productFrom = unZ . unSOP . from
-{-# INLINE productFrom #-}
+productTypeFrom :: IsProductType a xs => a -> NP I xs
+productTypeFrom = unZ . unSOP . from
+{-# INLINE productTypeFrom #-}
 
 -- | Convert a product representation to the original type.
 --
 -- @since 0.3.3.0
 --
-productTo :: IsProductType a xs => NP I xs -> a
-productTo = to . SOP . Z
-{-# INLINE productTo #-}
+productTypeTo :: IsProductType a xs => NP I xs -> a
+productTypeTo = to . SOP . Z
+{-# INLINE productTypeTo #-}
 
 -- | Constraint that captures that a datatype is an enumeration type,
 -- i.e., none of the constructors have any arguments.
@@ -187,17 +195,17 @@ type IsEnumType (a :: Type) =
 
 -- | Convert from an enum type to its sum representation.
 --
--- @since 0.3.3.0
+-- @since 0.4.0.0
 --
-enumFrom :: IsEnumType a => a -> NS (K ()) (Code a)
-enumFrom = map_NS (const (K ())) . unSOP . from
-{-# INLINE enumFrom #-}
+enumTypeFrom :: IsEnumType a => a -> NS (K ()) (Code a)
+enumTypeFrom = map_NS (const (K ())) . unSOP . from
+{-# INLINE enumTypeFrom #-}
 
 -- | Convert a sum representation to ihe original type.
 --
-enumTo :: IsEnumType a => NS (K ()) (Code a) -> a
-enumTo = to . SOP . cmap_NS (Proxy :: Proxy ((~) '[])) (const Nil)
-{-# INLINE enumTo #-}
+enumTypeTo :: IsEnumType a => NS (K ()) (Code a) -> a
+enumTypeTo = to . SOP . cmap_NS (Proxy :: Proxy ((~) '[])) (const Nil)
+{-# INLINE enumTypeTo #-}
 
 -- | Constraint that captures that a datatype is a single-constructor,
 -- single-field datatype. This always holds for newtype-defined types,
@@ -210,21 +218,29 @@ enumTo = to . SOP . cmap_NS (Proxy :: Proxy ((~) '[])) (const Nil)
 type IsWrappedType (a :: Type) (x :: Type) =
   (Generic a, Code a ~ '[ '[ x ] ])
 
+-- | Direct access to the part of the code that is relevant
+-- for wrapped types and newtypes.
+--
+-- @since 0.4.0.0
+--
+type WrappedCode (a :: Type) =
+  Head (Head (Code a))
+
 -- | Convert from a wrapped type to its inner type.
 --
--- @since 0.3.3.0
+-- @since 0.4.0.0
 --
-wrappedFrom :: IsWrappedType a x => a -> x
-wrappedFrom = unI . hd . unZ . unSOP . from
-{-# INLINE wrappedFrom #-}
+wrappedTypeFrom :: IsWrappedType a x => a -> x
+wrappedTypeFrom = unI . hd . unZ . unSOP . from
+{-# INLINE wrappedTypeFrom #-}
 
 -- | Convert a type to a wrapped type.
 --
--- @since 0.3.3.0
+-- @since 0.4.0.0
 --
-wrappedTo :: IsWrappedType a x => x -> a
-wrappedTo = to . SOP . Z . (:* Nil) . I
-{-# INLINE wrappedTo #-}
+wrappedTypeTo :: IsWrappedType a x => x -> a
+wrappedTypeTo = to . SOP . Z . (:* Nil) . I
+{-# INLINE wrappedTypeTo #-}
 
 -- | Constraint that captures that a datatype is a newtype.
 -- This makes use of the fact that newtypes are always coercible
@@ -239,7 +255,7 @@ type IsNewtype (a :: Type) (x :: Type) =
 --
 -- This is a specialised synonym for 'coerce'.
 --
--- @since 0.3.3.0
+-- @since 0.4.0.0
 --
 newtypeFrom :: IsNewtype a x => a -> x
 newtypeFrom = coerce
@@ -249,7 +265,7 @@ newtypeFrom = coerce
 --
 -- This is a specialised synonym for 'coerce'.
 --
--- @since 0.3.3.0
+-- @since 0.4.0.0
 --
 newtypeTo :: IsNewtype a x => x -> a
 newtypeTo = coerce
