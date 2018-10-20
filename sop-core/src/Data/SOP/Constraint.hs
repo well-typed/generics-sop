@@ -112,11 +112,12 @@ type SListI2 = All SListI
 -- a type-level list argument that the function is quantified
 -- over.
 --
--- This is defined in terms of 'All'. A singleton list provides
--- a witness for a type-level list where the elements adhere
--- to no additional constraints.
+-- Since 0.4.0.0, this is now defined in terms of 'All'.
+-- A singleton list provides a witness for a type-level list
+-- where the elements need not satisfy any additional
+-- constraints.
 --
--- @since 0.2
+-- @since 0.4.0.0
 --
 type SListI = All Top
 
@@ -140,6 +141,11 @@ type SListI = All Top
 --
 -- means that 'f' can assume that all elements of the sum
 -- of product satisfy 'Eq'.
+--
+-- Since 0.4.0.0, this is merely a synonym for
+-- 'All (All c)'.
+--
+-- @since 0.4.0.0
 --
 type All2 c = All (All c)
 

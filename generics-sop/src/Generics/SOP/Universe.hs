@@ -171,7 +171,7 @@ type ProductCode (a :: Type) =
 
 -- | Convert from a product type to its product representation.
 --
--- @since 0.3.3.0
+-- @since 0.4.0.0
 --
 productTypeFrom :: IsProductType a xs => a -> NP I xs
 productTypeFrom = unZ . unSOP . from
@@ -179,7 +179,7 @@ productTypeFrom = unZ . unSOP . from
 
 -- | Convert a product representation to the original type.
 --
--- @since 0.3.3.0
+-- @since 0.4.0.0
 --
 productTypeTo :: IsProductType a xs => NP I xs -> a
 productTypeTo = to . SOP . Z
