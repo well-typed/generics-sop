@@ -10,11 +10,9 @@
 -- conversions between such constraints to GHC. Such conversions
 -- still have to be manually applied.
 --
--- This module is new and experimental in generics-sop 0.2.
--- It is therefore not yet exported via the main module and
--- has to be imported explicitly. Its interface is to be
--- considered even less stable than that of the rest of the
--- library. Feedback is very welcome though.
+-- This module remains somewhat experimental.
+-- It is therefore not exported via the main module and
+-- has to be imported explicitly.
 --
 module Data.SOP.Dict where
 
@@ -111,7 +109,7 @@ unAll_POP :: forall c xss . Dict (All2 c) xss -> POP (Dict c) xss
 unAll_POP d = withDict d hdicts
 
 -- | If we have a product containing proofs that each element
--- of 'xs' satisfies 'c', then 'All c' holds for 'xs'.
+-- of 'xs' satisfies 'c', then @'All' c@ holds for 'xs'.
 --
 -- @since 0.2
 --
@@ -120,7 +118,7 @@ all_NP Nil          = Dict
 all_NP (Dict :* ds) = withDict (all_NP ds) Dict
 
 -- | If we have a product of products containing proofs that
--- each inner element of 'xss' satisfies 'c', then 'All2 c'
+-- each inner element of 'xss' satisfies 'c', then @'All2' c@
 -- holds for 'xss'.
 --
 -- @since 0.2
@@ -129,19 +127,21 @@ all_POP :: SListI xss => POP (Dict c) xss -> Dict (All2 c) xss
 all_POP = all2 . all_NP . hmap all_NP . unPOP
 -- TODO: Is the constraint necessary?
 
--- | The constraint 'All2 c' is convertible to 'All (All c)'.
+-- | The constraint @'All2' c@ is convertible to @'All' ('All' c)@.
 --
 -- @since 0.2
 --
 unAll2 :: Dict (All2 c) xss -> Dict (All (All c)) xss
-unAll2 Dict = Dict
+unAll2 = id
+{-# DEPRECATED unAll2 "'All2 c' is now a synonym of 'All (All c)'" #-}
 
--- | The constraint 'All (All c)' is convertible to 'All2 c'.
+-- | The constraint @'All' ('All' c)@ is convertible to @'All2' c@.
 --
 -- @since 0.2
 --
 all2 :: Dict (All (All c)) xss -> Dict (All2 c) xss
-all2 Dict = Dict
+all2 = id
+{-# DEPRECATED all2 "'All2 c' is now a synonym of 'All (All c)'" #-}
 
 -- | If we have an explicit dictionary, we can unwrap it and
 -- pass a function that makes use of it.

@@ -11,6 +11,11 @@ description:
   The module "Generics.SOP" is the main module of this library and contains
   more detailed documentation.
   .
+  Since version 0.4.0.0, this package is now based on
+  @<https://hackage.haskell.org/package/sop-core sop-core>@. The core package
+  contains all the functionality of n-ary sums and products, whereas this
+  package provides the datatype-generic programming support on top.
+  .
   Examples of using this library are provided by the following
   packages:
   .

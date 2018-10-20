@@ -211,8 +211,8 @@ type family Head (xs :: [a]) :: a where
 type family Tail (xs :: [a]) :: [a] where
   Tail (x ': xs) = xs
 
--- | The constraint @LiftedCoercible f g x y@ is equivalent
--- to @Coercible (f x) (g y)@.
+-- | The constraint @'LiftedCoercible' f g x y@ is equivalent
+-- to @'Data.Coerce.Coercible' (f x) (g y)@.
 --
 -- @since 0.3.1.0
 --
@@ -229,13 +229,13 @@ instance (AllZipF (AllZip f) xss yss, SListI xss, SListI yss, SameShapeAs xss ys
 -- | Composition of constraints.
 --
 -- Note that the result of the composition must be a constraint,
--- and therefore, in @f ':.' g@, the kind of @f@ is @k -> 'Constraint'@.
+-- and therefore, in @'Compose' f g@, the kind of @f@ is @k -> 'Constraint'@.
 -- The kind of @g@, however, is @l -> k@ and can thus be an normal
 -- type constructor.
 --
--- A typical use case is in connection with 'All' on an 'NP' or an
--- 'NS'. For example, in order to denote that all elements on an
--- @'NP' f xs@ satisfy 'Show', we can say @'All' ('Show' :. f) xs@.
+-- A typical use case is in connection with 'All' on an 'Data.SOP.NP' or an
+-- 'Data.SOP.NS'. For example, in order to denote that all elements on an
+-- @'Data.SOP.NP' f xs@ satisfy 'Show', we can say @'All' ('Compose' 'Show' f) xs@.
 --
 -- @since 0.2
 --

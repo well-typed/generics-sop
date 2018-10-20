@@ -2,15 +2,13 @@ name:                sop-core
 version:             0.4.0.0
 synopsis:            True Sums of Products
 description:
-  Implementation of true sums of products.
+  Implementation of n-ary sums and n-ary products.
   .
   The module "Data.SOP" is the main module of this library and contains
   more detailed documentation.
   .
-  Examples of using this library are provided by the following
-  packages:
-  .
-    * @<https://hackage.haskell.org/package/generics-sop generics-sop>@ generics
+  The main use case of this package is to serve as the core of
+  @<https://hackage.haskell.org/package/generics-sop generics-sop>@.
   .
   A detailed description of the ideas behind this library is provided by
   the paper:
