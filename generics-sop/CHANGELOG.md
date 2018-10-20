@@ -1,4 +1,4 @@
-# 0.4.0.0 (xxxx-xx-xx)
+# 0.4.0.0 (2018-10-20)
 
 * Split into `sop-core` and `generics-sop` packages.
 
