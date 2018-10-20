@@ -65,8 +65,8 @@ library
                        DataKinds
                        FunctionalDependencies
                        AutoDeriveTypeable
-  if impl(ghc >= 8.6)
-    default-extensions: NoStarIsType
+  -- if impl(ghc >= 8.6)
+  --   default-extensions: NoStarIsType
   other-extensions:    PolyKinds
                        UndecidableInstances
                        DeriveGeneric
