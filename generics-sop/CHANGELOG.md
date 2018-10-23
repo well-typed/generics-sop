@@ -1,3 +1,8 @@
+# 0.4.0.1 (2018-10-23)
+
+* Remove `GHC.Event` import in `Generics.SOP.Instances`
+  to fix build on Windows.
+
 # 0.4.0.0 (2018-10-20)
 
 * Split into `sop-core` and `generics-sop` packages.
