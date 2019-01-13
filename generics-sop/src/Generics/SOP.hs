@@ -304,6 +304,8 @@ module Generics.SOP (
     -- ** Collapsing
   , CollapseTo
   , HCollapse(..)
+  , collapse_NP
+  , collapse_POP 
     -- ** Folding and sequencing
   , HTraverse_(..)
   , hcfoldMap
