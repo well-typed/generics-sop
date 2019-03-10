@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, UndecidableInstances #-}
+{-# LANGUAGE PatternSynonyms, PolyKinds, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 -- | Main module of @sop-core@
 module Data.SOP (
@@ -82,9 +82,11 @@ module Data.SOP (
   , fromList
     -- * Utilities
     -- ** Basic functors
-  , K(..)
+  , K
+  , Const(..)
   , unK
-  , I(..)
+  , I
+  , Identity(..)
   , unI
   , (:.:)(..)
   , unComp
@@ -148,4 +150,3 @@ import Data.SOP.Constraint
 import Data.SOP.NP
 import Data.SOP.NS
 import Data.SOP.Sing
-

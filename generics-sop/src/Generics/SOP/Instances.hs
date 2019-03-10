@@ -73,8 +73,6 @@ import Generics.SOP.TH
 
 -- Types from Generics.SOP:
 
-deriveGeneric ''I
-deriveGeneric ''K
 deriveGeneric ''(:.:)
 deriveGeneric ''(-.->) -- new
 

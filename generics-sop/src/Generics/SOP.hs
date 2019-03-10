@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, UndecidableInstances #-}
+{-# LANGUAGE PatternSynonyms, PolyKinds, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 -- | Main module of @generics-sop@
 --
@@ -323,9 +323,11 @@ module Generics.SOP (
   , fromList
     -- * Utilities
     -- ** Basic functors
-  , K(..)
+  , K
+  , Const(..)
   , unK
-  , I(..)
+  , I
+  , Identity(..)
   , unI
   , (:.:)(..)
   , unComp
