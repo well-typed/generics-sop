@@ -149,7 +149,7 @@ type SListI = All Top
 --
 type All2 c = All (All c)
 
--- | Require a constraint for every pointwise pair of
+-- | Require a constraint pointwise for every pair of
 -- elements from two lists.
 --
 -- /Example:/ The constraint
@@ -219,7 +219,7 @@ type family Tail (xs :: [a]) :: [a] where
 class Coercible (f x) (g y) => LiftedCoercible f g x y
 instance Coercible (f x) (g y) => LiftedCoercible f g x y
 
--- | Require a constraint for every pointwise pair of
+-- | Require a constraint pointwise for every pair of
 -- elements from two lists of lists.
 --
 --
