@@ -25,7 +25,7 @@
 --       witness the isomorphism.
 --
 --   3.  Since all 'Rep' types are sums of products, you can define
---       functions over them by performing induction on the structure, of
+--       functions over them by performing induction on the structure, or
 --       by using predefined combinators that the library provides. Such
 --       functions then work for all 'Rep' types.
 --

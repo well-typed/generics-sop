@@ -205,7 +205,7 @@ instance HIndex NS where
 -- of both the (outer) sum and all the (inner) products, as well as
 -- the types of all the elements of the inner products.
 --
--- An @'SOP' 'I'@ reflects the structure of a normal Haskell datatype.
+-- A @'SOP' 'I'@ reflects the structure of a normal Haskell datatype.
 -- The sum structure represents the choice between the different
 -- constructors, the product structure represents the arguments of
 -- each constructor.
