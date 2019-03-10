@@ -555,10 +555,10 @@ class (UnProd (Prod h) ~ h) => HApInjs (h :: (k -> Type) -> (l -> Type)) where
   -- /Examples:/
   --
   -- >>> hapInjs (I 'x' :* I True :* I 2 :* Nil) :: [NS I '[Char, Bool, Int]]
-  -- [Z (I 'x'),S (Z (I True)),S (S (Z (I 2)))]
+  -- [Z (Identity 'x'),S (Z (Identity True)),S (S (Z (Identity 2)))]
   --
   -- >>> hapInjs (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil)) :: [SOP I '[ '[Char], '[Bool, Int]]]
-  -- [SOP (Z (I 'x' :* Nil)),SOP (S (Z (I True :* I 2 :* Nil)))]
+  -- [SOP (Z (Identity 'x' :* Nil)),SOP (S (Z (Identity True :* Identity 2 :* Nil)))]
   --
   -- Unfortunately the type-signatures are required in GHC-7.10 and older.
   --
@@ -611,9 +611,9 @@ class HExpand (h :: (k -> Type) -> (l -> Type)) where
   -- /Examples:/
   --
   -- >>> hcexpand (Proxy :: Proxy Bounded) (I minBound) (S (Z (I 20))) :: NP I '[Bool, Int, Ordering]
-  -- I False :* I 20 :* I LT :* Nil
+  -- Identity False :* Identity 20 :* Identity LT :* Nil
   -- >>> hcexpand (Proxy :: Proxy Num) (I 0) (SOP (S (Z (I 1 :* I 2 :* Nil)))) :: POP I '[ '[Double], '[Int, Int] ]
-  -- POP ((I 0.0 :* Nil) :* (I 1 :* I 2 :* Nil) :* Nil)
+  -- POP ((Identity 0.0 :* Nil) :* (Identity 1 :* Identity 2 :* Nil) :* Nil)
   --
   -- @since 0.2.5.0
   --
@@ -648,7 +648,7 @@ class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> Type) -> (l1 -> Type)
   -- >>> hcoerce (I (Just LT) :* I (Just 'x') :* I (Just True) :* Nil) :: NP Maybe '[Ordering, Char, Bool]
   -- Just LT :* Just 'x' :* Just True :* Nil
   -- >>> hcoerce (SOP (Z (K True :* K False :* Nil))) :: SOP I '[ '[Bool, Bool], '[Bool] ]
-  -- SOP (Z (I True :* I False :* Nil))
+  -- SOP (Z (Identity True :* Identity False :* Nil))
   --
   -- @since 0.3.1.0
   --

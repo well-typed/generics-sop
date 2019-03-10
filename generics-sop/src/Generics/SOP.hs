@@ -69,7 +69,7 @@
 -- For example,
 --
 -- >>> from (D (C True) 3) :: Rep A
--- SOP (S (Z (I (C True) :* I 3 :* Nil)))
+-- SOP (S (Z (Identity (C True) :* Identity 3 :* Nil)))
 -- >>> to it :: A
 -- D (C True) 3
 --
@@ -157,9 +157,9 @@
 --
 -- >>> let x = G 2.5 'A' False :: B Double
 -- >>> from x
--- SOP (S (Z (I 2.5 :* I 'A' :* I False :* Nil)))
+-- SOP (S (Z (Identity 2.5 :* Identity 'A' :* Identity False :* Nil)))
 -- >>> hcmap (Proxy :: Proxy NFData) (mapIK rnf) it
--- SOP (S (Z (K () :* K () :* K () :* Nil)))
+-- SOP (S (Z (Const () :* Const () :* Const () :* Nil)))
 -- >>> hcollapse it
 -- [(),(),()]
 -- >>> rnf it

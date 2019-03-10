@@ -221,8 +221,8 @@ type instance SListIN POP = SListI2
 --
 -- >>> pure_NP [] :: NP [] '[Char, Bool]
 -- "" :* [] :* Nil
--- >>> pure_NP (K 0) :: NP (K Int) '[Double, Int, String]
--- K 0 :* K 0 :* K 0 :* Nil
+-- >>> pure_NP (Const 0) :: NP (Const Int) '[Double, Int, String]
+-- Const 0 :* Const 0 :* Const 0 :* Nil
 --
 pure_NP :: forall f xs. SListI xs => (forall a. f a) -> NP f xs
 pure_NP f = cpure_NP topP f
@@ -663,7 +663,7 @@ instance HSequence POP where
 -- /Example:/
 --
 -- >>> sequence_NP (Just 1 :* Just 2 :* Nil)
--- Just (I 1 :* I 2 :* Nil)
+-- Just (Identity 1 :* Identity 2 :* Nil)
 --
 sequence_NP  :: (SListI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 
@@ -672,7 +672,7 @@ sequence_NP  :: (SListI xs,  Applicative f) => NP  f xs  -> f (NP  I xs)
 -- /Example:/
 --
 -- >>> sequence_POP (POP ((Just 1 :* Nil) :* (Just 2 :* Just 3 :* Nil) :* Nil))
--- Just (POP ((I 1 :* Nil) :* (I 2 :* I 3 :* Nil) :* Nil))
+-- Just (POP ((Identity 1 :* Nil) :* (Identity 2 :* Identity 3 :* Nil) :* Nil))
 --
 sequence_POP :: (All SListI xss, Applicative f) => POP f xss -> f (POP I xss)
 

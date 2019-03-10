@@ -164,7 +164,7 @@ instance All (NFData `Compose` f) xs => NFData (NS f xs) where
 -- /Example:/
 --
 -- >>> unZ (Z (I 'x'))
--- I 'x'
+-- Identity 'x'
 --
 -- @since 0.2.2.0
 --
@@ -298,7 +298,7 @@ shift = shiftInjection
 -- /Example:/
 --
 -- >>> apInjs_NP (I 'x' :* I True :* I 2 :* Nil)
--- [Z (I 'x'),S (Z (I True)),S (S (Z (I 2)))]
+-- [Z (Identity 'x'),S (Z (Identity True)),S (S (Z (Identity 2)))]
 --
 apInjs_NP  :: SListI xs  => NP  f xs  -> [NS  f xs]
 apInjs_NP  = hcollapse . apInjs'_NP
@@ -306,7 +306,7 @@ apInjs_NP  = hcollapse . apInjs'_NP
 -- | `apInjs_NP` without `hcollapse`.
 --
 -- >>> apInjs'_NP (I 'x' :* I True :* I 2 :* Nil)
--- K (Z (I 'x')) :* K (S (Z (I True))) :* K (S (S (Z (I 2)))) :* Nil
+-- Const (Z (Identity 'x')) :* Const (S (Z (Identity True))) :* Const (S (S (Z (Identity 2)))) :* Nil
 --
 -- @since 0.2.5.0
 --
@@ -323,7 +323,7 @@ apInjs'_NP = hap injections
 -- /Example:/
 --
 -- >>> apInjs_POP (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil))
--- [SOP (Z (I 'x' :* Nil)),SOP (S (Z (I True :* I 2 :* Nil)))]
+-- [SOP (Z (Identity 'x' :* Nil)),SOP (S (Z (Identity True :* Identity 2 :* Nil)))]
 --
 apInjs_POP :: SListI xss => POP f xss -> [SOP f xss]
 apInjs_POP = map SOP . apInjs_NP . unPOP
@@ -333,7 +333,7 @@ apInjs_POP = map SOP . apInjs_NP . unPOP
 -- /Example:/
 --
 -- >>> apInjs'_POP (POP ((I 'x' :* Nil) :* (I True :* I 2 :* Nil) :* Nil))
--- K (SOP (Z (I 'x' :* Nil))) :* K (SOP (S (Z (I True :* I 2 :* Nil)))) :* Nil
+-- Const (SOP (Z (Identity 'x' :* Nil))) :* Const (SOP (S (Z (Identity True :* Identity 2 :* Nil)))) :* Nil
 --
 -- @since 0.2.5.0
 --
