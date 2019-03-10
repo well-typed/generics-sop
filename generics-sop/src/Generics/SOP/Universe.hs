@@ -28,7 +28,7 @@ type Rep a = SOP I (Code a)
 --
 -- The SOP approach to generic programming is based on viewing
 -- datatypes as a representation ('Rep') built from the sum of
--- products of its components. The components of are datatype
+-- products of its components. The components of a datatype
 -- are specified using the 'Code' type family.
 --
 -- The isomorphism between the original Haskell datatype and its

@@ -67,7 +67,7 @@ deriving instance All (Show `Compose` ConstructorInfo) xs => Show (DatatypeInfo 
 deriving instance All (Eq   `Compose` ConstructorInfo) xs => Eq   (DatatypeInfo xs)
 deriving instance (All (Eq `Compose` ConstructorInfo) xs, All (Ord `Compose` ConstructorInfo) xs) => Ord (DatatypeInfo xs)
 
--- | Metadata for a single constructors.
+-- | Metadata for a single constructor.
 --
 -- This is indexed by the product structure of the constructor components.
 --

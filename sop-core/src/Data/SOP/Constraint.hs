@@ -149,7 +149,7 @@ type SListI = All Top
 --
 type All2 c = All (All c)
 
--- | Require a constraint for pointwise for every pair of
+-- | Require a constraint pointwise for every pair of
 -- elements from two lists.
 --
 -- /Example:/ The constraint
@@ -219,7 +219,7 @@ type family Tail (xs :: [a]) :: [a] where
 class Coercible (f x) (g y) => LiftedCoercible f g x y
 instance Coercible (f x) (g y) => LiftedCoercible f g x y
 
--- | Require a constraint for pointwise for every pair of
+-- | Require a constraint pointwise for every pair of
 -- elements from two lists of lists.
 --
 --
@@ -230,7 +230,7 @@ instance (AllZipF (AllZip f) xss yss, SListI xss, SListI yss, SameShapeAs xss ys
 --
 -- Note that the result of the composition must be a constraint,
 -- and therefore, in @'Compose' f g@, the kind of @f@ is @k -> 'Constraint'@.
--- The kind of @g@, however, is @l -> k@ and can thus be an normal
+-- The kind of @g@, however, is @l -> k@ and can thus be a normal
 -- type constructor.
 --
 -- A typical use case is in connection with 'All' on an 'Data.SOP.NP' or an
@@ -278,4 +278,3 @@ type family AllZipN (h :: (k -> Type) -> (l -> Type)) (c :: k1 -> k2 -> Constrai
 -- on whether the argument is indexed by a list or a list of lists.
 --
 type family SListIN (h :: (k -> Type) -> (l -> Type)) :: l -> Constraint
-
