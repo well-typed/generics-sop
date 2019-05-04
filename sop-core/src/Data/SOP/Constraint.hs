@@ -190,7 +190,7 @@ type family
 -- the list, and is intended to be used in conjunction with
 -- a separate construct (such as the 'AllZip', 'AllZipF'
 -- combination to tie the recursive knot). The reason is that
--- making 'SameShapeAs' directly recursive leads to exponential
+-- making 'SameShapeAs' directly recursive leads to quadratic
 -- compile times.
 --
 -- The main use of this constraint is to help type inference to
