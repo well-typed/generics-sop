@@ -224,9 +224,19 @@ module Generics.SOP (
     Generic(..)
   , Rep
   , IsProductType
+  , ProductCode
+  , productTypeFrom
+  , productTypeTo
   , IsEnumType
+  , enumTypeFrom
+  , enumTypeTo
   , IsWrappedType
+  , WrappedCode
+  , wrappedTypeFrom
+  , wrappedTypeTo
   , IsNewtype
+  , newtypeFrom
+  , newtypeTo
     -- * n-ary datatypes
   , NP(..)
   , NS(..)
