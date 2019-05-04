@@ -292,6 +292,9 @@ module Generics.SOP (
     -- ** Destructing sums
   , unZ
   , HIndex(..)
+  , Ejection
+  , ejections
+  , shiftEjection
     -- ** Dealing with @'All' c@
   , hcliftA'
   , hcliftA2'
