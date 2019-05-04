@@ -181,7 +181,7 @@ type family
   AllZipF (c :: a -> b -> Constraint) (xs :: [a]) (ys :: [b])
     :: Constraint where
   AllZipF _c '[]      '[]        = ()
-  AllZipF  c (x ': xs) (y ': ys) = (c x y, AllZip c xs ys)
+  AllZipF  c (x ': xs) (y ': ys) = (c x y, AllZipF c xs ys)
 
 -- | Type family that forces a type-level list to be of the same
 -- shape as the given type-level list.
