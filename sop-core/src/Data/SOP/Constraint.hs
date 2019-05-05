@@ -186,16 +186,22 @@ type family
 -- | Type family that forces a type-level list to be of the same
 -- shape as the given type-level list.
 --
+-- Since 0.5.0.0, this only tests the top-level structure of
+-- the list, and is intended to be used in conjunction with
+-- a separate construct (such as the 'AllZip', 'AllZipF'
+-- combination to tie the recursive knot). The reason is that
+-- making 'SameShapeAs' directly recursive leads to quadratic
+-- compile times.
+--
 -- The main use of this constraint is to help type inference to
 -- learn something about otherwise unknown type-level lists.
 --
--- @since 0.3.1.0
+-- @since 0.5.0.0
 --
 type family
   SameShapeAs (xs :: [a]) (ys :: [b]) :: Constraint where
   SameShapeAs '[]       ys = (ys ~ '[])
-  SameShapeAs (x ': xs) ys =
-    (ys ~ (Head ys ': Tail ys), SameShapeAs xs (Tail ys))
+  SameShapeAs (x ': xs) ys = (ys ~ (Head ys ': Tail ys))
 
 -- | Utility function to compute the head of a type-level list.
 --
