@@ -15,10 +15,18 @@ module Generics.SOP.Metadata
   ( module Generics.SOP.Metadata
     -- * re-exports
   , Associativity(..)
+  , DecidedStrictness(..)
+  , SourceStrictness(..)
+  , SourceUnpackedness(..)
   ) where
 
 import Data.Kind (Type)
-import GHC.Generics (Associativity(..))
+import GHC.Generics
+  ( Associativity(..)
+  , DecidedStrictness(..)
+  , SourceStrictness(..)
+  , SourceUnpackedness(..)
+  )
 
 import Generics.SOP.Constraint
 import Generics.SOP.NP
@@ -35,16 +43,25 @@ import Generics.SOP.NP
 --
 data DatatypeInfo :: [[Type]] -> Type where
   -- Standard algebraic datatype
-  ADT     :: ModuleName -> DatatypeName -> NP ConstructorInfo xss -> DatatypeInfo xss
+  ADT     ::
+       ModuleName
+    -> DatatypeName
+    -> NP ConstructorInfo xss
+    -> POP StrictnessInfo xss
+    -> DatatypeInfo xss
   -- Newtype
-  Newtype :: ModuleName -> DatatypeName -> ConstructorInfo '[x]   -> DatatypeInfo '[ '[x] ]
+  Newtype ::
+       ModuleName
+    -> DatatypeName
+    -> ConstructorInfo '[x]
+    -> DatatypeInfo '[ '[x] ]
 
 -- | The module name where a datatype is defined.
 --
 -- @since 0.2.3.0
 --
 moduleName :: DatatypeInfo xss -> ModuleName
-moduleName (ADT name _ _) = name
+moduleName (ADT name _ _ _) = name
 moduleName (Newtype name _ _) = name
 
 -- | The name of a datatype (or newtype).
@@ -52,7 +69,7 @@ moduleName (Newtype name _ _) = name
 -- @since 0.2.3.0
 --
 datatypeName :: DatatypeInfo xss -> DatatypeName
-datatypeName (ADT _ name _ ) = name
+datatypeName (ADT _ name _ _) = name
 datatypeName (Newtype _ name _) = name
 
 -- | The constructor info for a datatype (or newtype).
@@ -60,12 +77,23 @@ datatypeName (Newtype _ name _) = name
 -- @since 0.2.3.0
 --
 constructorInfo :: DatatypeInfo xss -> NP ConstructorInfo xss
-constructorInfo (ADT _ _ cs) = cs
+constructorInfo (ADT _ _ cs _) = cs
 constructorInfo (Newtype _ _ c) = c :* Nil
 
-deriving instance All (Show `Compose` ConstructorInfo) xs => Show (DatatypeInfo xs)
-deriving instance All (Eq   `Compose` ConstructorInfo) xs => Eq   (DatatypeInfo xs)
-deriving instance (All (Eq `Compose` ConstructorInfo) xs, All (Ord `Compose` ConstructorInfo) xs) => Ord (DatatypeInfo xs)
+deriving instance
+  ( All (Show `Compose` ConstructorInfo) xs
+  , All (Show `Compose` NP StrictnessInfo) xs
+  ) => Show (DatatypeInfo xs)
+deriving instance
+  ( All (Eq `Compose` ConstructorInfo) xs
+  , All (Eq `Compose` NP StrictnessInfo) xs
+  ) => Eq (DatatypeInfo xs)
+deriving instance
+  ( All (Eq `Compose` ConstructorInfo) xs
+  , All (Ord `Compose` ConstructorInfo) xs
+  , All (Eq `Compose` NP StrictnessInfo) xs
+  , All (Ord `Compose` NP StrictnessInfo) xs
+  ) => Ord (DatatypeInfo xs)
 
 -- | Metadata for a single constructor.
 --
@@ -91,6 +119,20 @@ constructorName (Record name _)    = name
 deriving instance All (Show `Compose` FieldInfo) xs => Show (ConstructorInfo xs)
 deriving instance All (Eq   `Compose` FieldInfo) xs => Eq   (ConstructorInfo xs)
 deriving instance (All (Eq `Compose` FieldInfo) xs, All (Ord `Compose` FieldInfo) xs) => Ord (ConstructorInfo xs)
+
+-- | Metadata for strictness information of a field.
+--
+-- Indexed by the type of the field.
+--
+-- @since 0.4.0.0
+--
+data StrictnessInfo :: Type -> Type where
+  StrictnessInfo ::
+       SourceUnpackedness
+    -> SourceStrictness
+    -> DecidedStrictness
+    -> StrictnessInfo a
+  deriving (Show, Eq, Ord, Functor)
 
 -- | For records, this functor maps the component to its selector name.
 data FieldInfo :: Type -> Type where

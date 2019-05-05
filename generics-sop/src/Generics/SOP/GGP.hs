@@ -46,9 +46,22 @@ data InfoProxy (c :: Meta) (f :: Type -> Type) (x :: Type) = InfoProxy
 
 type family ToInfo (a :: Type -> Type) :: SOP.T.DatatypeInfo
 type instance ToInfo (M1 D (MetaData n m p False) a) =
-  SOP.T.ADT m n (ToSumInfo a '[])
+  SOP.T.ADT m n (ToSumInfo a '[]) (ToStrictnessInfoss a '[])
 type instance ToInfo (M1 D (MetaData n m p True) a) =
   SOP.T.Newtype m n (ToSingleConstructorInfo a)
+
+type family ToStrictnessInfoss (a :: Type -> Type) (xss :: [[SOP.T.StrictnessInfo]]) :: [[SOP.T.StrictnessInfo]]
+type instance ToStrictnessInfoss (a :+: b)  xss = ToStrictnessInfoss a (ToStrictnessInfoss b xss)
+type instance ToStrictnessInfoss V1         xss = xss
+type instance ToStrictnessInfoss (M1 C _ a) xss = ToStrictnessInfos a '[] ': xss
+
+type family ToStrictnessInfos (a :: Type -> Type) (xs :: [SOP.T.StrictnessInfo]) :: [SOP.T.StrictnessInfo]
+type instance ToStrictnessInfos (a :*: b)  xs = ToStrictnessInfos a (ToStrictnessInfos b xs)
+type instance ToStrictnessInfos U1         xs = xs
+type instance ToStrictnessInfos (M1 S s a) xs = ToStrictnessInfo s ': xs
+
+type family ToStrictnessInfo (s :: Meta) :: SOP.T.StrictnessInfo
+type instance ToStrictnessInfo (MetaSel _ su ss ds) = 'SOP.T.StrictnessInfo su ss ds
 
 type family ToSumInfo (a :: Type -> Type) (xs :: [SOP.T.ConstructorInfo]) :: [SOP.T.ConstructorInfo]
 type instance ToSumInfo (a :+: b)  xs = ToSumInfo a (ToSumInfo b xs)
