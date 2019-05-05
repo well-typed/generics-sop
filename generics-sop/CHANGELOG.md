@@ -1,3 +1,14 @@
+# 0.5.0.0 (2019-05-06)
+
+* Add strictness info to the metadata. This means that
+  code directly using the `ADT` constructor has to be
+  modified because it now has a new fourth argument.
+  (See #76 and #87.)
+
+* Depend on `sop-core-0.5.*` which changes the
+  definition of `SameShapeAs` to improve compiler
+  performance and adds "ejections".
+
 # 0.4.0.1 (2018-10-23)
 
 * Remove `GHC.Event` import in `Generics.SOP.Instances`

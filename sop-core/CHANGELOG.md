@@ -1,3 +1,13 @@
+# 0.5.0.0 (2019-05-06)
+
+* Add `ejections` that computes a product of functions
+  that try to extract an element out of an n-ary sum.
+  (See #91.)
+
+* Change the definition of `SameShapeAs` to be
+  non-recursive and thereby improve compiler performance.
+  (See #105.)
+
 # 0.4.0.0 (2018-10-20)
 
 * Split into `sop-core` and `generics-sop` packages.
