@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module SOPBench.Type where
 
+import Control.DeepSeq
 import qualified Generics.SOP as SOP
 import Generics.SOP.TH
 import qualified GHC.Generics as GHC
@@ -14,6 +15,7 @@ import Language.Haskell.TH
 
 import qualified SOPBench.Eq as SOP
 import qualified SOPBench.Show as SOP
+import SOPBench.Roundtrip
 
 data S2 (tag :: Mode) =
     S2_0
@@ -47,6 +49,12 @@ data S20 (tag :: Mode) =
 s20 :: S20 tag
 s20 = S20_17
 
+data PB2 (tag :: Mode) =
+    PB2 Bool Bool
+
+pb2 :: PB2 tag
+pb2 = PB2 True False
+
 data Tree (tag :: Mode) =
     Leaf Int
   | Node (Tree tag) (Tree tag)
@@ -79,6 +87,75 @@ data Mode =
   | SOPGGP
   | SOPTH
 
+-- NFData is used for forcing benchmark results, so we
+-- derive it by hand for all variants of the datatype
+
+rnfS2 :: S2 tag -> ()
+rnfS2 S2_0 = ()
+rnfS2 S2_1 = ()
+
+instance          NFData              (S2   'GHCDeriving) where
+  rnf = rnfS2
+
+instance          NFData              (S2   'GHCGeneric ) where
+  rnf = rnfS2
+
+instance          NFData              (S2   'SOPGGP     ) where
+  rnf = rnfS2
+
+instance          NFData              (S2   'SOPTH      ) where
+  rnf = rnfS2
+
+rnfS20 :: S20 tag -> ()
+rnfS20 S20_00 = ()
+rnfS20 S20_01 = ()
+rnfS20 S20_02 = ()
+rnfS20 S20_03 = ()
+rnfS20 S20_04 = ()
+rnfS20 S20_05 = ()
+rnfS20 S20_06 = ()
+rnfS20 S20_07 = ()
+rnfS20 S20_08 = ()
+rnfS20 S20_09 = ()
+rnfS20 S20_10 = ()
+rnfS20 S20_11 = ()
+rnfS20 S20_12 = ()
+rnfS20 S20_13 = ()
+rnfS20 S20_14 = ()
+rnfS20 S20_15 = ()
+rnfS20 S20_16 = ()
+rnfS20 S20_17 = ()
+rnfS20 S20_18 = ()
+rnfS20 S20_19 = ()
+
+instance          NFData              (S20  'GHCDeriving) where
+  rnf = rnfS20
+
+instance          NFData              (S20  'GHCGeneric ) where
+  rnf = rnfS20
+
+instance          NFData              (S20  'SOPGGP     ) where
+  rnf = rnfS20
+
+instance          NFData              (S20  'SOPTH      ) where
+  rnf = rnfS20
+
+rnfPB2 :: PB2 tag -> ()
+rnfPB2 (PB2 b0 b1) =
+  rnf b0 `seq` rnf b1
+
+instance          NFData              (PB2  'GHCDeriving) where
+  rnf = rnfPB2
+
+instance          NFData              (PB2  'GHCGeneric ) where
+  rnf = rnfPB2
+
+instance          NFData              (PB2  'SOPGGP     ) where
+  rnf = rnfPB2
+
+instance          NFData              (PB2  'SOPTH      ) where
+  rnf = rnfPB2
+
 deriving instance Eq                  (S2   'GHCDeriving)
 deriving instance Show                (S2   'GHCDeriving)
 
@@ -88,6 +165,15 @@ instance          SOP.Generic         (S2   'SOPGGP)
 instance          SOP.HasDatatypeInfo (S2   'SOPGGP)
 
 deriveGenericSubst ''S2 (const (promotedT 'SOPTH))
+
+instance          Roundtrip           (S2   'GHCGeneric) where
+  roundtrip = ghcroundtrip
+
+instance          Roundtrip           (S2   'SOPGGP) where
+  roundtrip = soproundtrip
+
+instance          Roundtrip           (S2   'SOPTH) where
+  roundtrip = soproundtrip
 
 instance          Eq                  (S2   'SOPGGP) where
   (==) = SOP.geq
@@ -100,6 +186,15 @@ instance          Show                (S2   'SOPGGP) where
 
 instance          Show                (S2   'SOPTH)  where
   showsPrec = SOP.gshowsPrec
+
+instance          Roundtrip           (S20  'GHCGeneric) where
+  roundtrip = ghcroundtrip
+
+instance          Roundtrip           (S20  'SOPGGP) where
+  roundtrip = soproundtrip
+
+instance          Roundtrip           (S20  'SOPTH) where
+  roundtrip = soproundtrip
 
 deriving instance Eq                  (S20  'GHCDeriving)
 deriving instance Show                (S20  'GHCDeriving)
@@ -121,6 +216,37 @@ instance          Show                (S20  'SOPGGP) where
   showsPrec = SOP.gshowsPrec
 
 instance          Show                (S20  'SOPTH)  where
+  showsPrec = SOP.gshowsPrec
+
+instance          Roundtrip           (PB2  'GHCGeneric) where
+  roundtrip = ghcroundtrip
+
+instance          Roundtrip           (PB2  'SOPGGP) where
+  roundtrip = soproundtrip
+
+instance          Roundtrip           (PB2  'SOPTH) where
+  roundtrip = soproundtrip
+
+deriving instance Eq                  (PB2  'GHCDeriving)
+deriving instance Show                (PB2  'GHCDeriving)
+
+deriving instance GHC.Generic         (PB2  'GHCGeneric)
+deriving instance GHC.Generic         (PB2  'SOPGGP)
+instance          SOP.Generic         (PB2  'SOPGGP)
+instance          SOP.HasDatatypeInfo (PB2  'SOPGGP)
+
+deriveGenericSubst ''PB2 (const (promotedT 'SOPTH))
+
+instance          Eq                  (PB2  'SOPGGP) where
+  (==) = SOP.geq
+
+instance          Eq                  (PB2  'SOPTH) where
+  (==) = SOP.geq
+
+instance          Show                (PB2  'SOPGGP) where
+  showsPrec = SOP.gshowsPrec
+
+instance          Show                (PB2  'SOPTH) where
   showsPrec = SOP.gshowsPrec
 
 deriving instance Eq                  (Tree 'GHCDeriving)

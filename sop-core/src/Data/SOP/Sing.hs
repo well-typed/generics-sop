@@ -81,8 +81,8 @@ sList = ccase_SList (Proxy :: Proxy Top) SNil SCons
 
 -- * Shape of type-level lists
 
--- | Occassionally it is useful to have an explicit, term-level, representation
--- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108)
+-- | Occasionally it is useful to have an explicit, term-level, representation
+-- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108 )
 --
 data Shape :: [k] -> Type where
   ShapeNil  :: Shape '[]
@@ -108,4 +108,3 @@ lengthSList _ = lengthShape (shape :: Shape xs)
     lengthShape :: forall xs'. Shape xs' -> Int
     lengthShape ShapeNil      = 0
     lengthShape (ShapeCons s) = 1 + lengthShape s
-

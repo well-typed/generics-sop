@@ -2,15 +2,13 @@ name:                sop-core
 version:             0.4.0.0
 synopsis:            True Sums of Products
 description:
-  Implementation of true sums of products.
+  Implementation of n-ary sums and n-ary products.
   .
   The module "Data.SOP" is the main module of this library and contains
   more detailed documentation.
   .
-  Examples of using this library are provided by the following
-  packages:
-  .
-    * @<https://hackage.haskell.org/package/generics-sop generics-sop>@ generics
+  The main use case of this package is to serve as the core of
+  @<https://hackage.haskell.org/package/generics-sop generics-sop>@.
   .
   A detailed description of the ideas behind this library is provided by
   the paper:
@@ -27,7 +25,7 @@ category:            Data
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  CHANGELOG.md doctest.sh
-tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.3, GHC == 8.6.1
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.4
 
 source-repository head
   type:                git
@@ -67,8 +65,8 @@ library
                        DataKinds
                        FunctionalDependencies
                        AutoDeriveTypeable
-  if impl(ghc >= 8.6)
-    default-extensions: NoStarIsType
+  -- if impl(ghc >= 8.6)
+  --   default-extensions: NoStarIsType
   other-extensions:    PolyKinds
                        UndecidableInstances
                        DeriveGeneric

@@ -146,9 +146,11 @@ instance All (Show `Compose` f) xs => Show (NP f xs) where
 deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
 deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
 
+-- | @since 0.4.0.0
 instance All (Semigroup `Compose` f) xs => Semigroup (NP f xs) where
   (<>) = czipWith_NP (Proxy :: Proxy (Semigroup `Compose` f)) (<>)
 
+-- | @since 0.4.0.0
 instance (All (Monoid `Compose` f) xs
 #if MIN_VERSION_base(4,11,0)
   , All (Semigroup `Compose` f) xs  -- GHC isn't smart enough to figure this out
@@ -182,9 +184,11 @@ deriving instance (Show (NP (NP f) xss)) => Show (POP f xss)
 deriving instance (Eq   (NP (NP f) xss)) => Eq   (POP f xss)
 deriving instance (Ord  (NP (NP f) xss)) => Ord  (POP f xss)
 
+-- | @since 0.4.0.0
 instance (Semigroup (NP (NP f) xss)) => Semigroup (POP f xss) where
   POP xss <> POP yss = POP (xss <> yss)
 
+-- | @since 0.4.0.0
 instance (Monoid (NP (NP f) xss)) => Monoid (POP f xss) where
   mempty                      = POP mempty
   mappend (POP xss) (POP yss) = POP (mappend xss yss)
@@ -479,7 +483,7 @@ hcliftA'  :: (All2 c xss, Prod h ~ NP, HAp h) => proxy c -> (forall xs. All c xs
 {-# DEPRECATED hcliftA2' "Use 'hcliftA2' or 'hczipWith' instead." #-}
 hcliftA2' :: (All2 c xss, Prod h ~ NP, HAp h) => proxy c -> (forall xs. All c xs => f xs -> f' xs -> f'' xs)            -> Prod h f xss                  -> h f'  xss -> h f''  xss
 
--- | Like 'hcliftA'', but for ternay functions.
+-- | Like 'hcliftA'', but for ternary functions.
 {-# DEPRECATED hcliftA3' "Use 'hcliftA3' or 'hczipWith3' instead." #-}
 hcliftA3' :: (All2 c xss, Prod h ~ NP, HAp h) => proxy c -> (forall xs. All c xs => f xs -> f' xs -> f'' xs -> f''' xs) -> Prod h f xss -> Prod h f' xss -> h f'' xss -> h f''' xss
 

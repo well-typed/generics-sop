@@ -1,6 +1,6 @@
 {-# LANGUAGE PolyKinds, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
--- | Main module of @sop@
+-- | Main module of @sop-core@
 module Data.SOP (
     -- * n-ary datatypes
     NP(..)

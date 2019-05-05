@@ -95,7 +95,7 @@ deriving instance
   , All (Ord `Compose` NP StrictnessInfo) xs
   ) => Ord (DatatypeInfo xs)
 
--- | Metadata for a single constructors.
+-- | Metadata for a single constructor.
 --
 -- This is indexed by the product structure of the constructor components.
 --

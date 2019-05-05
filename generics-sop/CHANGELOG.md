@@ -1,8 +1,33 @@
-# 0.4.0.0 (xxxx-xx-xx)
+# 0.4.0.1 (2018-10-23)
+
+* Remove `GHC.Event` import in `Generics.SOP.Instances`
+  to fix build on Windows.
+
+# 0.4.0.0 (2018-10-20)
 
 * Split into `sop-core` and `generics-sop` packages.
 
-* Drop support for GHC < 8.0.2, bump `base` dependency to `>= 4.9` and remove dependency on `transformers`.
+* Drop support for GHC < 8.0.2, bump `base` dependency
+  to `>= 4.9` and remove dependency on `transformers`.
+
+* Simplify `All2 c` to `All (All c)` and simplify
+  `SListI xs` to `All Top xs`, and some implied
+  refactoring.
+
+* Add `Semigroup` and `Monoid` instances for various
+  datatypes.
+
+* Add specialised conversion functions for product
+  types, enumeration, and wrapped types.
+
+* Add benchmark suite.
+
+* Fix deriving `Generic` for empty datatypes.
+
+* `Generic` is now a superclass of `HasDatatypeInfo`.
+
+* More `Generic` instances for datatypes from recent
+  versions of `base`.
 
 # 0.3.2.0 (2018-01-08)
 

@@ -101,9 +101,11 @@ instance (Read a) => Read (K a b) where
 instance (Show a) => Show (K a b) where
     showsPrec d (K x) = showsUnaryWith showsPrec "K" d x
 
+-- | @since 0.4.0.0
 instance Semigroup a => Semigroup (K a b) where
   K x <> K y = K (x <> y)
 
+-- | @since 0.4.0.0
 instance Monoid a => Monoid (K a b) where
   mempty              = K mempty
   mappend (K x) (K y) = K (mappend x y)
@@ -123,9 +125,11 @@ unK (K x) = x
 newtype I (a :: Type) = I a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
 
+-- | @since 0.4.0.0
 instance Semigroup a => Semigroup (I a) where
   I x <> I y = I (x <> y)
 
+-- | @since 0.4.0.0
 instance Monoid a => Monoid (I a) where
   mempty              = I mempty
   mappend (I x) (I y) = I (mappend x y)
@@ -172,9 +176,11 @@ newtype (:.:) (f :: l -> Type) (g :: k -> l) (p :: k) = Comp (f (g p))
 
 infixr 7 :.:
 
+-- | @since 0.4.0.0
 instance (Semigroup (f (g x))) => Semigroup ((f :.: g) x) where
   Comp x <> Comp y = Comp (x <> y)
 
+-- | @since 0.4.0.0
 instance (Monoid (f (g x))) => Monoid ((f :.: g) x) where
   mempty                    = Comp mempty
   mappend (Comp x) (Comp y) = Comp (mappend x y)

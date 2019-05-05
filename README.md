@@ -1,21 +1,24 @@
-## generics-sop
+## sop-core and generics-sop
 
 [![Build Status](https://travis-ci.org/well-typed/generics-sop.svg?branch=master)](https://travis-ci.org/well-typed/generics-sop)
 [![Hackage](https://img.shields.io/hackage/v/generics-sop.svg)](https://hackage.haskell.org/package/generics-sop)
 
-A library to support the definition of generic functions.
-Datatypes are viewed in a uniform, structured way:
-the choice between constructors is represented using an n-ary
-sum, and the arguments of each constructor are represented using
-an n-ary product.
+`generics-sop` is a library to support the definition of generic functions.
+Datatypes are viewed in a uniform, structured way: the choice between
+constructors is represented using an n-ary sum, and the arguments of each
+constructor are represented using an n-ary product.
 
-This is the development repository. For releases, look on
+Since version 0.4.0.0, `generics-sop` is now based on `sop-core`. The core
+package contains all the functionality of n-ary sums and products, whereas this
+package provides the datatype-generic programming support on top.
+
+This is the development repository for the packages. For releases, look on
 [Hackage][0].
  
 The module [`Generics.SOP`][1] is the main module of this library
 and contains more detailed documentation.
  
-Examples of using this library are provided by the following
+Examples of using `generics-sop` are provided by the following
 packages:
  
   * [basic-sop][2] basic examples,
@@ -31,7 +34,7 @@ the paper:
     Workshop on Generic Programming (WGP) 2014.
  
 [0]: https://hackage.haskell.org/package/generics-sop
-[1]: https://github.com/well-typed/generics-sop/blob/master/src/Generics/SOP.hs
+[1]: https://hackage.haskell.org/package/generics-sop/docs/Generics-SOP.html
 [2]: https://github.com/well-typed/basic-sop
 [3]: https://github.com/well-typed/pretty-sop
 [4]: https://github.com/well-typed/lens-sop

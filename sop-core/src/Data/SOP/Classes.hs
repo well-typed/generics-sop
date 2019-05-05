@@ -5,16 +5,16 @@
 -- concerned with four structured datatypes:
 --
 -- @
---   'Data.SOP.NP.NP'  :: (k -> Type) -> ( [k]  -> Type)   -- n-ary product
---   'Data.SOP.NS.NS'  :: (k -> Type) -> ( [k]  -> Type)   -- n-ary sum
---   'Data.SOP.NP.POP' :: (k -> Type) -> ([[k]] -> Type)   -- product of products
---   'Data.SOP.NS.SOP' :: (k -> Type) -> ([[k]] -> Type)   -- sum of products
+--   'Data.SOP.NP.NP'  :: (k -> 'Type') -> ( [k]  -> 'Type')   -- n-ary product
+--   'Data.SOP.NS.NS'  :: (k -> 'Type') -> ( [k]  -> 'Type')   -- n-ary sum
+--   'Data.SOP.NP.POP' :: (k -> 'Type') -> ([[k]] -> 'Type')   -- product of products
+--   'Data.SOP.NS.SOP' :: (k -> 'Type') -> ([[k]] -> 'Type')   -- sum of products
 -- @
 --
 -- All of these have a kind that fits the following pattern:
 --
 -- @
---   (k -> Type) -> (l -> Type)
+--   (k -> 'Type') -> (l -> 'Type')
 -- @
 --
 -- These four types support similar interfaces. In order to allow
@@ -22,8 +22,8 @@
 -- various classes in this module that allow the necessary
 -- generalization.
 --
--- The classes typically lift concepts that exist for kinds @Type@ or
--- @Type -> Type@ to datatypes of kind @(k -> Type) -> (l -> Type)@. This module
+-- The classes typically lift concepts that exist for kinds @'Type'@ or
+-- @'Type' -> 'Type'@ to datatypes of kind @(k -> 'Type') -> (l -> 'Type')@. This module
 -- also derives a number of derived combinators.
 --
 -- The actual instances are defined in "Data.SOP.NP" and
@@ -109,14 +109,7 @@ class HPure (h :: (k -> Type) -> (l -> Type)) where
   -- Calling @'hcpure' f s@ where @s :: h f xs@ causes @f@ to be
   -- applied at all the types that are contained in @xs@. Therefore,
   -- the constraint @c@ has to be satisfied for all elements of @xs@,
-  -- which is what @'AllMap' h c xs@ states.
-  --
-  -- Morally, 'hpure' is a special case of 'hcpure' where the
-  -- constraint is empty. However, it is in the nature of how 'AllMap'
-  -- is defined as well as current GHC limitations that it is tricky
-  -- to prove to GHC in general that @'AllMap' h c NoConstraint xs@ is
-  -- always satisfied. Therefore, we typically define 'hpure'
-  -- separately and directly, and make it a member of the class.
+  -- which is what @'AllN' h c xs@ states.
   --
   -- /Instances:/
   --
@@ -362,7 +355,7 @@ class HCollapse (h :: (k -> Type) -> (l -> Type)) where
   -- If a heterogeneous structure is instantiated to the constant
   -- functor 'K', then it is in fact homogeneous. This function
   -- maps such a value to a simpler Haskell datatype reflecting that.
-  -- An @'NS' ('K' a)@ contains a single @a@, and an @'NP' ('K' a)@ contains
+  -- An @'Data.SOP.NS' ('K' a)@ contains a single @a@, and an @'Data.SOP.NP' ('K' a)@ contains
   -- a list of @a@s.
   --
   -- /Instances:/
@@ -402,10 +395,10 @@ class HTraverse_ (h :: (k -> Type) -> (l -> Type)) where
   -- /Instances:/
   --
   -- @
-  -- 'traverse_', 'Data.SOP.NP.traverse__NP'  :: ('SListI'  xs , 'Applicative g') => (forall a. f a -> g ()) -> 'Data.SOP.NP.NP'  f xs  -> g ()
-  -- 'traverse_', 'Data.SOP.NS.traverse__NS'  :: ('SListI'  xs , 'Applicative g') => (forall a. f a -> g ()) -> 'Data.SOP.NS.NS'  f xs  -> g ()
-  -- 'traverse_', 'Data.SOP.NP.traverse__POP' :: ('SListI2' xss, 'Applicative g') => (forall a. f a -> g ()) -> 'Data.SOP.NP.POP' f xss -> g ()
-  -- 'traverse_', 'Data.SOP.NS.traverse__SOP' :: ('SListI2' xss, 'Applicative g') => (forall a. f a -> g ()) -> 'Data.SOP.NS.SOP' f xss -> g ()
+  -- 'traverse_', 'Data.SOP.NP.traverse__NP'  :: ('SListI'  xs , 'Applicative' g) => (forall a. f a -> g ()) -> 'Data.SOP.NP.NP'  f xs  -> g ()
+  -- 'traverse_', 'Data.SOP.NS.traverse__NS'  :: ('SListI'  xs , 'Applicative' g) => (forall a. f a -> g ()) -> 'Data.SOP.NS.NS'  f xs  -> g ()
+  -- 'traverse_', 'Data.SOP.NP.traverse__POP' :: ('SListI2' xss, 'Applicative' g) => (forall a. f a -> g ()) -> 'Data.SOP.NP.POP' f xss -> g ()
+  -- 'traverse_', 'Data.SOP.NS.traverse__SOP' :: ('SListI2' xss, 'Applicative' g) => (forall a. f a -> g ()) -> 'Data.SOP.NS.SOP' f xss -> g ()
   -- @
   --
   -- @since 0.3.2.0
@@ -591,7 +584,7 @@ class HExpand (h :: (k -> Type) -> (l -> Type)) where
   -- /Instances:/
   --
   -- @
-  -- 'hexpand', 'Data.SOP.NS.expand_NS'  :: 'Data.SOP.Sing.SListI' xs  => (forall x . f x) -> 'Data.SOP.NS.NS'  f xs  -> 'Data.SOP.NS.NP'  f xs
+  -- 'hexpand', 'Data.SOP.NS.expand_NS'  :: 'Data.SOP.Sing.SListI' xs   => (forall x . f x) -> 'Data.SOP.NS.NS'  f xs  -> 'Data.SOP.NS.NP'  f xs
   -- 'hexpand', 'Data.SOP.NS.expand_SOP' :: 'SListI2' xss => (forall x . f x) -> 'Data.SOP.NS.SOP' f xss -> 'Data.SOP.NP.POP' f xss
   -- @
   --
@@ -645,7 +638,10 @@ class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> Type) -> (l1 -> Type)
     -> (forall x y . c x y => f x -> g y)
     -> h1 f xs -> h2 g ys
 
-  -- | Coerce a structure into a representationally equal structure.
+  -- | Safely coerce a structure into a representationally equal structure.
+  --
+  -- This is a special case of 'htrans', but can be implemented more efficiently;
+  -- for example in terms of 'Unsafe.Coerce.unsafeCoerce'.
   --
   -- /Examples:/
   --
@@ -655,6 +651,7 @@ class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> Type) -> (l1 -> Type)
   -- SOP (Z (I True :* I False :* Nil))
   --
   -- @since 0.3.1.0
+  --
   hcoerce ::
        (AllZipN (Prod h1) (LiftedCoercible f g) xs ys, HTrans h1 h2)
     => h1 f xs -> h2 g ys

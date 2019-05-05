@@ -25,7 +25,7 @@
 --       witness the isomorphism.
 --
 --   3.  Since all 'Rep' types are sums of products, you can define
---       functions over them by performing induction on the structure, of
+--       functions over them by performing induction on the structure, or
 --       by using predefined combinators that the library provides. Such
 --       functions then work for all 'Rep' types.
 --
@@ -224,9 +224,19 @@ module Generics.SOP (
     Generic(..)
   , Rep
   , IsProductType
+  , ProductCode
+  , productTypeFrom
+  , productTypeTo
   , IsEnumType
+  , enumTypeFrom
+  , enumTypeTo
   , IsWrappedType
+  , WrappedCode
+  , wrappedTypeFrom
+  , wrappedTypeTo
   , IsNewtype
+  , newtypeFrom
+  , newtypeTo
     -- * n-ary datatypes
   , NP(..)
   , NS(..)
@@ -292,6 +302,9 @@ module Generics.SOP (
     -- ** Destructing sums
   , unZ
   , HIndex(..)
+  , Ejection
+  , ejections
+  , shiftEjection
     -- ** Dealing with @'All' c@
   , hcliftA'
   , hcliftA2'

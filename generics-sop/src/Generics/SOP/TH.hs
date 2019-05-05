@@ -193,7 +193,11 @@ deriveGenericForDataDec f _isNewtype _cxt name bndrs cons _derivs = do
 
 deriveGenericForDataType :: (Name -> Q Type) -> Q Type -> [Con] -> Q [Dec]
 deriveGenericForDataType f typ cons = do
+#if MIN_VERSION_template_haskell(2,15,0)
+  let codeSyn = tySynInstD (tySynEqn Nothing [t| Code $typ |] (codeFor f cons))
+#else
   let codeSyn = tySynInstD ''Code $ tySynEqn [typ] (codeFor f cons)
+#endif
   inst <- instanceD
             (cxt [])
             [t| Generic $typ |]
@@ -301,7 +305,11 @@ projection toName = funD toName . go'
 
 metadataType :: Q Type -> Bool -> Name -> [Con] -> Q Dec
 metadataType typ isNewtype typeName cs =
+#if MIN_VERSION_template_haskell(2,15,0)
+  tySynInstD (tySynEqn Nothing [t| DatatypeInfoOf $typ |] (metadataType' isNewtype typeName cs))
+#else
   tySynInstD ''DatatypeInfoOf (tySynEqn [typ] (metadataType' isNewtype typeName cs))
+#endif
 
 -- | Derive term-level metadata.
 metadata' :: Bool -> Name -> [Con] -> Q Exp

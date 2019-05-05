@@ -1,5 +1,5 @@
 name:                generics-sop
-version:             0.4.0.0
+version:             0.4.0.1
 synopsis:            Generic Programming using True Sums of Products
 description:
   A library to support the definition of generic functions.
@@ -10,6 +10,11 @@ description:
   .
   The module "Generics.SOP" is the main module of this library and contains
   more detailed documentation.
+  .
+  Since version 0.4.0.0, this package is now based on
+  @<https://hackage.haskell.org/package/sop-core sop-core>@. The core package
+  contains all the functionality of n-ary sums and products, whereas this
+  package provides the datatype-generic programming support on top.
   .
   Examples of using this library are provided by the following
   packages:
@@ -37,7 +42,7 @@ category:            Generics
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  CHANGELOG.md doctest.sh
-tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.3, GHC == 8.6.1
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.4
 
 source-repository head
   type:                git
@@ -86,8 +91,8 @@ library
                        DataKinds
                        FunctionalDependencies
                        AutoDeriveTypeable
-  if impl(ghc >= 8.6)
-    default-extensions: NoStarIsType
+  -- if impl(ghc >= 8.6)
+  --   default-extensions: NoStarIsType
   other-extensions:    PolyKinds
                        UndecidableInstances
                        TemplateHaskell
@@ -123,6 +128,7 @@ benchmark generics-sop-bench
   type:                exitcode-stdio-1.0
   main-is:             SOPBench.hs
   other-modules:       SOPBench.Type
+                       SOPBench.Roundtrip
                        SOPBench.Eq
                        SOPBench.Show
   hs-source-dirs:      bench
@@ -130,5 +136,6 @@ benchmark generics-sop-bench
   ghc-options:         -Wall
   build-depends:       base                 >= 4.6  && < 5,
                        criterion,
+                       deepseq,
                        generics-sop,
                        template-haskell

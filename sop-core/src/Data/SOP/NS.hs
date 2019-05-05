@@ -24,6 +24,9 @@ module Data.SOP.NS
   , unZ
   , index_NS
   , index_SOP
+  , Ejection
+  , ejections
+  , shiftEjection
     -- * Application
   , ap_NS
   , ap_SOP
@@ -156,6 +159,35 @@ instance All (NFData `Compose` f) xs => NFData (NS f xs) where
     rnf (Z x)  = rnf x
     rnf (S xs) = rnf xs
 
+-- | The type of ejections from an n-ary sum.
+--
+-- An ejection is the pattern matching function for one part of the n-ary sum.
+--
+-- It is the opposite of an 'Injection'.
+--
+-- @since 0.5.0.0
+--
+type Ejection (f :: k -> Type) (xs :: [k]) = K (NS f xs) -.-> Maybe :.: f
+
+-- | Compute all ejections from an n-ary sum.
+--
+-- Each element of the resulting product contains one of the ejections.
+--
+-- @since 0.5.0.0
+--
+ejections :: forall xs f . SListI xs => NP (Ejection f xs) xs
+ejections = case sList :: SList xs of
+  SNil  -> Nil
+  SCons ->
+    fn (Comp . (\ns -> case ns of Z fx -> Just fx; S _ -> Nothing) . unK) :*
+    liftA_NP shiftEjection ejections
+
+-- |
+-- @since 0.5.0.0
+--
+shiftEjection :: forall f x xs a . Ejection f xs a -> Ejection f (x ': xs) a
+shiftEjection (Fn f) = Fn $ (\ns -> case ns of Z _ -> Comp Nothing; S s -> f (K s)) . unK
+
 -- | Extract the payload from a unary sum.
 --
 -- For larger sums, this function would be partial, so it is only
@@ -205,7 +237,7 @@ instance HIndex NS where
 -- of both the (outer) sum and all the (inner) products, as well as
 -- the types of all the elements of the inner products.
 --
--- An @'SOP' 'I'@ reflects the structure of a normal Haskell datatype.
+-- A @'SOP' 'I'@ reflects the structure of a normal Haskell datatype.
 -- The sum structure represents the choice between the different
 -- constructors, the product structure represents the arguments of
 -- each constructor.
