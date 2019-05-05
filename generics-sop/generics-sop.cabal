@@ -1,5 +1,5 @@
 name:                generics-sop
-version:             0.4.0.1
+version:             0.5.0.0
 synopsis:            Generic Programming using True Sums of Products
 description:
   A library to support the definition of generic functions.
@@ -42,7 +42,7 @@ category:            Generics
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  CHANGELOG.md doctest.sh
-tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.4
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5
 
 source-repository head
   type:                git
@@ -66,7 +66,7 @@ library
                        Generics.SOP.NS
                        Generics.SOP.Sing
   build-depends:       base                 >= 4.9  && < 5,
-                       sop-core             == 0.4.0.*,
+                       sop-core             == 0.5.0.*,
                        template-haskell     >= 2.8  && < 2.15,
                        ghc-prim             >= 0.3  && < 0.6
   hs-source-dirs:      src
