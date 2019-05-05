@@ -9,8 +9,8 @@ constructors is represented using an n-ary sum, and the arguments of each
 constructor are represented using an n-ary product.
 
 Since version 0.4.0.0, `generics-sop` is now based on `sop-core`. The core
-package contains all the functionality of n-ary sums and products, whereas this
-package provides the datatype-generic programming support on top.
+package contains all the functionality of n-ary sums and products, whereas
+`generics-sop` provides the datatype-generic programming support on top.
 
 This is the development repository for the packages. For releases, look on
 [Hackage][0].
