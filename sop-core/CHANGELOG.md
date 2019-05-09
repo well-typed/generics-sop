@@ -1,4 +1,4 @@
-# 0.5.0.0 (2019-05-06)
+# 0.5.0.0 (2019-05-09)
 
 * Add `ejections` that computes a product of functions
   that try to extract an element out of an n-ary sum.
