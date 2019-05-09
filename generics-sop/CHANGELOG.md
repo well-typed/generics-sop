@@ -1,11 +1,11 @@
-# 0.5.0.0 (2019-05-06)
+# 0.5.0.0 (2019-05-09)
 
 * Add strictness info to the metadata. This means that
   code directly using the `ADT` constructor has to be
   modified because it now has a new fourth argument.
   (See #76 and #87.)
 
-* Depend on `sop-core-0.5.*` which changes the
+* Depend on `sop-core-0.5.0.*` which changes the
   definition of `SameShapeAs` to improve compiler
   performance and adds "ejections".
 
