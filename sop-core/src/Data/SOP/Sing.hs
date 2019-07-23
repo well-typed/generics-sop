@@ -1,4 +1,9 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving #-}
+#if __GLASGOW_HASKELL__ < 806
+-- Before GHC 8.6, TypeInType was required to explicitly quantify kind variables.
+-- After GHC 8.6, this feature was incorporated into PolyKinds.
+{-# LANGUAGE TypeInType #-}
+#endif
 -- | Singleton types corresponding to type-level data structures.
 --
 -- The implementation is similar, but subtly different to that of the
@@ -93,7 +98,7 @@ deriving instance Eq   (Shape xs)
 deriving instance Ord  (Shape xs)
 
 -- | The shape of a type-level list.
-shape :: forall (xs :: [k]). SListI xs => Shape xs
+shape :: forall k (xs :: [k]). SListI xs => Shape xs
 shape = case sList :: SList xs of
           SNil  -> ShapeNil
           SCons -> ShapeCons shape
@@ -102,7 +107,7 @@ shape = case sList :: SList xs of
 --
 -- @since 0.2
 --
-lengthSList :: forall (xs :: [k]) proxy. SListI xs => proxy xs -> Int
+lengthSList :: forall k (xs :: [k]) proxy. SListI xs => proxy xs -> Int
 lengthSList _ = lengthShape (shape :: Shape xs)
   where
     lengthShape :: forall xs'. Shape xs' -> Int
