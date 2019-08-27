@@ -91,7 +91,9 @@ import Data.Coerce
 import Data.Kind (Type)
 import Data.Proxy (Proxy(..))
 import Unsafe.Coerce
+#if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup (..))
+#endif
 
 import Control.DeepSeq (NFData(..))
 

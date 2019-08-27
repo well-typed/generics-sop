@@ -43,7 +43,9 @@ module Data.SOP.BasicFunctors
   , mapKKK
   ) where
 
+#if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup (..))
+#endif
 import Data.Kind (Type)
 import qualified GHC.Generics as GHC
 
