@@ -33,7 +33,9 @@ module Generics.SOP.Type.Metadata
   , Associativity(..)
   ) where
 
+#if __GLASGOW_HASKELL__ <802
 import Data.Kind (Type)
+#endif
 import Data.Proxy (Proxy (..))
 import GHC.Generics
   ( Associativity(..)
