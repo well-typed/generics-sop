@@ -179,7 +179,7 @@ class (Prod (Prod h) ~ Prod h, HPure (Prod h)) => HAp (h  :: (k -> Type) -> (l -
   -- 'hap', 'Data.SOP.NS.ap_SOP' :: 'Data.SOP.NS.POP' (f -.-> g) xss -> 'Data.SOP.NS.SOP' f xss -> 'Data.SOP.NS.SOP' g xss
   -- @
   --
-  hap :: Prod h (f -.-> g) xs -> h f xs -> h g xs
+  hap :: SListIN (Prod h) xs => Prod h (f -.-> g) xs -> h f xs -> h g xs
 
 -- ** Derived functions
 
@@ -292,7 +292,7 @@ hzipWith3 = hliftA3
 -- 'hcliftA' p f xs = 'hcpure' p ('fn' f) \` 'hap' \` xs
 -- @
 --
-hcliftA  :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+hcliftA  :: (AllN (Prod h) c xs, SListIN (Prod h) xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
 
 -- | Variant of 'hcliftA2' that takes a constrained function.
 --
@@ -302,7 +302,7 @@ hcliftA  :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c
 -- 'hcliftA2' p f xs ys = 'hcpure' p ('fn_2' f) \` 'hap' \` xs \` 'hap' \` ys
 -- @
 --
-hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+hcliftA2 :: (AllN (Prod h) c xs, SListIN (Prod h) xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 
 -- | Variant of 'hcliftA3' that takes a constrained function.
 --
@@ -312,7 +312,7 @@ hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c
 -- 'hcliftA3' p f xs ys zs = 'hcpure' p ('fn_3' f) \` 'hap' \` xs \` 'hap' \` ys \` 'hap' \` zs
 -- @
 --
-hcliftA3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+hcliftA3 :: (AllN (Prod h) c xs, SListIN (Prod h) xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcliftA  p f xs       = hcpure p (fn   f) `hap` xs
 hcliftA2 p f xs ys    = hcpure p (fn_2 f) `hap` xs `hap` ys
@@ -322,19 +322,19 @@ hcliftA3 p f xs ys zs = hcpure p (fn_3 f) `hap` xs `hap` ys `hap` zs
 --
 -- @since 0.2
 --
-hcmap      :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
+hcmap      :: (AllN (Prod h) c xs, SListIN (Prod h) xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
 
 -- | Another name for 'hcliftA2'.
 --
 -- @since 0.2
 --
-hczipWith  :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
+hczipWith  :: (AllN (Prod h) c xs, SListIN (Prod h) xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 
 -- | Another name for 'hcliftA3'.
 --
 -- @since 0.2
 --
-hczipWith3 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
+hczipWith3 :: (AllN (Prod h) c xs, SListIN (Prod h) xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a -> f''' a) -> Prod h f xs -> Prod h f' xs -> h f'' xs -> h f''' xs
 
 hcmap      = hcliftA
 hczipWith  = hcliftA2
