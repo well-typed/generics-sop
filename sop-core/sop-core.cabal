@@ -39,6 +39,7 @@ library
                        Data.SOP.Classes
                        Data.SOP.Constraint
                        Data.SOP.NP
+                       Data.SOP.NP.TF
                        Data.SOP.NS
                        Data.SOP.Sing
   build-depends:       base                 >= 4.9  && < 5,
