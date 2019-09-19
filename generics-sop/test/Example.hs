@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
@@ -8,7 +9,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PolyKinds #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
-module Main (main, toTreeC) where
+module Main (main, toTreeC, toDataFamC) where
 
 import qualified GHC.Generics as GHC
 import Generics.SOP
@@ -67,6 +68,16 @@ data Void
 instance Generic Void
 instance HasDatatypeInfo Void
 
+data family   DataFam a b c
+data instance DataFam Int (Maybe b) c = DF b c
+  deriving (GHC.Generic)
+
+dataFam :: DataFam Int (Maybe Int) Int
+dataFam = DF 1 2
+
+instance Generic (DataFam Int (Maybe b) c)
+instance HasDatatypeInfo (DataFam Int (Maybe b) c)
+
 instance Show Tree where
   show = gshow
 
@@ -74,6 +85,9 @@ instance Show ABC where
   show = gshow
 
 instance Show Void where
+  show = gshow
+
+instance (Show b, Show c) => Show (DataFam Int (Maybe b) c) where
   show = gshow
 
 instance Enumerable ABC where
@@ -101,6 +115,14 @@ data VoidB
 
 deriveGeneric ''VoidB
 
+data family   DataFamB a b c
+data instance DataFamB Int (Maybe b) c = DFB b c
+
+dataFamB :: DataFamB Int (Maybe Int) Int
+dataFamB = DFB 1 2
+
+deriveGeneric 'DFB
+
 instance Show TreeB where
   show = gshow
 
@@ -108,6 +130,9 @@ instance Show ABCB where
   show = gshow
 
 instance Show VoidB where
+  show = gshow
+
+instance (Show b, Show c) => Show (DataFamB Int (Maybe b) c) where
   show = gshow
 
 instance Enumerable ABCB where
@@ -129,6 +154,12 @@ abcC = BC
 
 data VoidC
 
+data family   DataFamC a b c
+data instance DataFamC Int (Maybe b) c = DFC b c
+
+dataFamC :: DataFamC Int (Maybe Int) Int
+dataFamC = DFC 1 2
+
 deriveGenericFunctions ''TreeC "TreeCCode" "fromTreeC" "toTreeC"
 deriveMetadataValue ''TreeC "TreeCCode" "treeDatatypeInfo"
 deriveMetadataType ''TreeC "TreeDatatypeInfo"
@@ -141,6 +172,10 @@ deriveGenericFunctions ''VoidC "VoidCCode" "fromVoidC" "toVoidC"
 deriveMetadataValue ''VoidC "VoidCCode" "voidDatatypeInfo"
 deriveMetadataType ''VoidC "VoidDatatypeInfo"
 
+deriveGenericFunctions 'DFC "DataFamCCode" "fromDataFamC" "toDataFamC"
+deriveMetadataValue 'DFC "DataFamCCode" "dataFamDatatypeInfo"
+deriveMetadataType 'DFC "DataFamDatatypeInfo"
+
 demotedTreeDatatypeInfo :: DatatypeInfo TreeCCode
 demotedTreeDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy TreeDatatypeInfo)
 
@@ -150,6 +185,9 @@ demotedABCDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy ABCDatatypeInfo)
 demotedVoidDatatypeInfo :: DatatypeInfo VoidCCode
 demotedVoidDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy VoidDatatypeInfo)
 
+demotedDataFamDatatypeInfo :: DatatypeInfo (DataFamCCode b c)
+demotedDataFamDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy DataFamDatatypeInfo)
+
 instance Show TreeC where
   show x = gshowS (fromTreeC x)
 
@@ -158,6 +196,9 @@ instance Show ABCC where
 
 instance Show VoidC where
   show x = gshowS (fromVoidC x)
+
+instance (Show b, Show c) => Show (DataFamC Int (Maybe b) c) where
+  show x = gshowS (fromDataFamC x)
 
 instance Enumerable ABCC where
   enum = fmap toABCC genumS
@@ -170,23 +211,30 @@ main :: IO ()
 main = do
   print tree
   print abc
+  print dataFam
   print $ (enum :: [ABC])
   print $ (enum :: [Void])
   print $ datatypeInfo (Proxy :: Proxy Tree)
   print $ datatypeInfo (Proxy :: Proxy Void)
+  print $ datatypeInfo (Proxy :: Proxy (DataFam Int (Maybe Int) Int))
   print treeB
   print abcB
+  print dataFamB
   print $ (enum :: [ABCB])
   print $ (enum :: [VoidB])
   print $ datatypeInfo (Proxy :: Proxy TreeB)
   print $ datatypeInfo (Proxy :: Proxy VoidB)
+  print $ datatypeInfo (Proxy :: Proxy (DataFamB Int (Maybe Int) Int))
   print treeC
   print abcC
+  print dataFamC
   print $ (enum :: [ABCC])
   print $ (enum :: [VoidC])
   print treeDatatypeInfo
   print demotedTreeDatatypeInfo
+  print demotedDataFamDatatypeInfo
   print (treeDatatypeInfo == demotedTreeDatatypeInfo)
   print (abcDatatypeInfo == demotedABCDatatypeInfo)
   print (voidDatatypeInfo == demotedVoidDatatypeInfo)
+  print (dataFamDatatypeInfo == demotedDataFamDatatypeInfo)
   print $ convertFull tree
