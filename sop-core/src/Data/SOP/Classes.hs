@@ -653,7 +653,7 @@ class (Same h1 ~ h2, Same h2 ~ h1) => HTrans (h1 :: (k1 -> Type) -> (l1 -> Type)
   -- @since 0.3.1.0
   --
   hcoerce ::
-       (AllZipN (Prod h1) (LiftedCoercible f g) xs ys, HTrans h1 h2)
+       AllZipN (Prod h1) (LiftedCoercible f g) xs ys
     => h1 f xs -> h2 g ys
 
 -- | Specialization of 'hcoerce'.
