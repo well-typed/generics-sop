@@ -68,6 +68,7 @@ library
   build-depends:       base                 >= 4.9  && < 5,
                        sop-core             == 0.5.0.*,
                        template-haskell     >= 2.8  && < 2.16,
+                       th-abstraction       >= 0.3  && < 0.4,
                        ghc-prim             >= 0.3  && < 0.6
   hs-source-dirs:      src
   default-language:    Haskell2010
