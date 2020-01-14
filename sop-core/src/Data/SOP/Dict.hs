@@ -68,7 +68,7 @@ mapAll f Dict = (all_NP . hmap f . unAll_NP) Dict
 mapAll2 :: forall c d xss .
            (forall a . Dict c a -> Dict d a)
         -> Dict (All2 c) xss -> Dict (All2 d) xss
-mapAll2 f d @ Dict = (all2 . mapAll (mapAll f) . unAll2) d
+mapAll2 f d@Dict = (all2 . mapAll (mapAll f) . unAll2) d
 
 -- | If two constraints 'c' and 'd' hold over a type-level
 -- list 'xs', then the combination of both constraints holds
@@ -77,7 +77,7 @@ mapAll2 f d @ Dict = (all2 . mapAll (mapAll f) . unAll2) d
 -- @since 0.2
 --
 zipAll :: Dict (All c) xs -> Dict (All d) xs -> Dict (All (c `And` d)) xs
-zipAll dc @ Dict dd = all_NP (hzipWith (\ Dict Dict -> Dict) (unAll_NP dc) (unAll_NP dd))
+zipAll dc@Dict dd = all_NP (hzipWith (\ Dict Dict -> Dict) (unAll_NP dc) (unAll_NP dd))
 
 -- | If two constraints 'c' and 'd' hold over a type-level
 -- list of lists 'xss', then the combination of both constraints
