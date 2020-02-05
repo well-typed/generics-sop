@@ -15,7 +15,7 @@ module Data.SOP.NP
   , pure_POP
   , cpure_NP
   , cpure_POP
-  , (++)
+  , type (++)
   , happend
     -- ** Construction from a list
   , fromList
