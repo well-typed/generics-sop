@@ -187,6 +187,8 @@ instance          Show                (S2   'SOPGGP) where
 instance          Show                (S2   'SOPTH)  where
   showsPrec = SOP.gshowsPrec
 
+deriveGenericSubst ''S20 (const (promotedT 'SOPTH))
+
 instance          Roundtrip           (S20  'GHCGeneric) where
   roundtrip = ghcroundtrip
 
@@ -204,8 +206,6 @@ deriving instance GHC.Generic         (S20  'SOPGGP)
 instance          SOP.Generic         (S20  'SOPGGP)
 instance          SOP.HasDatatypeInfo (S20  'SOPGGP)
 
-deriveGenericSubst ''S20 (const (promotedT 'SOPTH))
-
 instance          Eq                  (S20  'SOPGGP) where
   (==) = SOP.geq
 
@@ -217,6 +217,8 @@ instance          Show                (S20  'SOPGGP) where
 
 instance          Show                (S20  'SOPTH)  where
   showsPrec = SOP.gshowsPrec
+
+deriveGenericSubst ''PB2 (const (promotedT 'SOPTH))
 
 instance          Roundtrip           (PB2  'GHCGeneric) where
   roundtrip = ghcroundtrip
@@ -234,8 +236,6 @@ deriving instance GHC.Generic         (PB2  'GHCGeneric)
 deriving instance GHC.Generic         (PB2  'SOPGGP)
 instance          SOP.Generic         (PB2  'SOPGGP)
 instance          SOP.HasDatatypeInfo (PB2  'SOPGGP)
-
-deriveGenericSubst ''PB2 (const (promotedT 'SOPTH))
 
 instance          Eq                  (PB2  'SOPGGP) where
   (==) = SOP.geq
