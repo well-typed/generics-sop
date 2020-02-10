@@ -137,7 +137,7 @@ instance GProductTo U1 where
 
 -- This can most certainly be simplified
 class GSumFrom (a :: Type -> Type) where
-  gSumFrom :: a x -> SOP I xss -> SOP I (ToSumCode a xss)
+  gSumFrom :: a x -> proxy xss -> SOP I (ToSumCode a xss)
   gSumSkip :: proxy a -> SOP I xss -> SOP I (ToSumCode a xss)
 
 instance GSumFrom V1 where
@@ -145,7 +145,10 @@ instance GSumFrom V1 where
   gSumSkip _ xss = xss
 
 instance (GSumFrom a, GSumFrom b) => GSumFrom (a :+: b) where
-  gSumFrom (L1 a) xss = gSumFrom a (gSumSkip (Proxy :: Proxy b) xss)
+  gSumFrom (L1 a) xss = gSumFrom a (toSumCodeProxy xss) where
+    toSumCodeProxy :: proxy xss -> Proxy (ToSumCode b xss)
+    toSumCodeProxy _ = Proxy
+
   gSumFrom (R1 b) xss = gSumSkip (Proxy :: Proxy a) (gSumFrom b xss)
 
   gSumSkip _ xss = gSumSkip (Proxy :: Proxy a) (gSumSkip (Proxy :: Proxy b) xss)
@@ -208,7 +211,7 @@ type GDatatypeInfoOf (a :: Type) = ToInfo (GHC.Rep a)
 -- For more info, see 'Generics.SOP.Generic'.
 --
 gfrom :: (GFrom a, GHC.Generic a) => a -> SOP I (GCode a)
-gfrom x = gSumFrom (GHC.from x) (error "gfrom: internal error" :: SOP.SOP SOP.I '[])
+gfrom x = gSumFrom (GHC.from x) (Proxy :: Proxy '[])
 
 -- | An automatically computed version of 'Generics.SOP.to'.
 --
