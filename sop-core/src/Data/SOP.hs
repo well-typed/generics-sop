@@ -126,6 +126,7 @@ module Data.SOP (
     -- *** Shape of type-level lists
   , Shape(..)
   , shape
+  , shapeP
   , lengthSList
     -- ** Re-exports
 

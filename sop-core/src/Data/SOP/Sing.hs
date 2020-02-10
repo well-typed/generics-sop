@@ -21,6 +21,7 @@ module Data.SOP.Sing
     -- ** Shape of type-level lists
   , Shape(..)
   , shape
+  , shapeP
   , lengthSList
   ) where
 
@@ -89,27 +90,33 @@ sList = ccase_SList (Proxy :: Proxy Top) SNil SCons
 -- | Occasionally it is useful to have an explicit, term-level, representation
 -- of type-level lists (esp because of https://ghc.haskell.org/trac/ghc/ticket/9108 )
 --
-data Shape :: [k] -> Type where
-  ShapeNil  :: Shape '[]
-  ShapeCons :: SListI xs => Shape xs -> Shape (x ': xs)
+data Shape :: (k -> Constraint) -> [k] -> Type where
+  ShapeNil  :: Shape c '[]
+  ShapeCons :: (c x, SListI xs)
+            => {-# UNPACK #-} !(Proxy x) -- note, these proxies are representationally "free"
+            -> {-# UNPACK #-} !(Proxy xs)
+            -> Shape c (x ': xs)
 
-deriving instance Show (Shape xs)
-deriving instance Eq   (Shape xs)
-deriving instance Ord  (Shape xs)
+deriving instance Show (Shape c xs)
+deriving instance Eq   (Shape c xs)
+deriving instance Ord  (Shape c xs)
 
 -- | The shape of a type-level list.
-shape :: forall k (xs :: [k]). SListI xs => Shape xs
-shape = case sList :: SList xs of
-          SNil  -> ShapeNil
-          SCons -> ShapeCons shape
+shape :: forall k (xs :: [k]). SListI xs => Shape Top xs
+shape = shapeP Proxy
 
--- | The length of a type-level list.
+-- | 'shape' variant which takes an explicit proxy of the type-level list.
+shapeP :: forall k c (xs :: [k]) proxy. All c xs => proxy xs -> Shape c xs
+shapeP _ = case sList :: SList xs of
+             SNil  -> ShapeNil
+             SCons -> ShapeCons Proxy Proxy
+
 --
 -- @since 0.2
 --
 lengthSList :: forall k (xs :: [k]) proxy. SListI xs => proxy xs -> Int
-lengthSList _ = lengthShape (shape :: Shape xs)
+lengthSList = lengthShape . shapeP
   where
-    lengthShape :: forall xs'. Shape xs' -> Int
-    lengthShape ShapeNil      = 0
-    lengthShape (ShapeCons s) = 1 + lengthShape s
+    lengthShape :: forall xs'. Shape Top xs' -> Int
+    lengthShape ShapeNil        = 0
+    lengthShape (ShapeCons _ s) = 1 + lengthShape (shapeP s)
