@@ -1,3 +1,7 @@
+# 0.5.0.1 (2020-03-29)
+
+* Compatiblity with GHC-8.10 (thanks to Ryan Scott).
+
 # 0.5.0.0 (2019-05-09)
 
 * Add `ejections` that computes a product of functions

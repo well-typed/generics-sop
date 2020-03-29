@@ -1,3 +1,10 @@
+# 0.5.1.0 (2020-03-29)
+
+* Compatibility with GHC-8.10 (thanks to Ryan Scott).
+
+* Improve TH generation support and extend it to
+  type families (thanks to Ryan Scott).
+
 # 0.5.0.0 (2019-05-09)
 
 * Add strictness info to the metadata. This means that
