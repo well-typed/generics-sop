@@ -1,0 +1,11 @@
+Build profile: -w ghc-8.11.0.20200511 -O1
+In order, the following will be built (use -v for more details):
+ - examples-0.1 (bench:comparison) (file bench/Bench.hs changed)
+Preprocessing benchmark 'comparison' for examples-0.1..
+Building benchmark 'comparison' for examples-0.1..
+[1 of 1] Compiling Main             ( bench/Bench.hs, /home/andres/repos/staged-sop/examples/dist-newstyle/build/x86_64-linux/ghc-8.11.0.20200511/examples-0.1/b/comparison/build/comparison/comparison-tmp/Main.o, /home/andres/repos/staged-sop/examples/dist-newstyle/build/x86_64-linux/ghc-8.11.0.20200511/examples-0.1/b/comparison/build/comparison/comparison-tmp/Main.dyn_o )
+
+bench/Bench.hs:129:36: error: Not in scope: ‘minSamples’
+    |
+129 |   defaultMainWith (defaultConfig { minSamples = Just 1000 })
+    |                                    ^^^^^^^^^^
