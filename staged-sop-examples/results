@@ -1,0 +1,3 @@
+When using configuration(s) from /home/andres/repos/staged-sop/examples/cabal.project, the following errors occurred:
+The package directory '.' contains multiple .cabal files (which is not currently supported).
+
