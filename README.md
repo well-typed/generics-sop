@@ -13,28 +13,30 @@ only implemented in a branch.
 
 You need the GHC branch at
 
-https://gitlab.haskell.org/mpickering/ghc/-/tree/wip/typed-th-more-working
+https://gitlab.haskell.org/mpickering/ghc/-/tree/tth-with-constraints
 
 The library and examples have been tested to build successfully with
-commit a5cb6991d1eb4479e862046301b0fd7cd2d578c3 of that branch.
+commit [a5cb6991d1eb4479e862046301b0fd7cd2d578c3](https://gitlab.haskell.org/mpickering/ghc/-/commit/a5cb6991d1eb4479e862046301b0fd7cd2d578c3)
+of that branch.
 
-Build instructions if you are using Nix, and if you have a checkout of
-the GHC branch:
+Build instructions if you are using Nix (note: this is not a necessity;
+you can build GHC in some other way):
 ``` bash
-$ nix-shell https://github.com/alpmestan/ghc.nix/archive/master.tar.gz
-[nix:ghc-shell-for-ghc-buildenv-8.9] $ ./boot
-[nix:ghc-shell-for-ghc-buildenv-8.9] $ configure_ghc
-[nix:ghc-shell-for-ghc-buildenv-8.9] $ hadrian/build -j
+/work $ git clone --recurse-submodules --single-branch --branch tth-with-constraints https://gitlab.haskell.org/mpickering/ghc.git
+/work $ cd ghc
+/work/ghc $ nix-shell https://github.com/alpmestan/ghc.nix/archive/master.tar.gz
+[nix:ghc-shell-for-ghc-buildenv-8.9] /work/ghc $ ./boot
+[nix:ghc-shell-for-ghc-buildenv-8.9] /work/ghc $ configure_ghc
+[nix:ghc-shell-for-ghc-buildenv-8.9] /work/ghc $ hadrian/build -j
 ```
-
 If successful, you'll then have `ghc` in `_build/stage1/bin/ghc`:
 ``` bash
-$ _build/stage1/bin/ghc --version
+[nix:ghc-shell-for-ghc-buildenv-8.9] /work/ghc $ _build/stage1/bin/ghc --version
 The Glorious Glasgow Haskell Compilation System, version 8.11.0.20200511
 ```
 
 Make this compiler the default temporarily in your `PATH`, then build
-`staged-sop` and `staged-sop-examples`:
+`staged-sop` and `staged-sop-examples` in the root dir of this repo via:
 ``` bash
 $ cabal v2-build --enable-bench staged-sop staged-sop-examples
 ```
