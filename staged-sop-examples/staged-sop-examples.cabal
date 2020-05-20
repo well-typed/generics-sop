@@ -24,6 +24,7 @@ library
   build-depends:
   exposed-modules:
     ExampleFunctions
+    ExampleFunctionsSOP
     ExampleTypes
 
 benchmark comparison
