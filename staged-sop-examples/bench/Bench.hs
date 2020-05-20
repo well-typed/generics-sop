@@ -10,10 +10,12 @@ import Codec.CBOR.Encoding
 import Codec.CBOR.Decoding
 import Codec.Serialise
 import ExampleTypes
-import ExampleFunctions
+import qualified ExampleFunctionsSOP as SOP
+import qualified ExampleFunctionsStaged as Staged
 import Gauge.Main
 import Gauge.Main.Options
 
+{-
 genum_Ordering :: () -> [Ordering]
 genum_Ordering () = genum
 
@@ -74,14 +76,18 @@ instance Eq (Prop Manual) where
   And p1 q1 == And p2 q2 = p1 == p2 && q1 == q2
   Or p1 q1 == Or p2 q2 = p1 == p2 && q1 == q2
   _ == _ = False
+-}
+
+deriving instance Eq a => Eq (Tree t a)
+deriving instance Eq (Prop t)
 
 instance Serialise (Prop GenericsSOP) where
-  encode = gencode
-  decode = gdecode
+  encode = SOP.gencode
+  decode = SOP.gdecode
 
 instance Serialise (Prop StagedSOP) where
-  encode = $$(sgencode)
-  decode = $$(sgdecode)
+  encode x = $$(Staged.gencode [|| x ||])
+  decode = undefined -- $$(Staged.gdecode)
 
 instance Serialise (Prop GHCGenerics)
 
@@ -117,15 +123,18 @@ main = do
   print $ serialise @(Prop GenericsSOP) huge_prop == serialise @(Prop StagedSOP) huge_prop
   print $ serialise @(Prop GHCGenerics) huge_prop == serialise @(Prop GenericsSOP) huge_prop
   print $ serialise @(Prop Manual)      huge_prop == serialise @(Prop GenericsSOP) huge_prop
+{-
   print $ roundtrip @(Prop GenericsSOP) huge_prop == huge_prop
   print $ roundtrip @(Prop GHCGenerics) huge_prop == huge_prop
   print $ roundtrip @(Prop StagedSOP)   huge_prop == huge_prop
   print $ roundtrip @(Prop Manual)      huge_prop == huge_prop
+-}
   defaultMain
     [ -- bgroup "enum/Ordering"
       -- [ bench "generics-sop" $ nf genum_Ordering ()
       -- , bench "staged-sop"   $ nf sgenum_Ordering ()
       -- ]
+      {-
       bgroup "showEnum/S15"
       [ bench "generics-sop"   $ nf gShowEnum_S15 S15_10
       , bench "staged-sop"     $ nf sgShowEnum_S15 S15_10
@@ -150,16 +159,19 @@ main = do
       , env (return huge_prop) $ \ p -> bench "staged-sop"     $ nf ((==) @(Prop StagedSOP) p) p
       , env (return huge_prop) $ \ p -> bench "manual"         $ nf ((==) @(Prop Manual) p) p
       ]
-    , bgroup "cborg-serialise/Prop"
+      -}
+      bgroup "cborg-serialise/Prop"
       [ bench "generics-sop"   $ nf (serialise @(Prop GenericsSOP)) huge_prop
       , bench "staged-sop"     $ nf (serialise @(Prop StagedSOP)) huge_prop
       , bench "ghc-generics"   $ nf (serialise @(Prop GHCGenerics)) huge_prop
       , bench "manual"         $ nf (serialise @(Prop Manual)) huge_prop
       ]
+    {-
     , bgroup "cborg-roundtrip/Prop"
       [ bench "generics-sop"   $ nf (roundtrip @(Prop GenericsSOP)) huge_prop
       , bench "staged-sop"     $ nf (roundtrip @(Prop StagedSOP)) huge_prop
       , bench "ghc-generics"   $ nf (roundtrip @(Prop GHCGenerics)) huge_prop
       , bench "manual"         $ nf (roundtrip @(Prop Manual)) huge_prop
       ]
+    -}
     ]

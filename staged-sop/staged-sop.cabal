@@ -9,6 +9,7 @@ library
   build-depends:
     base,
     sop-core ^>= 0.5,
+    generics-sop ^>= 0.5,
     template-haskell
   exposed-modules:
     Generics.SOP.Staged

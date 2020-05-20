@@ -19,15 +19,15 @@ data Foo = Foo [Int] Ordering Text
 
 SOP.deriveGeneric ''Foo
 
-instance SGeneric Foo where
-  type SDescription Foo = SOP.Code Foo
+instance Generic Foo where
+  type Description Foo = SOP.Code Foo
 
-  sfrom c k =
+  from c k =
     [|| case $$c of
           Foo is o txt -> $$(k (SOP (Z (C [|| is ||] :* C [|| o ||] :* C [|| txt ||] :* Nil))))
     ||]
 
-  sto (SOP (Z (C is :* C o :* C txt :* Nil))) = [|| Foo $$is $$o $$txt ||]
+  to (SOP (Z (C is :* C o :* C txt :* Nil))) = [|| Foo $$is $$o $$txt ||]
 
 instance NFData Foo where
   rnf (Foo is o txt) = rnf is `seq` rnf o `seq` rnf txt
@@ -42,17 +42,17 @@ data Tree (tag :: Tag) a = Leaf a | Node (Tree tag a) (Tree tag a)
 
 SOP.deriveGeneric ''Tree
 
-instance (LiftT a, LiftT tag) => SGeneric (Tree tag a) where
-  type SDescription (Tree tag a) = SOP.Code (Tree tag a)
+instance (LiftT a, LiftT tag) => Generic (Tree tag a) where
+  type Description (Tree tag a) = SOP.Code (Tree tag a)
 
-  sfrom c k =
+  from c k =
     [|| case $$c of
           Leaf a   -> $$(k (SOP (Z (C [|| a ||] :* Nil))))
           Node l r -> $$(k (SOP (S (Z (C [|| l ||] :* C [|| r ||] :* Nil)))))
     ||]
 
-  sto (SOP (Z (C a :* Nil)))            = [|| Leaf $$a ||]
-  sto (SOP (S (Z (C l :* C r :* Nil)))) = [|| Node $$l $$r ||]
+  to (SOP (Z (C a :* Nil)))            = [|| Leaf $$a ||]
+  to (SOP (S (Z (C l :* C r :* Nil)))) = [|| Node $$l $$r ||]
 
 instance NFData a => NFData (Tree tag a) where
   rnf (Leaf a) = rnf a
@@ -63,47 +63,47 @@ data Pair a b = Pair a b
 
 SOP.deriveGeneric ''Pair
 
-instance (LiftT a, LiftT b) => SGeneric (Pair a b) where
-  type SDescription (Pair a b) = '[ '[ a, b ] ]
+instance (LiftT a, LiftT b) => Generic (Pair a b) where
+  type Description (Pair a b) = '[ '[ a, b ] ]
 
-  sfrom c k =
+  from c k =
     [|| case $$c of
           Pair a b -> $$(k (SOP (Z (C [|| a ||] :* C [|| b ||] :* Nil))))
     ||]
 
-  sto (SOP (Z (C a :* C b :* Nil))) = [|| Pair $$a $$b ||]
+  to (SOP (Z (C a :* C b :* Nil))) = [|| Pair $$a $$b ||]
 
 instance (NFData a, NFData b) => NFData (Pair a b) where
   rnf (Pair a b) = rnf a `seq` rnf b
 
-instance SGeneric Ordering where
-  type SDescription Ordering = '[ '[], '[], '[] ]
+instance Generic Ordering where
+  type Description Ordering = '[ '[], '[], '[] ]
 
-  sfrom c k =
+  from c k =
     [|| case $$c of
           LT -> $$(k (SOP (Z Nil)))
           EQ -> $$(k (SOP (S (Z Nil))))
           GT -> $$(k (SOP (S (S (Z Nil)))))
     ||]
 
-  sto (SOP (Z Nil))         = [|| LT ||]
-  sto (SOP (S (Z Nil)))     = [|| EQ ||]
-  sto (SOP (S (S (Z Nil)))) = [|| GT ||]
+  to (SOP (Z Nil))         = [|| LT ||]
+  to (SOP (S (Z Nil)))     = [|| EQ ||]
+  to (SOP (S (S (Z Nil)))) = [|| GT ||]
 
 data Person = Person { personId :: Int, name :: String, date :: Day }
   deriving GHC.Generic
 
 SOP.deriveGeneric ''Person
 
-instance SGeneric Person where
-  type SDescription Person = '[ '[ Int, String, Day ] ]
+instance Generic Person where
+  type Description Person = '[ '[ Int, String, Day ] ]
 
-  sfrom c k =
+  from c k =
     [|| case $$c of
           Person i n d -> $$(k (SOP (Z (C [|| i ||] :* C [|| n ||] :* C [|| d ||] :* Nil))))
     ||]
 
-  sto (SOP (Z (C i :* C n :* C d :* Nil))) = [|| Person $$i $$n $$d ||]
+  to (SOP (Z (C i :* C n :* C d :* Nil))) = [|| Person $$i $$n $$d ||]
 
 instance NFData Person where
   rnf (Person i n d) = rnf i `seq` rnf n `seq` rnf d
@@ -119,10 +119,10 @@ data Prop (tag :: Tag) =
 
 SOP.deriveGeneric ''Prop
 
-instance LiftT tag => SGeneric (Prop tag) where
-  type SDescription (Prop tag) = SOP.Code (Prop tag)
+instance LiftT tag => Generic (Prop tag) where
+  type Description (Prop tag) = SOP.Code (Prop tag)
 
-  sfrom c k =
+  from c k =
     [|| case $$c of
           Var s     -> $$(k (SOP (Z (C [|| s ||] :* Nil))))
           T         -> $$(k (SOP (S (Z Nil))))
@@ -132,12 +132,12 @@ instance LiftT tag => SGeneric (Prop tag) where
           Or p1 p2  -> $$(k (SOP (S (S (S (S (S (Z (C [|| p1 ||] :* C [|| p2 ||] :* Nil)))))))))
     ||]
 
-  sto (SOP (Z (C s :* Nil)))                              = [|| Var $$s ||]
-  sto (SOP (S (Z Nil)))                                   = [|| T ||]
-  sto (SOP (S (S (Z Nil))))                               = [|| F ||]
-  sto (SOP (S (S (S (Z (C p :* Nil))))))                  = [|| Not $$p ||]
-  sto (SOP (S (S (S (S (Z (C p1 :* C p2 :* Nil)))))))     = [|| And $$p1 $$p2 ||]
-  sto (SOP (S (S (S (S (S (Z (C p1 :* C p2 :* Nil)))))))) = [|| Or $$p1 $$p2 ||]
+  to (SOP (Z (C s :* Nil)))                              = [|| Var $$s ||]
+  to (SOP (S (Z Nil)))                                   = [|| T ||]
+  to (SOP (S (S (Z Nil))))                               = [|| F ||]
+  to (SOP (S (S (S (Z (C p :* Nil))))))                  = [|| Not $$p ||]
+  to (SOP (S (S (S (S (Z (C p1 :* C p2 :* Nil)))))))     = [|| And $$p1 $$p2 ||]
+  to (SOP (S (S (S (S (S (Z (C p1 :* C p2 :* Nil)))))))) = [|| Or $$p1 $$p2 ||]
 
 instance NFData (Prop tag) where
   rnf (Var s) = rnf s
@@ -167,6 +167,7 @@ huge_prop :: Prop tag
 huge_prop =
   Or large_prop large_prop
 
+{-
 data S15 =
     S15_00
   | S15_01
@@ -224,6 +225,7 @@ instance SGeneric S15 where
   sto (SOP (S (S (S (S (S (S (S (S (S (S (S (S (Z Nil))))))))))))))         = [|| S15_12 ||]
   sto (SOP (S (S (S (S (S (S (S (S (S (S (S (S (S (Z Nil)))))))))))))))     = [|| S15_13 ||]
   sto (SOP (S (S (S (S (S (S (S (S (S (S (S (S (S (S (Z Nil)))))))))))))))) = [|| S15_14 ||]
+-}
 
 tree :: Tree tag Int
 tree = Node (Node (Leaf 1) (Leaf 2)) (Node (Leaf 3) (Leaf 4))

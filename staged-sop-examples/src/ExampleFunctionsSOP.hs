@@ -8,17 +8,15 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wall #-}
 module ExampleFunctionsSOP where
 
 import Codec.CBOR.Encoding
 import Codec.CBOR.Decoding
 import Codec.Serialise
-import Control.DeepSeq
-import Data.SOP.Constraint (And)
 import Generics.SOP
 import Generics.SOP.NP
 import Generics.SOP.NS
-import ExampleTypes
 
 -- SOP utilities
 --
@@ -41,11 +39,7 @@ gsappend a1 a2 =
 gShowEnum ::
   IsEnumType a => NP (K String) (Description a) -> a -> String
 gShowEnum names a =
-  collapse_NS (hzipWith const names (enumTypeFrom a))
-
-s15Names :: NP (K String) (Description S15)
-s15Names =
-  K "1" :* K "2" :* K "3" :* K "4" :* K "5" :* K "6" :* K "7" :* K "8" :* K "9" :* K "10" :* K "11" :* K "12" :* K "13" :* K "14" :* K "15" :* Nil
+  selectWith'_NS ((unK .) . const) names (enumTypeFrom a)
 
 geq ::
   (Generic a, All (All Eq) (Description a)) =>
@@ -57,7 +51,7 @@ geq a1 a2 =
     False
     (from a1) (from a2)
 
-genum :: (Generic a, All ((~) '[]) (Description a)) => [a]
+genum :: IsEnumType a => [a]
 genum =
   to <$> apInjs_POP (POP (cpure_NP (Proxy @((~) '[])) Nil))
 

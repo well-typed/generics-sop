@@ -10,6 +10,7 @@
 {-# LANGUAGE TypeOperators #-}
 module ExampleFunctions where
 
+{-
 import Codec.CBOR.Encoding
 import Codec.CBOR.Decoding
 import Codec.Serialise
@@ -87,9 +88,11 @@ sgShowEnum names c =
   senumTypeFrom c $ \ a ->
     liftTyped (collapse_NS (selectWith_NS const names a))
 
+{-
 s15Names :: NP (K String) (SOP.Code S15)
 s15Names =
   K "1" :* K "2" :* K "3" :* K "4" :* K "5" :* K "6" :* K "7" :* K "8" :* K "9" :* K "10" :* K "11" :* K "12" :* K "13" :* K "14" :* K "15" :* Nil
+-}
 
 geq ::
   (SOP.Generic a, SOP.All (SOP.All Eq) (SOP.Code a)) =>
@@ -176,19 +179,44 @@ sconArities _ =
 gencode :: forall a . (SOP.Generic a, SOP.All (SOP.All Serialise) (SOP.Code a)) => a -> Encoding
 gencode x =
   let
-    tmp :: SOP (K Encoding) (SOP.Code a)
-    tmp =
-      SOP.cmap_SOP (Proxy @Serialise) (SOP.mapIK encode) (SOP.from x)
+    encodedConstructorArguments :: SOP (K Encoding) (SOP.Code a)
+    encodedConstructorArguments =
+      SOP.cmap_SOP (Proxy @Serialise) (mapIK encode) (SOP.from x)
 
     tmp2 :: NS (K Encoding) (SOP.Code a)
     tmp2 =
       SOP.hzipWith3
-        (\ (K i) (K a) es -> K (encodeListLen (a + 1) <> encodeWord i <> mconcat (SOP.collapse_NP es)))
+        (\ (K i) (K a) es ->
+          K (encodeListLen (a + 1)
+            <> encodeWord i
+            <> mconcat (SOP.collapse_NP es))
+        )
         (conNumbers (Proxy @a))
         (conArities (Proxy @a))
-        (SOP.unSOP tmp)
+        (unSOP encodedConstructorArguments)
   in
     SOP.collapse_NS tmp2
+
+gencode' :: forall a . (SOP.Generic a, All (All Serialise) (SDescription a), SGeneric a) => a -> Encoding
+gencode' x =
+  let
+    encodedConstructorArguments :: SOP (K Encoding) (SOP.Code a)
+    encodedConstructorArguments =
+      cmap_SOP (Proxy @Serialise) (mapIK encode) (SOP.from x)
+
+    tmp2 :: NS (K Encoding) (SOP.Code a)
+    tmp2 =
+      SOP.hzipWith3
+        (\ (K i) (K a) es ->
+          K (encodeListLen (a + 1)
+            <> encodeWord i
+            <> mconcat (SOP.collapse_NP es))
+        )
+        (sconNumbers (Proxy @a))
+        (sconArities (Proxy @a))
+        (unSOP encodedConstructorArguments)
+  in
+    collapse_NS tmp2
 
 sgencode :: forall a . (SGeneric a, All (All (Quoted Serialise)) (SDescription a)) => Code (a -> Encoding)
 sgencode =
@@ -196,36 +224,41 @@ sgencode =
     \ a ->
     $$(sfrom [|| a ||] $ \ a' ->
       let
-        tmp :: SOP (K (Code Encoding)) (SDescription a)
-        tmp =
+        encodedConstructorArguments :: SOP (K (Code Encoding)) (SDescription a)
+        encodedConstructorArguments =
           cmap_SOP (Proxy @(Quoted Serialise)) (mapCK [|| encode ||]) a'
-
-        tmp2 :: NS (K (Code Encoding)) (SDescription a)
-        tmp2 =
-          cselectWith_NS
-            (Proxy @(All (Quoted Serialise)))
-            (\ (K (i, a)) es -> let a' = a + 1 in K [|| encodeListLen a' <> encodeWord i <> $$(foldr (\ x y -> [|| $$x <> $$y ||]) [|| mempty ||] (collapse_NP es)) ||])
-            (tmp3 @a) -- (czipWith_NP (Proxy @(All (Quoted Serialise))) (SOP.mapKKK (,)) (sconNumbers (Proxy @a)) (sconArities (Proxy @a)))
-            (unSOP tmp)
-
-        tmp3 :: forall a . (SGeneric a, All (All (Quoted Serialise)) (SDescription a)) => NP (K (Word, Word)) (SDescription a)
-        tmp3 =
-          (czipWith_NP (Proxy @(All (Quoted Serialise))) (SOP.mapKKK (,)) (sconNumbers (Proxy @a)) (sconArities (Proxy @a)))
       in
-        collapse_NS tmp2
+        cselectWith'_NS
+          (Proxy @(All (Quoted Serialise)))
+          (\ (K (i, a)) es ->
+            [|| encodeListLen $$(liftTyped (a + 1))
+                  <> encodeWord i
+                  <> $$(smconcat (collapse_NP es))
+            ||]
+          )
+          (stable @a)
+          (unSOP encodedConstructorArguments)
     )
   ||]
+
+smconcat :: (Quoted Monoid a, Quoted Semigroup a) => [Code a] -> Code a
+smconcat =
+  foldr (\ x y -> [|| $$x <> $$y ||]) [|| mempty ||]
+
+stable :: forall a . (SGeneric a, All (All (Quoted Serialise)) (SDescription a)) => NP (K (Word, Word)) (SDescription a)
+stable =
+  czipWith_NP
+    (Proxy @(All (Quoted Serialise)))
+    (SOP.mapKKK (,))
+    (sconNumbers (Proxy @a))
+    (sconArities (Proxy @a))
 
 gdecode :: forall a s . (SOP.Generic a, SOP.All (SOP.All Serialise) (SOP.Code a)) => Decoder s a
 gdecode =
   let
-    tmp :: POP (Decoder s) (SOP.Code a)
-    tmp =
-      SOP.cpure_POP (Proxy @Serialise) decode
-
     tmp2 :: NP (K (SOP (Decoder s) (SOP.Code a))) (SOP.Code a)
     tmp2 =
-      SOP.apInjs'_POP tmp
+      SOP.apInjs'_POP (SOP.cpure_POP (Proxy @Serialise) decode)
 
     tmp3 :: NP (K ((Word, Word), Decoder s a)) (SOP.Code a)
     tmp3 =
@@ -245,38 +278,27 @@ gdecode =
 sgdecode :: forall a s . (SGeneric a, LiftT s, All (All (Quoted Serialise)) (SDescription a), All (And (All LiftT) (AllTails (LiftTCurry a))) (SDescription a)) => Code (Decoder s a)
 sgdecode =
   let
-    tmp :: POP (C :.: Decoder s) (SDescription a)
-    tmp =
-      cpure_POP (Proxy @(Quoted Serialise)) (Comp (C [|| decode ||]))
-
     tmp2 :: NP (K (SOP (C :.: Decoder s) (SDescription a))) (SDescription a)
     tmp2 =
-      apInjs'_POP tmp
+      apInjs'_POP (cpure_POP (Proxy @(Quoted Serialise)) (Comp (C [|| decode ||])))
 
     tmp3 :: NP (K ((Word, Word), Code (Decoder s a))) (SDescription a)
     tmp3 =
       czipWith_NP
         (Proxy @(All (Quoted Serialise)))
         (\ (K (i, a)) (K dec) -> K ((a + 1, i), stoA dec))
-        (tmp3' @a)
+        (stable @a)
         tmp2
 
-    tmp3' :: forall a . (SGeneric a, All (All (Quoted Serialise)) (SDescription a)) => NP (K (Word, Word)) (SDescription a)
-    tmp3' =
-      (czipWith_NP (Proxy @(All (Quoted Serialise))) (SOP.mapKKK (,)) (sconNumbers (Proxy @a)) (sconArities (Proxy @a)))
-
-    tmp4 :: [((Word, Word), Code (Decoder s a))]
-    tmp4 =
-      collapse_NP tmp3
-
-    tmp5 :: Code (Word, Word) -> [((Word, Word), Code (Decoder s a))] -> Code (Decoder s a)
-    tmp5 _sym []                  = [|| fail "invalid encoding" ||]
-    tmp5 sym ((key, rhs) : cases) =
-      [|| if $$sym == key then $$rhs else $$(tmp5 sym cases) ||]
+    slookup :: Code (Word, Word) -> [((Word, Word), Code (Decoder s a))] -> Code (Decoder s a)
+    slookup _sym []                  = [|| fail "invalid encoding" ||]
+    slookup sym ((key, rhs) : cases) =
+      [|| if $$sym == key then $$rhs else $$(slookup sym cases) ||]
   in
     [||
       do
         len <- fromIntegral <$> decodeListLen
         tag <- decodeWord
-        $$(tmp5 [|| (len, tag) ||] tmp4)
+        $$(slookup [|| (len, tag) ||] (collapse_NP tmp3))
     ||]
+-}

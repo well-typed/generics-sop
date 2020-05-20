@@ -25,15 +25,16 @@ import Data.Kind
 import Data.Proxy as X
 import Data.SOP.BasicFunctors as X
 import Data.SOP.Classes
-import Data.SOP.Constraint (And)
+import Data.SOP.Constraint as X (And)
 -- import Data.SOP.Constraint hiding (SListI(..))
 import Data.SOP.Dict as X (Dict(..), withDict)
 import Data.SOP.NP as X (NP(..), POP(..), unPOP)
 import Data.SOP.NS as X (NS(..), SOP(..), unSOP)
--- import Generics.SOP hiding (Code)
+import qualified Generics.SOP as SOP
 import Language.Haskell.TH (Q, TExp)
 import Language.Haskell.TH.Lib (LiftT)
 import Language.Haskell.TH.Lib.Internal (CodeC)
+import Language.Haskell.TH.Lift as X
 
 type Code a = Q (TExp a)
 newtype C a = C { unC :: Code a }
@@ -49,37 +50,38 @@ mapCK op (C a) = K [|| $$op $$a ||]
 
 -- | Still undecided about the name, but going to use an s-prefix for now to
 -- clearly disambiguate.
-class ( LiftT a, SListI (SDescription a), All SListI (SDescription a)
-      -- , All (All LiftT `And` AllTails (LiftTCurry a)) (SDescription a) -- needed for stoA, hiding it here for now
-      ) => SGeneric a where
-  type SDescription a :: [[Type]] -- there's an argument to call this 'Description' in any case, because it's unchanged
-  sfrom :: LiftT r => Code a -> (SRep a -> Code r) -> Code r
-  sto :: SRep a -> Code a
+class ( LiftT a, SListI (Description a), All SListI (Description a)
+      -- , SOP.Code a ~ Description a
+      -- , All (All LiftT `And` AllTails (LiftTCurry a)) (Description a) -- needed for toA, hiding it here for now
+      ) => Generic a where
+  type Description a :: [[Type]] -- there's an argument to call this 'Description' in any case, because it's unchanged
+  from :: LiftT r => Code a -> (Rep a -> Code r) -> Code r
+  to :: Rep a -> Code a
 
 type SListI = All LiftT
-type SRep a = SOP C (SDescription a)
+type Rep a = SOP C (Description a)
 
-type SIsProductType a xs = (SGeneric a, SDescription a ~ '[ xs ])
-type SIsEnumType a = (SGeneric a, All ((~) '[]) (SDescription a))
+type IsProductType a xs = (Generic a, Description a ~ '[ xs ])
+type IsEnumType a = (Generic a, All ((~) '[]) (Description a))
 
 class (CodeC (c a), LiftT a) => Quoted (c :: k -> Constraint) (a :: k)
 instance (CodeC (c a), LiftT a) => Quoted c a
 
-sproductTypeFrom :: (SIsProductType a xs, LiftT r) => Code a -> (NP C xs -> Code r) -> Code r
-sproductTypeFrom c k =
-  sfrom c $ \ (SOP (Z xs)) -> k xs
+productTypeFrom :: (IsProductType a xs, LiftT r) => Code a -> (NP C xs -> Code r) -> Code r
+productTypeFrom c k =
+  from c $ \ (SOP (Z xs)) -> k xs
 
-sproductTypeTo :: SIsProductType a xs => NP C xs -> Code a
-sproductTypeTo xs =
-  sto (SOP (Z xs))
+productTypeTo :: IsProductType a xs => NP C xs -> Code a
+productTypeTo xs =
+  to (SOP (Z xs))
 
-senumTypeFrom :: (SIsEnumType a, LiftT r) => Code a -> (NS (K ()) (SDescription a) -> Code r) -> Code r
-senumTypeFrom c k =
-  sfrom c $ \ (SOP ns) -> k (cmap_NS (Proxy @LiftT) (const (K ())) ns)
+enumTypeFrom :: (IsEnumType a, LiftT r) => Code a -> (NS (K ()) (Description a) -> Code r) -> Code r
+enumTypeFrom c k =
+  from c $ \ (SOP ns) -> k (cmap_NS (Proxy @LiftT) (const (K ())) ns)
 
-senumTypeTo :: SIsEnumType a => NS (K ()) (SDescription a) -> Code a
-senumTypeTo ns =
-  sto (SOP (cmap_NS (Proxy @((~) '[])) (const Nil) ns))
+enumTypeTo :: IsEnumType a => NS (K ()) (Description a) -> Code a
+enumTypeTo ns =
+  to (SOP (cmap_NS (Proxy @((~) '[])) (const Nil) ns))
 
 data SList :: [k] -> Type where
   SNil  :: SList '[]
@@ -123,10 +125,10 @@ injections = case sList :: SList xs of
 shiftInjection :: Injection f xs a -> Injection f (x ': xs) a
 shiftInjection (Fn f) = Fn $ K . S . unK . f
 
-stoA ::
-  forall a f . (SGeneric a, Quoted Applicative f, All (All LiftT `And` AllTails (LiftTCurry a)) (SDescription a)) =>
-  SOP (C :.: f) (SDescription a) -> Code (f a)
-stoA (SOP sop) =
+toA ::
+  forall a f . (Generic a, Quoted Applicative f, All (All LiftT `And` AllTails (LiftTCurry a)) (Description a)) =>
+  SOP (C :.: f) (Description a) -> Code (f a)
+toA (SOP sop) =
   let
     go :: forall xs . (All LiftT xs, AllTails (LiftTCurry a) xs) => Code (f (Curry a xs)) -> NP (C :.: f) xs -> Code (f a)
     go acc Nil                = acc
@@ -134,25 +136,25 @@ stoA (SOP sop) =
   in
     collapse_NS $
       cselectWith_NS (Proxy @(All LiftT `And` AllTails (LiftTCurry a)))
-        (\ (Fn inj) -> K . go [|| pure $$(scurry_NP @a $ sto . SOP . unK . inj) ||])
-        (injections @(SDescription a) @(NP C))
+        (\ (Fn inj) -> K . go [|| pure $$(scurry_NP @a $ to . SOP . unK . inj) ||])
+        (injections @(Description a) @(NP C))
         sop
 
-sproductTypeToA ::
-  forall a f xs . (SIsProductType a xs, Quoted Applicative f, AllTails (LiftTCurry a) xs) =>
+productTypeToA ::
+  forall a f xs . (IsProductType a xs, Quoted Applicative f, AllTails (LiftTCurry a) xs) =>
   NP (C :.: f) xs -> Code (f a)
-sproductTypeToA =
-  go [|| pure $$(scurry_NP (sproductTypeTo @a)) ||]
+productTypeToA =
+  go [|| pure $$(scurry_NP (productTypeTo @a)) ||]
   where
     go :: forall ys . (All LiftT ys, AllTails (LiftTCurry a) ys) => Code (f (Curry a ys)) -> NP (C :.: f) ys -> Code (f a)
     go acc Nil                  = acc
     go acc (Comp (C fx) :* fxs) = go [|| $$acc <*> $$fx ||] fxs
 
-senumTypeToA ::
-  forall a f xs . (SIsEnumType a, Quoted Applicative f, All (All LiftT `And` AllTails (LiftTCurry a)) (SDescription a)) =>
-  NS (K ()) (SDescription a) -> Code (f a)
-senumTypeToA ns =
-  stoA (SOP (cmap_NS (Proxy @((~) '[])) (const Nil) ns))
+enumTypeToA ::
+  forall a f xs . (IsEnumType a, Quoted Applicative f, All (All LiftT `And` AllTails (LiftTCurry a)) (Description a)) =>
+  NS (K ()) (Description a) -> Code (f a)
+enumTypeToA ns =
+  toA (SOP (cmap_NS (Proxy @((~) '[])) (const Nil) ns))
 
 dictImplies :: (SListI xs, forall x . c x => d x) => Dict (All c) xs -> Dict (All d) xs
 dictImplies =
@@ -224,12 +226,21 @@ cmap_SOP p f (SOP sop) = SOP (cmap_NS (Proxy @(All c)) (cmap_NP (Proxy @c) f) so
 czipWith_NP :: forall c f g h xs . All c xs => Proxy c -> (forall x . c x => f x -> g x -> h x) -> NP f xs -> NP g xs -> NP h xs
 czipWith_NP p f xs ys = cpure_NP p (Fn $ \x -> Fn $ \ y -> f x y) `ap_NP` xs `ap_NP` ys
 
+zipWith_NP :: forall f g h xs . SListI xs => (forall x . LiftT x => f x -> g x -> h x) -> NP f xs -> NP g xs -> NP h xs
+zipWith_NP = czipWith_NP (Proxy @LiftT)
+
 cselectWith_NS :: forall c f g h xs . All c xs => Proxy c -> (forall x . c x => f x -> g x -> h x) -> NP f xs -> NS g xs -> NS h xs
 cselectWith_NS _ f (x :* _)  (Z y) = Z (f x y)
 cselectWith_NS p f (_ :* xs) (S i) = S (cselectWith_NS p f xs i)
 
+cselectWith'_NS :: forall c f g r xs . All c xs => Proxy c -> (forall x . c x => f x -> g x -> r) -> NP f xs -> NS g xs -> r
+cselectWith'_NS p f np ns = collapse_NS (cselectWith_NS p (\ fx gx -> K (f fx gx)) np ns)
+
 selectWith_NS :: forall f g h xs . SListI xs => (forall x . LiftT x => f x -> g x -> h x) -> NP f xs -> NS g xs -> NS h xs
 selectWith_NS = cselectWith_NS (Proxy @LiftT)
+
+selectWith'_NS :: forall f g r xs . SListI xs => (forall x . LiftT x => f x -> g x -> r) -> NP f xs -> NS g xs -> r
+selectWith'_NS = cselectWith'_NS (Proxy @LiftT)
 
 cpure_POP :: forall c f xss . All (All c) xss => Proxy c -> (forall x . c x => f x) -> POP f xss
 cpure_POP _ f = POP (cpure_NP (Proxy @(All c)) (cpure_NP (Proxy @c) f))

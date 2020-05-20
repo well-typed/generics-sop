@@ -25,6 +25,7 @@ library
   exposed-modules:
     ExampleFunctions
     ExampleFunctionsSOP
+    ExampleFunctionsStaged
     ExampleTypes
 
 benchmark comparison
