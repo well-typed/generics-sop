@@ -747,13 +747,13 @@ sequence_SOP  = hsequence
 --
 -- @since 0.3.2.0
 --
-ctraverse_NS  :: (All  c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> NP  f xs -> g (NP  I xs)
+ctraverse_NS  :: (All  c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> NS  f xs -> g (NS  I xs)
 
 -- | Specialization of 'hctraverse'.
 --
 -- @since 0.3.2.0
 --
-ctraverse_SOP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> POP f xs -> g (POP I xs)
+ctraverse_SOP :: (All2 c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g a) -> SOP f xs -> g (SOP I xs)
 
 ctraverse_NS = hctraverse
 ctraverse_SOP = hctraverse
