@@ -1,5 +1,8 @@
 packages: ./sop-core, ./generics-sop, ./staged-sop, ./staged-sop-examples
 
+constraints:
+  th-abstraction < 0.3.2
+
 allow-newer:
   generics-sop:template-haskell
   th-abstraction:template-haskell
