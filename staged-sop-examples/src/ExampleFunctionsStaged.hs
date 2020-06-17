@@ -16,6 +16,12 @@ import Codec.CBOR.Decoding
 import Codec.Serialise
 import Generics.SOP.Staged
 
+gmempty ::
+  (IsProductType a xs, All (Quoted Monoid) xs) => Code a
+gmempty =
+  productTypeTo
+    (cpure_NP (Proxy @(Quoted Monoid)) (C [|| mempty ||]))
+
 gsappend ::
   (IsProductType a xs, All (Quoted Semigroup) xs) =>
   Code a -> Code a -> Code a
