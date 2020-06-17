@@ -15,6 +15,7 @@ import Codec.CBOR.Encoding
 import Codec.CBOR.Decoding
 import Codec.Serialise
 import Generics.SOP.Staged
+import Text.Show.Pretty
 
 gmempty ::
   (IsProductType a xs, All (Quoted Monoid) xs) => Code a
@@ -38,6 +39,21 @@ gShowEnum ::
 gShowEnum names c =
   enumTypeFrom c $ \ a ->
   selectWith'_NS (((liftTyped . unK) .) . const) names a
+
+gPrettyVal ::
+  forall a . (Generic a, HasDatatypeInfo a, All (All (Quoted PrettyVal)) (Description a)) =>
+  Code a -> Code Value
+gPrettyVal a =
+  from a $ \ a' ->
+  selectWith'_NS go
+    (constructorInfo (datatypeInfo (Proxy @a)))
+    (unSOP (cmap_SOP (Proxy @(Quoted PrettyVal)) (\ (C x) -> K [|| prettyVal $$x ||]) a' :: SOP (K (Code Value)) (Description a)))
+  where
+    go :: forall xs . ConstructorInfo xs -> NP (K (Code Value)) xs -> Code Value
+    go (Constructor n) np = [|| Con $$(liftTyped n) $$(slist (collapse_NP np)) ||]
+    go (Infix n _ _) np   = [|| Con $$(liftTyped n) $$(slist (collapse_NP np)) ||]
+    go (Record n fs) np   =
+      [|| Rec $$(liftTyped n) $$(slist (collapse_NP (zipWith_NP (\ (FieldInfo f) (K x) -> K [|| ($$(liftTyped f), $$x) ||]) fs np))) ||]
 
 geq ::
   (Generic a, All (All (Quoted Eq)) (Description a)) =>

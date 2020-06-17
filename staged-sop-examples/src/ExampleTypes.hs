@@ -29,6 +29,15 @@ instance Generic Foo where
 
   to (SOP (Z (C is :* C o :* C txt :* Nil))) = [|| Foo $$is $$o $$txt ||]
 
+instance HasDatatypeInfo Foo where
+  datatypeInfo _ =
+    ADT "ExampleTypes" "Foo"
+      (Constructor "Foo" :* Nil)
+      (POP ((nonStrict :* nonStrict :* nonStrict :* Nil) :* Nil))
+
+nonStrict :: StrictnessInfo a
+nonStrict = StrictnessInfo GHC.NoSourceUnpackedness GHC.NoSourceStrictness GHC.DecidedLazy
+
 instance NFData Foo where
   rnf (Foo is o txt) = rnf is `seq` rnf o `seq` rnf txt
 
@@ -53,6 +62,12 @@ instance (LiftT a, LiftT tag) => Generic (Tree tag a) where
 
   to (SOP (Z (C a :* Nil)))            = [|| Leaf $$a ||]
   to (SOP (S (Z (C l :* C r :* Nil)))) = [|| Node $$l $$r ||]
+
+instance (LiftT a, LiftT tag) => HasDatatypeInfo (Tree tag a) where
+  datatypeInfo _ =
+    ADT "ExampleTypes" "Tree"
+      (Constructor "Leaf" :* Constructor "Node" :* Nil)
+      (POP ((nonStrict :* Nil) :* (nonStrict :* nonStrict :* Nil) :* Nil))
 
 instance NFData a => NFData (Tree tag a) where
   rnf (Leaf a) = rnf a
@@ -239,4 +254,10 @@ tree_large =
   Node
     (Node tree_medium (Node tree_medium tree_medium))
     (Node (Node tree_medium tree_medium) tree_medium)
+
+tree_huge :: Tree tag Int
+tree_huge =
+  Node
+    (Node tree_large (Node tree_large tree_large))
+    (Node (Node tree_large tree_large) tree_large)
 

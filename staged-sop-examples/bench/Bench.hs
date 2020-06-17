@@ -3,7 +3,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -ddump-simpl #-}
+{-# OPTIONS_GHC -ddump-simpl -dsuppress-all -dno-suppress-type-signatures -fforce-recomp #-}
 module Main where
 
 import Codec.CBOR.Encoding
@@ -14,6 +14,7 @@ import qualified ExampleFunctionsSOP as SOP
 import qualified ExampleFunctionsStaged as Staged
 import Gauge.Main
 import Gauge.Main.Options
+import Text.Show.Pretty
 
 {-
 genum_Ordering :: () -> [Ordering]
@@ -81,6 +82,18 @@ instance Eq (Prop Manual) where
 deriving instance Eq a => Eq (Tree t a)
 deriving instance Eq (Prop t)
 
+instance PrettyVal a => PrettyVal (Tree GenericsSOP a) where
+  prettyVal = SOP.gPrettyVal
+
+instance PrettyVal a => PrettyVal (Tree GHCGenerics a)
+
+instance PrettyVal a => PrettyVal (Tree StagedSOP a) where
+  prettyVal x = $$(Staged.gPrettyVal [|| x ||])
+
+instance PrettyVal a => PrettyVal (Tree Manual a) where
+  prettyVal (Leaf x)   = Con "Leaf" [prettyVal x]
+  prettyVal (Node l r) = Con "Node" [prettyVal l, prettyVal r]
+
 instance Serialise (Prop GenericsSOP) where
   encode = SOP.gencode
   decode = SOP.gdecode
@@ -123,6 +136,8 @@ main = do
   print $ serialise @(Prop GenericsSOP) huge_prop == serialise @(Prop StagedSOP) huge_prop
   print $ serialise @(Prop GHCGenerics) huge_prop == serialise @(Prop GenericsSOP) huge_prop
   print $ serialise @(Prop Manual)      huge_prop == serialise @(Prop GenericsSOP) huge_prop
+  print $ dumpStr @(Tree GHCGenerics Int) tree_large == dumpStr @(Tree GenericsSOP Int) tree_large
+  print $ dumpStr @(Tree StagedSOP Int) tree_large == dumpStr @(Tree GenericsSOP Int) tree_large
 {-
   print $ roundtrip @(Prop GenericsSOP) huge_prop == huge_prop
   print $ roundtrip @(Prop GHCGenerics) huge_prop == huge_prop
@@ -160,7 +175,13 @@ main = do
       , env (return huge_prop) $ \ p -> bench "manual"         $ nf ((==) @(Prop Manual) p) p
       ]
       -}
-      bgroup "cborg-serialise/Prop"
+      bgroup "pretty-show/Tree" -- not extremely convincing
+      [ bench "generics-sop"   $ nf (dumpStr @(Tree GenericsSOP Int)) tree_large
+      , bench "staged-sop"     $ nf (dumpStr @(Tree StagedSOP Int)) tree_large
+      , bench "ghc-generics"   $ nf (dumpStr @(Tree GHCGenerics Int)) tree_large
+      , bench "manual"         $ nf (dumpStr @(Tree Manual Int)) tree_large
+      ]
+    , bgroup "cborg-serialise/Prop"
       [ bench "generics-sop"   $ nf (serialise @(Prop GenericsSOP)) huge_prop
       , bench "staged-sop"     $ nf (serialise @(Prop StagedSOP)) huge_prop
       , bench "ghc-generics"   $ nf (serialise @(Prop GHCGenerics)) huge_prop
