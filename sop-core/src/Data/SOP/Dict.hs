@@ -1,4 +1,5 @@
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE StandaloneDeriving #-}
 -- | Explicit dictionaries.
 --
@@ -157,3 +158,11 @@ withDict Dict x = x
 --
 hdicts :: forall h c xs . (AllN h c xs, HPure h) => h (Dict c) xs
 hdicts = hcpure (Proxy :: Proxy c) Dict
+
+dictImplies :: (SListI xs, forall x . c x => d x) => Dict (All c) xs -> Dict (All d) xs
+dictImplies =
+  dictImplies' (\ Dict -> Dict)
+
+dictImplies' :: SListI xs => (forall x . Dict c x -> Dict d x) -> Dict (All c) xs -> Dict (All d) xs
+dictImplies' f dict =
+  all_NP (map_NP f (unAll_NP dict))
