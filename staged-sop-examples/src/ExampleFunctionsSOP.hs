@@ -17,6 +17,7 @@ import Codec.Serialise
 import Generics.SOP
 import Generics.SOP.NP
 import Generics.SOP.NS
+import Text.Show.Pretty
 
 -- SOP utilities
 --
@@ -25,7 +26,16 @@ type Description a = Code a
 selectWith'_NS :: All Top xs => (forall x . f x -> g x -> r) -> NP f xs -> NS g xs -> r
 selectWith'_NS op npf npg = collapse_NS (hzipWith (\ fx gx -> K (op fx gx)) npf npg)
 
+cselectWith'_NS :: All c xs => proxy c -> (forall x . c x => f x -> g x -> r) -> NP f xs -> NS g xs -> r
+cselectWith'_NS p op npf npg = collapse_NS (hczipWith p (\ fx gx -> K (op fx gx)) npf npg)
+
 -- Vanilla SOP generic functions
+
+gmempty ::
+  (IsProductType a xs, All Monoid xs) => a
+gmempty =
+  productTypeTo
+    (cpure_NP (Proxy @Monoid) (I mempty))
 
 gsappend ::
   (IsProductType a xs, All Semigroup xs) =>
@@ -40,6 +50,19 @@ gShowEnum ::
   IsEnumType a => NP (K String) (Description a) -> a -> String
 gShowEnum names a =
   selectWith'_NS ((unK .) . const) names (enumTypeFrom a)
+
+gPrettyVal ::
+  forall a . (Generic a, HasDatatypeInfo a, All (All PrettyVal) (Description a)) =>
+  a -> Value
+gPrettyVal a =
+  selectWith'_NS go
+    (constructorInfo (datatypeInfo (Proxy @a)))
+    (unSOP (cmap_SOP (Proxy @PrettyVal) (mapIK prettyVal) (from a) :: SOP (K Value) (Description a)))
+  where
+    go :: forall xs . ConstructorInfo xs -> NP (K Value) xs -> Value
+    go (Constructor n) np = Con n (collapse_NP np)
+    go (Infix n _ _) np   = Con n (collapse_NP np)
+    go (Record n fs) np   = Rec n (collapse_NP (zipWith_NP (\ (FieldInfo f) (K x) -> K (f, x)) fs np))
 
 geq ::
   (Generic a, All (All Eq) (Description a)) =>

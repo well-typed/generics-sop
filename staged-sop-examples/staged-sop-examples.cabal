@@ -11,6 +11,7 @@ common dependencies
     deepseq,
     sop-core ^>= 0.5,
     generics-sop ^>= 0.5,
+    pretty-show,
     serialise,
     staged-sop,
     template-haskell,
