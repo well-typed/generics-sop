@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wno-unused-imports #-}
 module ExampleFunctionsSOP where
 
 import Codec.CBOR.Encoding
@@ -31,6 +31,48 @@ cselectWith'_NS p op npf npg = collapse_NS (hczipWith p (\ fx gx -> K (op fx gx)
 
 -- Vanilla SOP generic functions
 
+
+gmempty :: (IsProductType a xs, All Monoid xs) => a
+gmempty = productTypeTo (cpure_NP (Proxy @Monoid) (I mempty))
+
+gsappend :: forall a xs . (IsProductType a xs, All Semigroup xs) => a -> a -> a
+gsappend a1 a2 =
+  productTypeTo
+    (czipWith_NP (Proxy @Semigroup) (mapIII (<>))
+      (productTypeFrom a1) (productTypeFrom a2))
+
+-- productTypeTo :: IsProductType a xs => NP I xs -> a
+-- productTypeFrom :: IsProductType a xs => a -> NP I xs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{-
 gmempty ::
   (IsProductType a xs, All Monoid xs) => a
 gmempty =
@@ -45,6 +87,7 @@ gsappend a1 a2 =
     (czipWith_NP (Proxy @Semigroup)
       (mapIII (<>)) (productTypeFrom a1) (productTypeFrom a2)
     )
+-}
 
 gShowEnum ::
   IsEnumType a => NP (K String) (Description a) -> a -> String

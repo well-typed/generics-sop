@@ -23,6 +23,38 @@ gmempty =
   productTypeTo
     (cpure_NP (Proxy @(Quoted Monoid)) (C [|| mempty ||]))
 
+-- productTypeTo :: IsProductType a xs -> NP C xs -> Code a
+
+--          e :: a
+--   -------------------
+--   [|| e ||] :: Code a
+--
+-- mempty :: forall a . Monoid a => a
+--
+-- [|| mempty ||] :: Code (forall a . Monoid a => a)
+
+-- Code :: Type -> Type
+-- CodeC :: Constraint -> Constraint
+--
+-- Quoted c a ~ CodeC (c a)
+
+-- sample = [|| mempty ||] :: CodeC (Monoid a) => Code a
+-- sample :: Code (Monoid a) -> Code a
+-- sample = \ cdMonoida -> [|| mempty $$dMonoida ||]
+
+-- foo :: String -> Code String
+-- foo x = [|| "foo" ++ $$(liftTyped x) ||]
+
+-- bar :: Code (String -> String)
+-- bar = [|| \ x -> $$(foo x) ||]
+
+-- foo (replicate 3 'x')
+--
+-- [|| "foo" ++ "xxx" ||]
+
+
+
+
 gsappend ::
   (IsProductType a xs, All (Quoted Semigroup) xs) =>
   Code a -> Code a -> Code a
@@ -32,6 +64,21 @@ gsappend c1 c2 =
     (czipWith_NP (Proxy @(Quoted Semigroup))
       (mapCCC [|| (<>) ||]) a1 a2
     )
+
+gsappend' ::
+  (IsProductType a xs, All (Quoted Semigroup) xs) =>
+  Code (a -> a -> a)
+gsappend' = [|| \ q r -> $$(gsappend [|| q ||] [|| r ||]) ||]
+
+-- productTypeTo :: IsProductType a xs => NP C xs -> Code a
+-- productTypeFrom :: IsProductType a xs => Code a -> (NP C xs -> Code r) -> Code r
+-- from :: Generic a => Code a -> (SOP C (Description a) -> Code r) -> Code r
+--
+-- [|| case $$ca of Foo a b c -> $$(k [|| a ||] [|| b ||] [|| c ||]) ||]
+--
+-- productTypeFrom :: IsProductType a xs => Code a -> NP C xs
+
+
 
 gShowEnum ::
   IsEnumType a => NP (K String) (Description a) ->

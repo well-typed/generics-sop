@@ -1,5 +1,7 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -14,6 +16,7 @@ import qualified ExampleFunctionsSOP as SOP
 import qualified ExampleFunctionsStaged as Staged
 import Gauge.Main
 import Gauge.Main.Options
+import Generics.SOP.Staged
 import Text.Show.Pretty
 
 {-
@@ -28,20 +31,32 @@ gShowEnum_S15 = gShowEnum s15Names
 
 sgShowEnum_S15 :: S15 -> String
 sgShowEnum_S15 x = $$(sgShowEnum s15Names [|| x ||])
+-}
 
 gsappend_Foo :: Foo -> Foo -> Foo
-gsappend_Foo = gsappend
+gsappend_Foo = SOP.gsappend
 
 sgsappend_Foo :: Foo -> Foo -> Foo
-sgsappend_Foo = $$(sgsappend')
+sgsappend_Foo = $$(Staged.gsappend')
 
+{-
+apply :: Code (a -> b) -> Code a -> Code b
+apply cf ca = [|| $$cf $$ca ||]
+
+unapply :: (Code a -> Code b) -> Code (a -> b)
+unapply f = [[| \ a -> $$(f [|| a ||]) ||]
+-}
+
+{-
 msappend_Foo :: Foo -> Foo -> Foo
 msappend_Foo (Foo is1 o1 txt1) (Foo is2 o2 txt2) =
   Foo (is1 <> is2) (o1 <> o2) (txt1 <> txt2)
 
 ghcsappend_Foo :: Foo -> Foo -> Foo
 ghcsappend_Foo = ghcsappend
+-}
 
+{-
 deriving instance Eq a => Eq (Tree StockDeriving a)
 
 instance Eq a => Eq (Tree GenericsSOP a) where
@@ -77,10 +92,10 @@ instance Eq (Prop Manual) where
   And p1 q1 == And p2 q2 = p1 == p2 && q1 == q2
   Or p1 q1 == Or p2 q2 = p1 == p2 && q1 == q2
   _ == _ = False
--}
 
 deriving instance Eq a => Eq (Tree t a)
 deriving instance Eq (Prop t)
+-}
 
 instance PrettyVal a => PrettyVal (Tree GenericsSOP a) where
   prettyVal = SOP.gPrettyVal
@@ -196,3 +211,4 @@ main = do
       ]
     -}
     ]
+
