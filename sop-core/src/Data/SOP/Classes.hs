@@ -294,7 +294,7 @@ hzipWith3 = hliftA3
 --
 hcliftA  :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c a => f a -> f' a)                                                   -> h f   xs -> h f'   xs
 
--- | Variant of 'hcliftA2' that takes a constrained function.
+-- | Variant of 'hliftA2' that takes a constrained function.
 --
 -- /Specification:/
 --
@@ -304,7 +304,7 @@ hcliftA  :: (AllN (Prod h) c xs, HAp h)               => proxy c -> (forall a. c
 --
 hcliftA2 :: (AllN (Prod h) c xs, HAp h, HAp (Prod h)) => proxy c -> (forall a. c a => f a -> f' a -> f'' a)           -> Prod h f xs                 -> h f'  xs -> h f''  xs
 
--- | Variant of 'hcliftA3' that takes a constrained function.
+-- | Variant of 'hliftA3' that takes a constrained function.
 --
 -- /Specification:/
 --
