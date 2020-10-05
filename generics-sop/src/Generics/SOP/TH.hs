@@ -14,6 +14,9 @@ import Control.Monad (join, replicateM, unless)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
 import Data.Proxy
+
+-- importing in this order to avoid unused import warning
+import Language.Haskell.TH.Datatype.TyVarBndr
 import Language.Haskell.TH
 import Language.Haskell.TH.Datatype as TH
 
@@ -186,14 +189,14 @@ deriveMetadataType n datatypeInfoName = do
       [ tySynD datatypeInfoName' [] (metadataType' variant name cons) ]
 
 deriveGenericForDataDec ::
-  (Name -> Q Type) -> DatatypeVariant -> Cxt -> Name -> [TyVarBndr] -> [Type] -> [TH.ConstructorInfo] -> Q [Dec]
+  (Name -> Q Type) -> DatatypeVariant -> Cxt -> Name -> [TyVarBndrUnit] -> [Type] -> [TH.ConstructorInfo] -> Q [Dec]
 deriveGenericForDataDec f _variant _cxt name _bndrs instTys cons = do
   let typ = appTysSubst f name instTys
   deriveGenericForDataType f typ cons
 
 deriveGenericForDataType :: (Name -> Q Type) -> Q Type -> [TH.ConstructorInfo] -> Q [Dec]
 deriveGenericForDataType f typ cons = do
-  let codeSyn = tySynInstDCompat ''Code Nothing [typ] (codeFor f cons)
+  let codeSyn = tySynInstDCompat ''Generics.SOP.Universe.Code Nothing [typ] (codeFor f cons)
   inst <- instanceD
             (cxt [])
             [t| Generic $typ |]
@@ -201,7 +204,7 @@ deriveGenericForDataType f typ cons = do
   return [inst]
 
 deriveMetadataForDataDec ::
-  (Name -> Q Type) -> DatatypeVariant -> Cxt -> Name -> [TyVarBndr] -> [Type] -> [TH.ConstructorInfo] -> Q [Dec]
+  (Name -> Q Type) -> DatatypeVariant -> Cxt -> Name -> [TyVarBndrUnit] -> [Type] -> [TH.ConstructorInfo] -> Q [Dec]
 deriveMetadataForDataDec f variant _cxt name _bndrs instTys cons = do
   let typ = appTysSubst f name instTys
   deriveMetadataForDataType variant name typ cons
@@ -508,7 +511,7 @@ promotedTypeListSubst f (t:ts) = [t| $promotedConsT $(t >>= substType f) $(promo
 appsT :: Name -> [Q Type] -> Q Type
 appsT n = foldl' appT (conT n)
 
-appTyVars :: (Name -> Q Type) -> Name -> [TyVarBndr] -> Q Type
+appTyVars :: (Name -> Q Type) -> Name -> [TyVarBndrUnit] -> Q Type
 appTyVars f n bndrs =
   appsT n (map (f . tvName) bndrs)
 
@@ -545,7 +548,7 @@ withDataDec :: TH.DatatypeInfo
                    -- The datatype context
                 -> Name
                    -- The data type's name
-                -> [TyVarBndr]
+                -> [TyVarBndrUnit]
                    -- The datatype's type variable binders, both implicit and explicit.
                    -- Examples:
                    --

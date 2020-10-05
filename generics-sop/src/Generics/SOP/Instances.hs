@@ -262,7 +262,9 @@ deriveGeneric ''SrcLoc -- new
 deriveGeneric ''RuntimeRep -- new
 deriveGeneric ''VecCount -- new
 deriveGeneric ''VecElem -- new
+#if !MIN_VERSION_base(4,15,0)
 deriveGeneric ''SpecConstrAnnotation -- new
+#endif
 
 -- From GHC.Generics:
 deriveGeneric ''GHC.Generics.K1 -- new

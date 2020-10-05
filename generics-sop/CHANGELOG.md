@@ -1,3 +1,7 @@
+# 0.5.1.1 (2020-xx-yy)
+
+* Compatibility with GHC-9.0
+
 # 0.5.1.0 (2020-03-29)
 
 * Compatibility with GHC-8.10 (thanks to Ryan Scott).
