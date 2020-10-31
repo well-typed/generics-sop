@@ -256,7 +256,7 @@ embedding fromName = funD fromName . go' (\e -> [| Z $e |])
       (n, ts) <- conInfo c
       vars    <- replicateM (length ts) (newName "x")
       clause [conP n (map varP vars)]
-             (normalB [| SOP $(br . npE . map (appE (conE 'I) . varE) $ vars) |])
+             (normalB [| SOP $(br . npEBin . map (appE (conE 'I) . varE) $ vars) |])
              []
 
 projection :: Name -> [TH.ConstructorInfo] -> Q Dec
@@ -294,9 +294,16 @@ projection toName = funD toName . go'
     mkClause br c = do
       (n, ts) <- conInfo c
       vars    <- replicateM (length ts) (newName "x")
-      clause [conP 'SOP [br . conP 'Z . (:[]) . npP . map (\v -> conP 'I [varP v]) $ vars]]
-             (normalB . appsE $ conE n : map varE vars)
-             []
+      if length ts <= 8
+        then
+          clause [conP 'SOP [br . conP 'Z . (:[]) . npP . map (\v -> conP 'I [varP v]) $ vars]]
+                 (normalB . appsE $ conE n : map varE vars)
+                 []
+        else do
+          xs <- newName "xs"
+          clause [conP 'SOP [br . conP 'Z . (:[]) $ varP xs]]
+                 (normalB (appE (npPBin (map (\ v -> conP 'I [varP v]) vars) (appsE $ conE n : map varE vars)) (varE xs)))
+                 []
 
 {-------------------------------------------------------------------------------
   Compute metadata
@@ -320,7 +327,7 @@ metadata' dataVariant typeName cs = md
        | otherwise
        = [| SOP.ADT     $(stringE (nameModule' typeName))
                         $(stringE (nameBase typeName))
-                        $(npE $ map mdCon cs)
+                        $(npEBin $ map mdCon cs)
                         $(popE $ map mdStrictness cs)
           |]
 
@@ -346,7 +353,7 @@ metadata' dataVariant typeName cs = md
       case conVariant of
         NormalConstructor    -> [| SOP.Constructor $(stringE (nameBase n)) |]
         RecordConstructor ts -> [| SOP.Record      $(stringE (nameBase n))
-                                                   $(npE (map mdField ts))
+                                                   $(npEBin (map mdField ts))
                                  |]
         InfixConstructor     -> do
           fixity <- reifyFixity n
@@ -471,10 +478,52 @@ npE :: [Q Exp] -> Q Exp
 npE []     = [| Nil |]
 npE (e:es) = [| $e :* $(npE es) |]
 
+npEBin :: [Q Exp] -> Q Exp
+npEBin xs0
+  | length xs0 <= 8 = npE xs0
+  | otherwise       = go16 xs0
+  where
+    go16 xs =
+      case splitAt 16 xs of
+        (ys, []) | length ys < 16 -> go8 ys
+        (ys, zs) -> appsE (varE 'cons16_NP : ys ++ [go16 zs])
+    go8 xs =
+      case splitAt 8 xs of
+        (ys, []) | length ys < 8 -> go4 ys
+        (ys, zs) -> appsE (varE 'cons8_NP : ys ++ [go8 zs])
+    go4 xs =
+      case splitAt 4 xs of
+        (ys, []) | length ys < 4 -> go2 ys
+        (ys, zs) -> appsE (varE 'cons4_NP : ys ++ [go4 zs])
+    go2 xs =
+      case splitAt 2 xs of
+        (ys, []) | length ys < 2 -> npE ys
+        (ys, zs) -> appsE (varE 'cons2_NP : ys ++ [go2 zs])
+
 -- Construct a POP.
 popE :: [Q [Q Exp]] -> Q Exp
 popE ess =
   [| POP $(npE (map (join . fmap npE) ess)) |]
+
+npPBin :: [Q Pat] -> Q Exp -> Q Exp
+npPBin xs0 rhs =
+  go16 xs0
+  where
+    go16 xs = case splitAt 16 xs of
+      (ys, []) | length ys < 16 -> go8 ys
+      (ys, zs) -> [| uncons16_NP $(lamE ys (go16 zs)) |]
+    go8 xs = case splitAt 8 xs of
+      (ys, []) | length ys < 8 -> go4 ys
+      (ys, zs) -> [| uncons8_NP $(lamE ys (go8 zs)) |]
+    go4 xs = case splitAt 4 xs of
+      (ys, []) | length ys < 4 -> go2 ys
+      (ys, zs) -> [| uncons4_NP $(lamE ys (go4 zs)) |]
+    go2 xs = case splitAt 2 xs of
+      (ys, []) | length ys < 2 -> go1 ys
+      (ys, zs) -> [| uncons2_NP $(lamE ys (go2 zs)) |]
+    go1 xs = case xs of
+      [] -> lamE [conP 'Nil []] rhs
+      (y : ys) -> [| uncons_NP $(lamE [y] (go1 ys)) |]
 
 -- Like npE, but construct a pattern instead
 npP :: [Q Pat] -> Q Pat
