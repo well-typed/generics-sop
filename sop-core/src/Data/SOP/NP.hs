@@ -12,6 +12,11 @@ module Data.SOP.NP
   , cpure_POP
     -- ** Construction from a list
   , fromList
+    -- ** Constructing larger products
+  , cons2_NP
+  , cons4_NP
+  , cons8_NP
+  , cons16_NP
     -- * Application
   , ap_NP
   , ap_POP
@@ -21,6 +26,12 @@ module Data.SOP.NP
   , Projection
   , projections
   , shiftProjection
+  , uncons_NP
+    -- * Destructing (larger) products
+  , uncons2_NP
+  , uncons4_NP
+  , uncons8_NP
+  , uncons16_NP
     -- * Lifting / mapping
   , liftA_NP
   , liftA_POP
@@ -900,3 +911,70 @@ instance HTrans NP NP where
 instance HTrans POP POP where
   htrans  = trans_POP
   hcoerce = coerce_POP
+
+cons2_NP :: f x1 -> f x2 -> NP f xs -> NP f (x1 : x2 : xs)
+cons2_NP x1 x2 xs =
+  x1 :* x2 :* xs
+
+cons4_NP :: f x1 -> f x2 -> f x3 -> f x4 -> NP f xs -> NP f (x1 : x2 : x3 : x4 : xs)
+cons4_NP x1 x2 x3 x4 xs =
+  cons2_NP x1 x2 (cons2_NP x3 x4 xs)
+{-# NOINLINE cons4_NP #-}
+
+cons8_NP ::
+     f x1 -> f x2 -> f x3 -> f x4
+  -> f x5 -> f x6 -> f x7 -> f x8
+  -> NP f xs
+  -> NP f (x1 : x2 : x3 : x4 : x5 : x6 : x7 : x8 : xs)
+cons8_NP x1 x2 x3 x4 x5 x6 x7 x8 xs =
+  cons4_NP x1 x2 x3 x4 (cons4_NP x5 x6 x7 x8 xs)
+{-# NOINLINE cons8_NP #-}
+
+cons16_NP ::
+     f x1 -> f x2 -> f x3 -> f x4
+  -> f x5 -> f x6 -> f x7 -> f x8
+  -> f x9 -> f x10 -> f x11 -> f x12
+  -> f x13 -> f x14 -> f x15 -> f x16
+  -> NP f xs
+  -> NP f (x1 : x2 : x3 : x4 : x5 : x6 : x7 : x8 : x9 : x10 : x11 : x12 : x13 : x14 : x15 : x16 : xs)
+cons16_NP x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 xs =
+  cons8_NP x1 x2 x3 x4 x5 x6 x7 x8 (cons8_NP x9 x10 x11 x12 x13 x14 x15 x16 xs)
+{-# NOINLINE cons16_NP #-}
+
+uncons_NP :: (f x -> NP f xs -> r) -> NP f (x : xs) -> r
+uncons_NP k (x :* xs) = k x xs
+
+uncons2_NP :: (f x1 -> f x2 -> NP f xs -> r) -> NP f (x1 : x2 : xs) -> r
+uncons2_NP k = uncons_NP (\ x1 -> uncons_NP (\ x2 -> k x1 x2))
+
+uncons4_NP ::
+     (f x1 -> f x2 -> f x3 -> f x4 -> NP f xs -> r)
+  -> NP f (x1 : x2 : x3 : x4 : xs) -> r
+uncons4_NP k =
+  uncons2_NP (\ x1 x2 -> uncons2_NP (\ x3 x4 -> k x1 x2 x3 x4))
+{-# NOINLINE uncons4_NP #-}
+
+uncons8_NP ::
+     (   f x1 -> f x2 -> f x3 -> f x4
+      -> f x5 -> f x6 -> f x7 -> f x8
+      -> NP f xs -> r
+     )
+  -> NP f (x1 : x2 : x3 : x4 : x5 : x6 : x7 : x8 : xs) -> r
+uncons8_NP k =
+  uncons4_NP (\ x1 x2 x3 x4 -> uncons4_NP (\ x5 x6 x7 x8 -> k x1 x2 x3 x4 x5 x6 x7 x8))
+{-# NOINLINE uncons8_NP #-}
+
+uncons16_NP ::
+     (   f x1 -> f x2 -> f x3 -> f x4
+      -> f x5 -> f x6 -> f x7 -> f x8
+      -> f x9 -> f x10 -> f x11 -> f x12
+      -> f x13 -> f x14 -> f x15 -> f x16
+      -> NP f xs -> r
+     )
+  -> NP f (x1 : x2 : x3 : x4 : x5 : x6 : x7 : x8 : x9 : x10 : x11 : x12 : x13 : x14 : x15 : x16 : xs) -> r
+uncons16_NP k =
+  uncons8_NP (\ x1 x2 x3 x4 x5 x6 x7 x8 ->
+  uncons8_NP (\ x9 x10 x11 x12 x13 x14 x15 x16 ->
+  k x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16))
+{-# NOINLINE uncons16_NP #-}
+
