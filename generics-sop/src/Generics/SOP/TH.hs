@@ -13,7 +13,6 @@ module Generics.SOP.TH
 import Control.Monad (join, replicateM, unless)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
-import Data.Proxy
 
 -- importing in this order to avoid unused import warning
 import Language.Haskell.TH.Datatype.TyVarBndr
@@ -216,7 +215,8 @@ deriveMetadataForDataType variant name typ cons = do
             [ metadataType typ variant name cons
             , funD 'datatypeInfo
                 [ clause [wildP]
-                  (normalB [| SOP.T.demoteDatatypeInfo (Proxy :: Proxy (DatatypeInfoOf $typ)) |])
+                 -- (normalB [| SOP.T.demoteDatatypeInfo (Proxy :: Proxy (DatatypeInfoOf $typ)) |])
+                  (normalB $ metadata' variant name cons)
                   []
                 ]
             ]
@@ -503,7 +503,7 @@ npEBin xs0
 -- Construct a POP.
 popE :: [Q [Q Exp]] -> Q Exp
 popE ess =
-  [| POP $(npE (map (join . fmap npE) ess)) |]
+  [| POP $(npEBin (map (join . fmap npEBin) ess)) |]
 
 npPBin :: [Q Pat] -> Q Exp -> Q Exp
 npPBin xs0 rhs =
