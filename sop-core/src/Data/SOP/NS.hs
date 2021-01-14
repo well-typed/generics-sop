@@ -1,14 +1,18 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
+
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
+
 -- | n-ary sums (and sums of products)
 module Data.SOP.NS
   ( -- * Datatypes
-    NS(..)
+    NS(.., Z, S)
   , SOP(..)
   , unSOP
     -- * Constructing sums
@@ -20,7 +24,11 @@ module Data.SOP.NS
   , apInjs'_NP
   , apInjs_POP
   , apInjs'_POP
+  -- See also 'emptySOP'.
+  --
     -- * Destructing sums
+  , emptyNS
+  , emptySOP
   , unZ
   , index_NS
   , index_SOP
@@ -94,6 +102,9 @@ module Data.SOP.NS
 import Data.Coerce
 import Data.Kind (Type)
 import Data.Proxy (Proxy (..))
+import qualified Data.Vector as V
+import Data.Void (Void)
+import GHC.Exts (Any)
 import Unsafe.Coerce
 
 import Control.DeepSeq (NFData(..))
@@ -114,10 +125,16 @@ import Data.SOP.Sing
 -- @i@-th element of the list is of type @x@, then the @i@-th
 -- choice of the sum is of type @f x@.
 --
--- The constructor names are chosen to resemble Peano-style
+-- The pattern synonym names are chosen to resemble Peano-style
 -- natural numbers, i.e., 'Z' is for "zero", and 'S' is for
 -- "successor". Chaining 'S' and 'Z' chooses the corresponding
--- component of the sum.
+-- component of the sum. @NS@ is morally equivalent to
+--
+-- > data NS :: (k -> Type) -> [k] -> Type where
+-- >   Z :: f x -> NS f (x ': xs)
+-- >   S :: NS f xs -> NS f (x ': xs)
+--
+-- The actual representation however is compact, using just an 'Int'.
 --
 -- /Examples:/
 --
@@ -146,13 +163,45 @@ import Data.SOP.Sing
 -- > S (Z (I True)) :: NS I       '[ Char, Bool ]
 -- > S (Z (K 1))    :: NS (K Int) '[ Char, Bool ]
 --
-data NS :: (k -> Type) -> [k] -> Type where
-  Z :: f x -> NS f (x ': xs)
-  S :: NS f xs -> NS f (x ': xs)
+data NS (f :: k -> *) (xs :: [k]) = NS !Int Any
 
-deriving instance All (Show `Compose` f) xs => Show (NS f xs)
-deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)
-deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs)
+-- | View on NP
+--
+-- This is only used internally, for the definition of the pattern synonyms.
+data ViewNS (f :: k -> *) (xs :: [k]) where
+  IsZ :: f x     -> ViewNS f (x ': xs)
+  IsS :: NS f xs -> ViewNS f (x ': xs)
+
+viewNS :: NS f xs -> ViewNS f xs
+viewNS (NS i x)
+  | i == 0    = unsafeCoerce (IsZ (unsafeCoerce x))
+  | otherwise = unsafeCoerce (IsS (NS (i - 1) x))
+
+pattern Z :: forall f xs' . ()
+          => forall x xs . (xs' ~ (x ': xs)) => f x -> NS f xs'
+pattern Z x <- (viewNS -> IsZ x)
+  where
+    Z x = NS 0 (unsafeCoerce x)
+
+pattern S :: forall f xs' . ()
+          => forall x xs . (xs' ~ (x ': xs)) => NS f xs -> NS f xs'
+pattern S p <- (viewNS -> IsS p)
+  where
+    S (NS i x) = NS (i + 1) x
+
+#if __GLASGOW_HASKELL__ >= 802
+{-# COMPLETE Z, S #-}
+#endif
+
+instance All (Show `Compose` f) xs => Show (NS f xs) where
+  show ns @ (NS i _) =
+    show i ++ " " ++ hcollapse (hcmap (Proxy :: Proxy (Show `Compose` f)) (K . show) ns)
+
+instance All (Eq `Compose` f) xs => Eq (NS f xs) where
+  (==) = ccompare_NS (Proxy :: Proxy (Eq `Compose` f)) False (==) False
+
+instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NS f xs) where
+  compare = ccompare_NS (Proxy :: Proxy (Ord `Compose` f)) LT compare GT
 
 -- | @since 0.2.5.0
 instance All (NFData `Compose` f) xs => NFData (NS f xs) where
@@ -188,6 +237,34 @@ ejections = case sList :: SList xs of
 shiftEjection :: forall f x xs a . Ejection f xs a -> Ejection f (x ': xs) a
 shiftEjection (Fn f) = Fn $ (\ns -> case ns of Z _ -> Comp Nothing; S s -> f (K s)) . unK
 
+-- | An 'NS' cannot be empty.
+--
+-- Although the 'Z'/'S' pattern synonyms are marked as @COMPLETE@, older @ghc@
+-- (before 8.10) are not clever enough to deduce from that an empty pattern
+-- match in which both @Z@ and @S@ would be type incorrect is not, in fact,
+-- incomplete. This function can be used to avoid warnings in such cases;
+-- instead of writing
+--
+-- > case x of {}
+--
+-- (where @x :: NS f '[])@), instead write
+--
+-- > case emptyNS x of {}
+--
+-- See also 'emptySOP'.
+--
+-- @since 0.5.1.0
+emptyNS :: NS f '[] -> Void
+emptyNS _ = error "emptyNS: impossible"
+
+-- | An 'SOP' cannot be empty (beacuse an 'NS' cannot be).
+--
+-- See also 'emptyNS'.
+--
+-- @since 0.5.1.0
+emptySOP :: SOP f '[] -> Void
+emptySOP = emptyNS . unSOP
+
 -- | Extract the payload from a unary sum.
 --
 -- For larger sums, this function would be partial, so it is only
@@ -201,8 +278,7 @@ shiftEjection (Fn f) = Fn $ (\ns -> case ns of Z _ -> Comp Nothing; S s -> f (K 
 -- @since 0.2.2.0
 --
 unZ :: NS f '[x] -> f x
-unZ (Z x) = x
-unZ (S x) = case x of {}
+unZ (NS _ x) = unsafeCoerce x
 
 -- | Obtain the index from an n-ary sum.
 --
@@ -385,18 +461,14 @@ instance HApInjs SOP where
 
 -- | Specialization of 'hap'.
 ap_NS :: NP (f -.-> g) xs -> NS f xs -> NS g xs
-ap_NS (Fn f  :* _)   (Z x)   = Z (f x)
-ap_NS (_     :* fs)  (S xs)  = S (ap_NS fs xs)
-ap_NS Nil            x       = case x of {}
+ap_NS (NP fs) (NS i x) = NS i (unsafeCoerce (fs V.! i) x)
 
 -- | Specialization of 'hap'.
 ap_SOP  :: POP (f -.-> g) xss -> SOP f xss -> SOP g xss
 ap_SOP (POP fss') (SOP xss') = SOP (go fss' xss')
   where
     go :: NP (NP (f -.-> g)) xss -> NS (NP f) xss -> NS (NP g) xss
-    go (fs :* _  ) (Z xs ) = Z (ap_NP fs  xs )
-    go (_  :* fss) (S xss) = S (go    fss xss)
-    go Nil         x       = case x of {}
+    go (NP nps) (NS i ns) = NS i (unsafeCoerce ap_NS (nps V.! i) ns)
 
 -- The definition of 'ap_SOP' is a more direct variant of
 -- '_ap_SOP_spec'. The direct definition has the advantage
