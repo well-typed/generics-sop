@@ -1,8 +1,13 @@
-{-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
+
 -- | n-ary products (and products of products)
 module Data.SOP.NP
   ( -- * Datatypes
-    NP(..)
+    NP(.., Nil, (:*))
   , POP(..)
   , unPOP
     -- * Constructing products
@@ -90,6 +95,8 @@ module Data.SOP.NP
 import Data.Coerce
 import Data.Kind (Type)
 import Data.Proxy (Proxy(..))
+import qualified Data.Vector as V
+import GHC.Exts (Any)
 import Unsafe.Coerce
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup (..))
@@ -110,8 +117,14 @@ import Data.SOP.Sing
 -- @i@-th element of the list is of type @x@, then the @i@-th
 -- element of the product is of type @f x@.
 --
--- The constructor names are chosen to resemble the names of the
--- list constructors.
+-- The pattern synoyms are chosen to resemble the names of the
+-- list constructors. @NP@ is morally equivalent to:
+--
+-- > data NP :: (k -> Type) -> [k] -> Type where
+-- >   Nil  :: NP f '[]
+-- >   (:*) :: f x -> NP f xs -> NP f (x ': xs)
+--
+-- The actual representation however is compact, using an array.
 --
 -- Two common instantiations of @f@ are the identity functor 'I'
 -- and the constant functor 'K'. For 'I', the product becomes a
@@ -130,11 +143,39 @@ import Data.SOP.Sing
 -- > K 0      :* K 1     :* Nil  ::  NP (K Int) '[ Char, Bool ]
 -- > Just 'x' :* Nothing :* Nil  ::  NP Maybe   '[ Char, Bool ]
 --
-data NP :: (k -> Type) -> [k] -> Type where
-  Nil  :: NP f '[]
-  (:*) :: f x -> NP f xs -> NP f (x ': xs)
+newtype NP (f :: k -> *) (xs :: [k]) = NP (V.Vector Any)
 
+-- | View on NP
+--
+-- This is only used internally, for the definition of the pattern synonyms.
+data ViewNP (f :: k -> *) (xs :: [k]) where
+  IsNil  :: ViewNP f '[]
+  IsCons :: f x -> NP f xs -> ViewNP f (x ': xs)
+
+-- | Construct 'ViewNP'
+--
+-- NOTE: 'V.unsafeTail' is O(1).
+viewNP :: NP f xs -> ViewNP f xs
+viewNP (NP xs)
+  | null xs   = unsafeCoerce $ IsNil
+  | otherwise = unsafeCoerce $ IsCons (unsafeCoerce (V.unsafeHead xs))
+                                      (NP (V.unsafeTail xs))
+
+pattern Nil :: forall f xs . () => (xs ~ '[]) => NP f xs
+pattern Nil <- (viewNP -> IsNil)
+  where
+    Nil = NP V.empty
+
+pattern (:*) :: forall f xs' . ()
+             => forall x xs . (xs' ~ (x ': xs)) => f x -> NP f xs -> NP f xs'
+pattern x :* xs <- (viewNP -> IsCons x xs)
+  where
+    x :* NP xs = NP (V.cons (unsafeCoerce x) xs)
 infixr 5 :*
+
+#if __GLASGOW_HASKELL__ >= 802
+{-# COMPLETE Nil, (:*) #-}
+#endif
 
 -- This is written manually,
 -- because built-in deriving doesn't use associativity information!
@@ -145,8 +186,13 @@ instance All (Show `Compose` f) xs => Show (NP f xs) where
     . showString " :* "
     . showsPrec 5 fs
 
-deriving instance All (Eq   `Compose` f) xs => Eq   (NP f xs)
-deriving instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs)
+instance All (Eq `Compose` f) xs => Eq (NP f xs) where
+  xs == ys =
+    and (hcollapse (hczipWith (Proxy :: Proxy (Eq `Compose` f)) (\ x y -> K (x == y)) xs ys))
+
+instance (All (Eq `Compose` f) xs, All (Ord `Compose` f) xs) => Ord (NP f xs) where
+  compare xs ys =
+    mconcat (hcollapse (hczipWith (Proxy :: Proxy (Ord `Compose` f)) (\ x y -> K (compare x y)) xs ys))
 
 -- | @since 0.4.0.0
 instance All (Semigroup `Compose` f) xs => Semigroup (NP f xs) where
