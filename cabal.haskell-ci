@@ -1,2 +1,2 @@
-doctest:         <8.10
+doctest:         <9.0
 doctest-options: --preserve-it
