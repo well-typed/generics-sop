@@ -1,6 +1,10 @@
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+{-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
 -- | Codes and interpretations
 module Generics.SOP.Universe1 where
 
@@ -13,6 +17,7 @@ import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
 import Generics.SOP.NP
 import Generics.SOP.NS
+import qualified Generics.SOP.Universe as U
 
 -- | The (generic) representation of a datatype.
 --
@@ -215,14 +220,13 @@ newtypeTo1 = coerce
 {-# INLINE newtypeTo1 #-}
 
 
-newtype ToGeneric1 f a = ToGeneric1 (f a)
 
 -- | Abstract one type out of another.
 --
 -- This function is based on certain heuristics, to find a balance
 -- between practicality and completeness.
 --
--- We could in princple base it on full SKI, but it currently is not.
+-- We could in principle base it on full SKI, but it currently is not.
 -- The reason is that it is much easier to give useful instances to
 -- special instances of the S combinator than to the S combinator in
 -- general.
@@ -235,7 +239,10 @@ newtype ToGeneric1 f a = ToGeneric1 (f a)
 --
 -- It is property 2 that is currently not satisfied in all cases.
 --
+-- TODO: Explain or improve @Protect@.
+--
 type family Abstract (a :: k1) (b :: k2) :: k1 -> k2 where
+  Abstract a (Protect b) = K b
   Abstract a a = I
   Abstract a (a b) =
     IfFreeIn a b (CannotAbstractError a (a b)) (AppTo1 b)
@@ -259,3 +266,57 @@ type family IfFreeIn (a :: k1) (b :: k2) (t :: k3) (e :: k3) :: k3 where
   IfFreeIn a a     t _ = t
   IfFreeIn a (f g) t e = IfFreeIn a f t (IfFreeIn a g t e)
   IfFreeIn a b     _ e = e
+
+-- | Deriving via adapter to derive 'Generic1' instance from 'Generic' instance.
+newtype ToGeneric1 f a = ToGeneric1 (f a)
+
+class
+  ( AllZip (AllZip (LiftedCoercible I (AppTo1 a))) (U.Code (f a)) (Code1 (ToGeneric1 f))
+  , AllZip (AllZip (LiftedCoercible (AppTo1 a) I)) (Code1 (ToGeneric1 f)) (U.Code (f a))
+  ) => CoerceFromToAux1 f a where
+  coerceFrom1 :: Proxy f -> SOP I (U.Code (f a)) -> SOP (AppTo1 a) (Code1 (ToGeneric1 f))
+  coerceTo1 :: Proxy f -> SOP (AppTo1 a) (Code1 (ToGeneric1 f)) -> SOP I (U.Code (f a))
+
+instance
+  ( AllZip (AllZip (LiftedCoercible I (AppTo1 a))) (U.Code (f a)) (Code1 (ToGeneric1 f))
+  , AllZip (AllZip (LiftedCoercible (AppTo1 a) I)) (Code1 (ToGeneric1 f)) (U.Code (f a))
+  ) => CoerceFromToAux1 f a where
+  coerceFrom1 :: Proxy f -> SOP I (U.Code (f a)) -> SOP (AppTo1 a) (Code1 (ToGeneric1 f))
+  coerceFrom1 _ = coerce_SOP
+  coerceTo1 :: Proxy f -> SOP (AppTo1 a) (Code1 (ToGeneric1 f)) -> SOP I (U.Code (f a))
+  coerceTo1 _ = coerce_SOP
+
+instance
+  ( forall a . U.Generic (f a)
+  , All (All Top) (Code1 (ToGeneric1 f))
+  , forall a . CoerceFromToAux1 f a
+  ) => Generic1 (ToGeneric1 f) where
+
+  type Code1 (ToGeneric1 f) = Map (MapFun (AbsFun (Hidden 0))) (U.Code (f (Hidden 0)))
+
+  from1 :: forall a . ToGeneric1 f a -> SOP (AppTo1 a) (Code1 (ToGeneric1 f))
+  from1 (ToGeneric1 x) =
+    coerceFrom1 (Proxy @f) (U.from x)
+
+  to1 :: forall a . SOP (AppTo1 a) (Code1 (ToGeneric1 f)) -> ToGeneric1 f a
+  to1 x =
+    ToGeneric1 (U.to (coerceTo1 (Proxy @f) x))
+
+newtype Protect a = Protect a
+
+data family Hidden (n :: Nat) :: k
+
+type family Map (f :: Fun a b) (xs :: [a]) :: [b] where
+  Map _ '[] = '[]
+  Map f (x : xs) = Run f x : Map f xs
+
+data Fun :: Type -> Type -> Type where
+  MapFun  :: Fun a b -> Fun [a] [b]
+  AbsFun  :: b -> Fun a (b -> a)
+  CompFun :: Fun b c -> Fun a b -> Fun a c
+
+type family Run (f :: Fun a b) (x :: a) :: b where
+  Run (MapFun f)    x = Map f x
+  Run (AbsFun f)    x = Abstract f x
+  Run (CompFun f g) x = Run f (Run g x)
+
