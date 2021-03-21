@@ -57,6 +57,7 @@ library
                        Generics.SOP.Instances
                        Generics.SOP.Metadata
                        Generics.SOP.Universe
+                       Generics.SOP.Universe1
                        -- re-exported from Data.SOP:
                        Generics.SOP.Dict
                        Generics.SOP.BasicFunctors

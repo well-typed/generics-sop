@@ -1,4 +1,10 @@
-{-# LANGUAGE PolyKinds, DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | Basic functors.
 --
 -- Definitions of the type-level equivalents of
@@ -26,6 +32,14 @@ module Data.SOP.BasicFunctors
   , unK
   , I(..)
   , unI
+  , AppTo1(..)
+  , unAppTo1
+  , AppTo2(..)
+  , unAppTo2
+  , SC(..)
+  , unSC
+  , K1(..)
+  , unK1
   , (:.:)(..)
   , unComp
     -- * Mapping functions
@@ -169,6 +183,44 @@ instance (Show a) => Show (I a) where showsPrec = showsPrec1
 -- | Extract the contents of an 'I' value.
 unI :: I a -> a
 unI (I x) = x
+
+-- | Application to a single argument.
+--
+newtype AppTo1 (a :: k) (f :: k -> Type) = AppTo1 (f a)
+  deriving stock (GHC.Generic)
+  deriving newtype (Eq, Ord, Read, Show, Semigroup, Monoid, NFData)
+
+-- | Extract the contents of an 'AppTo1' value.
+unAppTo1 :: AppTo1 a f -> f a
+unAppTo1 (AppTo1 x) = x
+
+-- | Application to two arguments.
+--
+newtype AppTo2 (a :: k1) (b :: k2) (f :: k1 -> k2 -> Type) = AppTo2 (f a b)
+  deriving stock (GHC.Generic)
+  deriving newtype (Eq, Ord, Read, Show, Semigroup, Monoid, NFData)
+
+-- | Extract the contents of an 'AppTo2' value.
+unAppTo2 :: AppTo2 a b f -> f a b
+unAppTo2 (AppTo2 x) = x
+
+-- | The S combinator, named 'SC' to avoid clashing with 'S' of 'NS'.
+--
+newtype SC (f :: k1 -> k2 -> Type) (g :: k1 -> k2) (x :: k1) = SC ((f x) (g x))
+  deriving stock (GHC.Generic)
+
+deriving newtype instance Eq ((f x) (g x)) => Eq (SC f g x)
+deriving newtype instance Ord ((f x) (g x)) => Ord (SC f g x)
+
+unSC :: SC f g x -> (f x) (g x)
+unSC (SC x) = x
+
+newtype K1 (f :: k1 -> Type) (a :: k2) (b :: k1) = K1 (f b)
+  deriving stock (GHC.Generic)
+  deriving newtype (Eq, Ord, Read, Show, Semigroup, Monoid, NFData)
+
+unK1 :: K1 f a b -> f b
+unK1 (K1 x) = x
 
 -- | Composition of functors.
 --

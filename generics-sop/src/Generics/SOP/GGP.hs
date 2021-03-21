@@ -24,7 +24,7 @@ import Data.Kind (Type)
 import GHC.Generics as GHC
 import Generics.SOP.NP as SOP
 import Generics.SOP.NS as SOP
-import Generics.SOP.BasicFunctors as SOP
+import Generics.SOP.BasicFunctors as SOP (I(..))
 import qualified Generics.SOP.Type.Metadata as SOP.T
 import Generics.SOP.Metadata as SOP
 
