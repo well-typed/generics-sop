@@ -154,7 +154,7 @@ type All2 c = All (All c)
 --
 -- /Example:/ The constraint
 --
--- > All (~) '[ Int, Bool, Char ] '[ a, b, c ]
+-- > AllZip (~) '[ Int, Bool, Char ] '[ a, b, c ]
 --
 -- is equivalent to the constraint
 --
