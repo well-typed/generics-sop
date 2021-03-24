@@ -455,7 +455,7 @@ class HAp h => HSequence (h :: (k -> Type) -> (l -> Type)) where
   --
   hctraverse' :: (AllN h c xs, Applicative g) => proxy c -> (forall a. c a => f a -> g (f' a)) -> h f xs -> g (h f' xs)
 
-  -- | Unconstrained variant of `htraverse'`.
+  -- | Unconstrained variant of `hctraverse'`.
   --
   -- /Instances:/
   --
