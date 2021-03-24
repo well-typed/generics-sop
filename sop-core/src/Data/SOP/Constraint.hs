@@ -210,6 +210,16 @@ type family
 type family Head (xs :: [a]) :: a where
   Head (x ': xs) = x
 
+-- We can't do this with a 'Map' family and 'Head' without unsaturated type families.
+
+-- | Utility function to compute the heads of a type-level lists of type-level lists.
+--
+-- @since 0.5.2.0
+--
+type family Heads (xss :: [[k]]) :: [k] where
+  Heads '[] = '[]
+  Heads (x ': xs) = Head x ': Heads xs
+
 -- | Utility function to compute the tail of a type-level list.
 --
 -- @since 0.3.1.0
@@ -284,3 +294,11 @@ type family AllZipN (h :: (k -> Type) -> (l -> Type)) (c :: k1 -> k2 -> Constrai
 -- on whether the argument is indexed by a list or a list of lists.
 --
 type family SListIN (h :: (k -> Type) -> (l -> Type)) :: l -> Constraint
+
+-- | Constraint that captures that a type-level list is a singleton of the given element.
+-- 
+-- This is a class rather than a type synonym so it can be passed as a type argument to types that take
+-- a constraint, such as 'AllZip'.
+--
+class (as ~ '[a]) => IsSingletonOf (a :: k) (as :: [k])
+instance (as ~ '[a]) => IsSingletonOf (a :: k) (as :: [k])
