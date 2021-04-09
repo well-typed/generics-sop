@@ -159,7 +159,9 @@ instance (All (Monoid `Compose` f) xs
 #endif
   ) => Monoid (NP f xs) where
   mempty  = cpure_NP (Proxy :: Proxy (Monoid `Compose` f)) mempty
+#if !MIN_VERSION_base(4,11,0)
   mappend = czipWith_NP (Proxy :: Proxy (Monoid `Compose` f)) mappend
+#endif
 
 -- | @since 0.2.5.0
 instance All (NFData `Compose` f) xs => NFData (NP f xs) where
@@ -193,7 +195,9 @@ instance (Semigroup (NP (NP f) xss)) => Semigroup (POP f xss) where
 -- | @since 0.4.0.0
 instance (Monoid (NP (NP f) xss)) => Monoid (POP f xss) where
   mempty                      = POP mempty
+#if !MIN_VERSION_base(4,11,0)
   mappend (POP xss) (POP yss) = POP (mappend xss yss)
+#endif
 
 -- | @since 0.2.5.0
 instance (NFData (NP (NP f) xss)) => NFData (POP f xss) where

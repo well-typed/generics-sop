@@ -112,7 +112,9 @@ instance Semigroup a => Semigroup (K a b) where
 -- | @since 0.4.0.0
 instance Monoid a => Monoid (K a b) where
   mempty              = K mempty
-  mappend (K x) (K y) = K (mappend x y)
+#if !MIN_VERSION_base(4,11,0)
+  mappend             = K (mappend x y)
+#endif
 
 instance Monoid a => Applicative (K a) where
   pure _      = K mempty
@@ -136,14 +138,15 @@ instance Semigroup a => Semigroup (I a) where
 -- | @since 0.4.0.0
 instance Monoid a => Monoid (I a) where
   mempty              = I mempty
+#if !MIN_VERSION_base(4,11,0)
   mappend (I x) (I y) = I (mappend x y)
+#endif
 
 instance Applicative I where
   pure = I
   I f <*> I x = I (f x)
 
 instance Monad I where
-  return = I
   I x >>= f = f x
 
 
@@ -187,7 +190,9 @@ instance (Semigroup (f (g x))) => Semigroup ((f :.: g) x) where
 -- | @since 0.4.0.0
 instance (Monoid (f (g x))) => Monoid ((f :.: g) x) where
   mempty                    = Comp mempty
+#if !MIN_VERSION_base(4,11,0)
   mappend (Comp x) (Comp y) = Comp (mappend x y)
+#endif
 
 instance (Functor f, Functor g) => Functor (f :.: g) where
   fmap f (Comp x) = Comp (fmap (fmap f) x)
