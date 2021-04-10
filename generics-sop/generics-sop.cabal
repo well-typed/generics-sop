@@ -65,11 +65,11 @@ library
                        Generics.SOP.NP
                        Generics.SOP.NS
                        Generics.SOP.Sing
-  build-depends:       base                 >= 4.9  && < 4.16,
+  build-depends:       base                 >= 4.9  && < 4.17,
                        sop-core             == 0.5.0.*,
-                       template-haskell     >= 2.8  && < 2.18,
+                       template-haskell     >= 2.8  && < 2.19,
                        th-abstraction       >= 0.4  && < 0.5,
-                       ghc-prim             >= 0.3  && < 0.8
+                       ghc-prim             >= 0.3  && < 0.9
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall

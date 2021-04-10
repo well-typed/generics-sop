@@ -206,7 +206,9 @@ deriveGeneric ''Data.Semigroup.Max -- new
 deriveGeneric ''Data.Semigroup.First -- new
 deriveGeneric ''Data.Semigroup.Last -- new
 deriveGeneric ''Data.Semigroup.WrappedMonoid -- new
+#if !MIN_VERSION_base(4,16,0)
 deriveGeneric ''Data.Semigroup.Option -- new
+#endif
 deriveGeneric ''Data.Semigroup.Arg -- new
 
 -- From Data.Version:
