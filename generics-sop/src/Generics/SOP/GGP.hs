@@ -222,7 +222,7 @@ gfrom x = gSumFrom (GHC.from x) (Proxy :: Proxy '[])
 -- For more info, see 'Generics.SOP.Generic'.
 --
 gto :: forall a. (GTo a, GHC.Generic a) => SOP I (GCode a) -> a
-gto x = GHC.to (gSumTo x id ((\y -> case y of {}) :: SOP I '[] -> (GHC.Rep a) x))
+gto x = GHC.to (gSumTo x id ((\y -> case emptySOP y of {}) :: SOP I '[] -> (GHC.Rep a) x))
 
 -- | An automatically computed version of 'Generics.SOP.datatypeInfo'.
 --
@@ -234,4 +234,3 @@ gto x = GHC.to (gSumTo x id ((\y -> case y of {}) :: SOP I '[] -> (GHC.Rep a) x)
 --
 gdatatypeInfo :: forall proxy a. (GDatatypeInfo a) => proxy a -> DatatypeInfo (GCode a)
 gdatatypeInfo _ = SOP.T.demoteDatatypeInfo (Proxy :: Proxy (GDatatypeInfoOf a))
-
