@@ -77,3 +77,11 @@ library
                        EmptyCase
                        UndecidableSuperClasses
                        BangPatterns
+
+test-suite doctests
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      doctests
+  default-language:    Haskell2010
+  main-is:             DocTests.hs
+  build-depends:       base                 >= 4.9  && < 4.16,
+                       doctest              >= 0.18 && < 0.19
