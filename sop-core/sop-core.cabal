@@ -24,7 +24,7 @@ maintainer:          andres@well-typed.com
 category:            Data
 build-type:          Simple
 cabal-version:       >=1.10
-extra-source-files:  CHANGELOG.md doctest.sh
+extra-source-files:  CHANGELOG.md
 tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.2, GHC == 8.10.4, GHC == 9.0.1
 
 source-repository head
