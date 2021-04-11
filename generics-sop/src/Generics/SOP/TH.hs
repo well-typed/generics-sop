@@ -14,18 +14,20 @@ import Control.Monad (join, replicateM, unless)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
 import Data.Proxy
+import qualified Data.Vector as V
 
 -- importing in this order to avoid unused import warning
 import Language.Haskell.TH.Datatype.TyVarBndr
 import Language.Haskell.TH
 import Language.Haskell.TH.Datatype as TH
 
+import Data.SOP.NS.Internal
+import Data.SOP.NP.Internal
 import Generics.SOP.BasicFunctors
 import qualified Generics.SOP.Metadata as SOP
 import qualified Generics.SOP.Type.Metadata as SOP.T
-import Generics.SOP.NP
-import Generics.SOP.NS
 import Generics.SOP.Universe
+import Unsafe.Coerce
 
 -- | Generate @generics-sop@ boilerplate for the given datatype.
 --
@@ -111,13 +113,13 @@ deriveGenericOnlySubst n f = do
 -- > type TreeCode = '[ '[Int], '[Tree, Tree] ]
 -- >
 -- > fromTree :: Tree -> SOP I TreeCode
--- > fromTree (Leaf x)   = SOP (   Z (I x :* Nil))
--- > fromTree (Node l r) = SOP (S (Z (I l :* I r :* Nil)))
+-- > fromTree (Leaf x)   = SOP (NS 0 (NP (V.fromList [unsafeCoerce x])))
+-- > fromTree (Node l r) = SOP (NS 1 (NP (V.fromList [unsafeCoerce l, unsafeCoerce r])))
 -- >
 -- > toTree :: SOP I TreeCode -> Tree
--- > toTree (SOP    (Z (I x :* Nil)))         = Leaf x
--- > toTree (SOP (S (Z (I l :* I r :* Nil)))) = Node l r
--- > toTree (SOP (S (S x)))                   = x `seq` error "inaccessible"
+-- > toTree (SOP (NS 0 (NP v))) = Leaf (unsafeCoerce (v V.! 0))
+-- > toTree (SOP (NS 1 (NP v))) = Node (unsafeCoerce (v V.! 0)) (unsafeCoerce (v V.! 1))
+-- > toTree x                   = x `seq` error "inaccessible"
 --
 -- @since 0.2
 --
@@ -239,64 +241,41 @@ codeFor f = promotedTypeList . map go
 -------------------------------------------------------------------------------}
 
 embedding :: Name -> [TH.ConstructorInfo] -> Q Dec
-embedding fromName = funD fromName . go' (\e -> [| Z $e |])
+embedding fromName cons = funD fromName (if null cons then [emptyCase] else zipWith mkClause [0 ..] cons)
   where
-    go' :: (Q Exp -> Q Exp) -> [TH.ConstructorInfo] -> [Q Clause]
-    go' _ [] = (:[]) $ do
+    emptyCase :: Q Clause
+    emptyCase = do
       x <- newName "x"
       clause [varP x] (normalB (caseE (varE x) [])) []
-    go' br cs = go br cs
 
-    go :: (Q Exp -> Q Exp) -> [TH.ConstructorInfo] -> [Q Clause]
-    go _  []     = []
-    go br (c:cs) = mkClause br c : go (\e -> [| S $(br e) |]) cs
-
-    mkClause :: (Q Exp -> Q Exp) -> TH.ConstructorInfo -> Q Clause
-    mkClause br c = do
+    mkClause :: Integer -> TH.ConstructorInfo -> Q Clause
+    mkClause i c = do
       (n, ts) <- conInfo c
-      vars    <- replicateM (length ts) (newName "x")
-      clause [conP n (map varP vars)]
-             (normalB [| SOP $(br . npE . map (appE (conE 'I) . varE) $ vars) |])
-             []
+      vars <- replicateM (length ts) (newName "x")
+      clause
+        [conP n (map varP vars)]
+        (normalB [| SOP (NS $(litE (integerL i)) (NP (V.fromList $(listE [ [| unsafeCoerce $(varE v) |] | v <- vars ])))) |])
+        []
 
 projection :: Name -> [TH.ConstructorInfo] -> Q Dec
-projection toName = funD toName . go'
+projection toName cons = funD toName (zipWith mkClause [0 ..] cons ++ [mkUnreachableClause])
   where
-    go' :: [TH.ConstructorInfo] -> [Q Clause]
-    go' [] = (:[]) $ do
-      x <- newName "x"
-      clause [varP x] (normalB (caseE (varE x) [])) []
-    go' cs = go id cs
-
-    go :: (Q Pat -> Q Pat) -> [TH.ConstructorInfo] -> [Q Clause]
-    go br [] = [mkUnreachableClause br]
-    go br (c:cs) = mkClause br c : go (\p -> conP 'S [br p]) cs
-
-    -- Generates a final clause of the form:
-    --
-    --   to (S (... (S x))) = x `seq` error "inaccessible"
-    --
-    -- An equivalent way of achieving this would be:
-    --
-    --   to (S (... (S x))) = case x of {}
-    --
-    -- This, however, would require clients to enable the EmptyCase extension
-    -- in their own code, which is something which we have not previously
-    -- required. Therefore, we do not generate this code at the moment.
-    mkUnreachableClause :: (Q Pat -> Q Pat) -> Q Clause
-    mkUnreachableClause br = do
-      var <- newName "x"
-      clause [conP 'SOP [br (varP var)]]
-             (normalB [| $(varE var) `seq` error "inaccessible" |])
-             []
-
-    mkClause :: (Q Pat -> Q Pat) -> TH.ConstructorInfo -> Q Clause
-    mkClause br c = do
+    mkClause :: Integer -> TH.ConstructorInfo -> Q Clause
+    mkClause i c = do
       (n, ts) <- conInfo c
-      vars    <- replicateM (length ts) (newName "x")
-      clause [conP 'SOP [br . conP 'Z . (:[]) . npP . map (\v -> conP 'I [varP v]) $ vars]]
-             (normalB . appsE $ conE n : map varE vars)
-             []
+      vec <- newName "_v"
+      clause
+        [ [p| SOP (NS $(litP (integerL (fromIntegral i))) (NP $(varP vec))) |] ]
+        (normalB (appsE (conE n : zipWith (\ j _ -> [| unsafeCoerce ($(varE vec) V.! $(litE (integerL j))) |]) [0 ..] ts)))
+        []
+
+    mkUnreachableClause :: Q Clause
+    mkUnreachableClause = do
+      i <- newName "i"
+      clause
+        [ [p| SOP (NS $(varP i) (NP _)) |] ]
+        (normalB [| $(varE i) `seq` error "inaccessible" |])
+        []
 
 {-------------------------------------------------------------------------------
   Compute metadata
@@ -475,11 +454,6 @@ npE (e:es) = [| $e :* $(npE es) |]
 popE :: [Q [Q Exp]] -> Q Exp
 popE ess =
   [| POP $(npE (map (join . fmap npE) ess)) |]
-
--- Like npE, but construct a pattern instead
-npP :: [Q Pat] -> Q Pat
-npP []     = conP 'Nil []
-npP (p:ps) = conP '(:*) [p, npP ps]
 
 {-------------------------------------------------------------------------------
   Some auxiliary definitions for working with TH
