@@ -792,7 +792,11 @@ ccata_NP ::
   -> NP f xs
   -> r xs
 ccata_NP p nil cons np =
-  cata_NP nil unCata (cmap_NP p (\ fy -> MkCata (cons fy)) np)
+  cata_NP nil (\ x -> unCata x) (cmap_NP p (\ fy -> MkCata (cons fy)) np)
+  -- NOTE: The eta-expansion of @unCata@ is required for GHC 9 and
+  -- above due to the "simplified subsumption" change.
+  --
+  -- See https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0287-simplify-subsumption.rst
 
 -- | Internal type used in the definition of 'ccata_NP'.
 newtype Cata r x = MkCata { unCata :: forall xs . r xs -> r (x : xs) }
