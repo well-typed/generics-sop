@@ -190,6 +190,9 @@ viewNS :: forall f xs . NS f xs -> ViewNS f xs
 viewNS (NS i x)
   | i == 0    = unsafeCoerce @(ViewNS f (_ : _)) @(ViewNS f xs) (IsZ x)
   | otherwise = unsafeCoerce @(ViewNS f (_ : _)) @(ViewNS f xs) (IsS (NS (i - 1) x))
+#if !MIN_VERSION_base(4,15,0)
+{-# NOINLINE viewNS #-}
+#endif
 
 pattern Z :: forall f xs' . ()
           => forall x xs . (xs' ~ (x ': xs)) => f x -> NS f xs'

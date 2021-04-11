@@ -178,6 +178,9 @@ viewNP (NP xs)
   | otherwise =
     unsafeCoerce @(ViewNP f (_ : _)) @(ViewNP f xs)
       $ IsCons (V.unsafeHead xs) (NP (V.unsafeTail xs))
+#if !MIN_VERSION_base(4,15,0)
+{-# NOINLINE viewNP #-}
+#endif
 
 pattern Nil :: forall f xs . () => (xs ~ '[]) => NP f xs
 pattern Nil <- (viewNP -> IsNil)
