@@ -87,8 +87,8 @@ deriveGenericOnly n =
 deriveGenericSubst :: Name -> (Name -> Q Type) -> Q [Dec]
 deriveGenericSubst n f = do
   dec <- reifyDatatype n
-  ds1 <- withDataDec dec (deriveGenericForDataDec  f)
-  ds2 <- withDataDec dec (deriveMetadataForDataDec f)
+  ds1 <- withDataDec n dec (deriveGenericForDataDec  f)
+  ds2 <- withDataDec n dec (deriveMetadataForDataDec f)
   return (ds1 ++ ds2)
 
 -- | Variant of 'deriveGenericOnly' that allows to restrict the type parameters.
@@ -98,7 +98,7 @@ deriveGenericSubst n f = do
 deriveGenericOnlySubst :: Name -> (Name -> Q Type) -> Q [Dec]
 deriveGenericOnlySubst n f = do
   dec <- reifyDatatype n
-  withDataDec dec (deriveGenericForDataDec f)
+  withDataDec n dec (deriveGenericForDataDec f)
 
 -- | Like 'deriveGenericOnly', but don't derive class instance, only functions.
 --
@@ -127,7 +127,7 @@ deriveGenericFunctions n codeName fromName toName = do
   let fromName' = mkName fromName
   let toName'   = mkName toName
   dec <- reifyDatatype n
-  withDataDec dec $ \_variant _cxt name bndrs instTys cons -> do
+  withDataDec n dec $ \_variant _cxt name bndrs instTys cons -> do
     let codeType = codeFor varT cons                     -- '[ '[Int], '[Tree, Tree] ]
     let origType = appTysSubst varT name instTys         -- Tree
     let repType  = [t| SOP I $(appTyVars varT codeName' bndrs) |] -- SOP I TreeCode
@@ -160,7 +160,7 @@ deriveMetadataValue n codeName datatypeInfoName = do
   let codeName'  = mkName codeName
   let datatypeInfoName' = mkName datatypeInfoName
   dec <- reifyDatatype n
-  withDataDec dec $ \variant _cxt name bndrs _instTys cons -> do
+  withDataDec n dec $ \variant _cxt name bndrs _instTys cons -> do
     sequence [ sigD datatypeInfoName' [t| SOP.DatatypeInfo $(appTyVars varT codeName' bndrs) |] -- treeDatatypeInfo :: DatatypeInfo TreeCode
              , funD datatypeInfoName' [clause [] (normalB $ metadata' variant name cons) []]    -- treeDatatypeInfo = ...
              ]
@@ -184,7 +184,7 @@ deriveMetadataType :: Name -> String -> Q [Dec]
 deriveMetadataType n datatypeInfoName = do
   let datatypeInfoName' = mkName datatypeInfoName
   dec <- reifyDatatype n
-  withDataDec dec $ \ variant _ctx name _bndrs _instTys cons ->
+  withDataDec n dec $ \ variant _ctx name _bndrs _instTys cons ->
     sequence
       [ tySynD datatypeInfoName' [] (metadataType' variant name cons) ]
 
@@ -540,7 +540,8 @@ substType f = go
       -- but the cases we need for the benchmarking suite.
 
 -- Process a DatatypeInfo using continuation-passing style.
-withDataDec :: TH.DatatypeInfo
+withDataDec :: Name
+            -> TH.DatatypeInfo
             -> (DatatypeVariant
                    -- The variety of data type
                    -- (@data@, @newtype@, @data instance@, or @newtype instance@)
@@ -574,12 +575,11 @@ withDataDec :: TH.DatatypeInfo
                    -- The data type's constructors
                 -> Q a)
             -> Q a
-withDataDec (TH.DatatypeInfo { datatypeContext   = ctxt
-                             , datatypeName      = name
-                             , datatypeVars      = bndrs
-                             , datatypeInstTypes = instTypes
-                             , datatypeVariant   = variant
-                             , datatypeCons      = cons }) f =
+withDataDec name (TH.DatatypeInfo { datatypeContext   = ctxt
+                                  , datatypeVars      = bndrs
+                                  , datatypeInstTypes = instTypes
+                                  , datatypeVariant   = variant
+                                  , datatypeCons      = cons }) f =
   f variant ctxt name bndrs instTypes cons
 
 checkForGADTs :: TH.ConstructorInfo -> Q a -> Q a
