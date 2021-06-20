@@ -166,12 +166,21 @@ class
   ( SListI xs, SListI ys
   , SameShapeAs xs ys, SameShapeAs ys xs
   , AllZipF c xs ys
-  ) => AllZip (c :: a -> b -> Constraint) (xs :: [a]) (ys :: [b])
-instance
-  ( SListI xs, SListI ys
-  , SameShapeAs xs ys, SameShapeAs ys xs
-  , AllZipF c xs ys
-  ) => AllZip c xs ys
+  ) => AllZip (c :: a -> b -> Constraint) (xs :: [a]) (ys :: [b]) where
+  cpara_SList2 ::
+       proxy c
+    -> r '[] '[]
+    -> (forall x y xs' ys' . (c x y, AllZip c xs' ys') => r xs' ys' -> r (x ': xs') (y ': ys'))
+    -> r xs ys
+
+instance AllZip c '[] '[] where
+  cpara_SList2 _p nil _cons = nil
+  {-# INLINE cpara_SList2 #-}
+
+instance (c x y, AllZip c xs ys) => AllZip c (x : xs) (y : ys) where
+  cpara_SList2 p nil cons =
+    cons (cpara_SList2 p nil cons)
+  {-# INLINE cpara_SList2 #-}
 
 -- | Type family used to implement 'AllZip'.
 --
@@ -229,8 +238,7 @@ instance Coercible (f x) (g y) => LiftedCoercible f g x y
 -- elements from two lists of lists.
 --
 --
-class (AllZipF (AllZip f) xss yss, SListI xss, SListI yss, SameShapeAs xss yss, SameShapeAs yss xss) => AllZip2 f xss yss
-instance (AllZipF (AllZip f) xss yss, SListI xss, SListI yss, SameShapeAs xss yss, SameShapeAs yss xss) => AllZip2 f xss yss
+type AllZip2 f = AllZip (AllZip f)
 
 -- | Composition of constraints.
 --
