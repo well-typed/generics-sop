@@ -804,7 +804,7 @@ ccata_NS _ z s = go
 ana_NS ::
      forall s f xs . (SListI xs)
   => (forall r . s '[] -> r)
-  -> (forall y ys . s (y ': ys) -> Either (f y) (s ys))
+  -> (forall y ys . SListI ys => s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
 ana_NS refute decide =
@@ -819,7 +819,7 @@ cana_NS :: forall c proxy s f xs .
      (All c xs)
   => proxy c
   -> (forall r . s '[] -> r)
-  -> (forall y ys . c y => s (y ': ys) -> Either (f y) (s ys))
+  -> (forall y ys . (c y, SListI ys) => s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
 cana_NS _ refute decide = go sList
