@@ -113,7 +113,7 @@ instance Semigroup a => Semigroup (K a b) where
 instance Monoid a => Monoid (K a b) where
   mempty              = K mempty
 #if !MIN_VERSION_base(4,11,0)
-  mappend             = K (mappend x y)
+  mappend (K x) (K y) = K (mappend x y)
 #endif
 
 instance Monoid a => Applicative (K a) where
