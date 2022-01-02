@@ -1,6 +1,10 @@
-# 0.5.1.1 (2021-01-02)
+# 0.5.1.2 (2022-01-02)
 
-* Compatibility with GHC-9.0 and GHC-9.2.
+* Compatibility with GHC-9.2.
+
+# 0.5.1.1 (2021-02-23)
+
+* Compatibility with GHC-9.0.
 
 # 0.5.1.0 (2020-03-29)
 
