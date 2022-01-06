@@ -1,4 +1,9 @@
-{-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+{-# LANGUAGE
+    PolyKinds
+  , StandaloneDeriving
+  , TypeApplications
+  , UndecidableInstances
+#-}
 -- | n-ary products (and products of products)
 module Data.SOP.NP
   ( -- * Datatypes
@@ -10,6 +15,8 @@ module Data.SOP.NP
   , pure_POP
   , cpure_NP
   , cpure_POP
+  , type (++)
+  , happend
     -- ** Construction from a list
   , fromList
     -- * Application
@@ -21,6 +28,7 @@ module Data.SOP.NP
   , Projection
   , projections
   , shiftProjection
+  , hsplit
     -- * Lifting / mapping
   , liftA_NP
   , liftA_POP
@@ -277,6 +285,17 @@ instance HPure POP where
   hpure  = pure_POP
   hcpure = cpure_POP
 
+-- | Append type level lists with `++` type operator.
+type family (++) xs ys where
+  '[] ++ ys = ys
+  (x ': xs) ++ ys = x ': (xs ++ ys)
+infixr 5 ++
+
+-- | Append n-ary products with `happend`.
+happend :: NP f xs -> NP f ys -> NP f (xs ++ ys)
+happend Nil ys = ys
+happend (x :* xs) ys = x :* happend xs ys
+
 -- ** Construction from a list
 
 -- | Construct a homogeneous n-ary product from a normal Haskell list.
@@ -363,6 +382,16 @@ projections = case sList :: SList xs of
 
 shiftProjection :: Projection f xs a -> Projection f (x ': xs) a
 shiftProjection (Fn f) = Fn $ f . K . tl . unK
+
+-- | Split an n-ary product with `hsplit`.
+hsplit
+  :: forall xs ys f. SListI xs
+  => NP f (xs ++ ys)
+  -> (NP f xs, NP f ys)
+hsplit = case sList @xs of
+  SNil -> \ys -> (Nil, ys)
+  SCons -> \(x :* xsys) ->
+    case hsplit xsys of (xs,ys) -> (x :* xs, ys)
 
 -- * Lifting / mapping
 
