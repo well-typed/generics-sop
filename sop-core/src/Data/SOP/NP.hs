@@ -1,4 +1,6 @@
-{-# LANGUAGE PolyKinds, StandaloneDeriving, UndecidableInstances #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 -- | n-ary products (and products of products)
 module Data.SOP.NP
   ( -- * Datatypes
@@ -713,15 +715,14 @@ ctraverse_POP = hctraverse
 --
 cata_NP ::
      forall r f xs .
-     r '[]
-  -> (forall y ys . f y -> r ys -> r (y ': ys))
+     SListI xs
+  => r '[]
+  -> (forall y ys . SListI ys => f y -> r ys -> r (y ': ys))
   -> NP f xs
   -> r xs
-cata_NP nil cons = go
-  where
-    go :: forall ys . NP f ys -> r ys
-    go Nil       = nil
-    go (x :* xs) = cons x (go xs)
+cata_NP nil cons =
+  ccata_NP topP nil cons
+{-# INLINE cata_NP #-}
 
 -- | Constrained catamorphism for 'NP'.
 --
@@ -733,10 +734,11 @@ cata_NP nil cons = go
 -- @since 0.2.3.0
 --
 ccata_NP ::
-     forall c proxy r f xs . (All c xs)
+     forall c proxy r f xs .
+     All c xs
   => proxy c
   -> r '[]
-  -> (forall y ys . c y => f y -> r ys -> r (y ': ys))
+  -> (forall y ys . (c y, All c ys) => f y -> r ys -> r (y ': ys))
   -> NP f xs
   -> r xs
 ccata_NP _ nil cons = go
@@ -759,7 +761,7 @@ ccata_NP _ nil cons = go
 ana_NP ::
      forall s f xs .
      SListI xs
-  => (forall y ys . s (y ': ys) -> (f y, s ys))
+  => (forall y ys . SListI ys => s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
 ana_NP uncons =
@@ -775,14 +777,15 @@ ana_NP uncons =
 -- @since 0.2.3.0
 --
 cana_NP ::
-     forall c proxy s f xs . (All c xs)
+     forall c proxy s f xs .
+     All c xs
   => proxy c
-  -> (forall y ys . c y => s (y ': ys) -> (f y, s ys))
+  -> (forall y ys . (c y, All c ys) => s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
 cana_NP _ uncons = go sList
   where
-    go :: forall ys . (All c ys) => SList ys -> s ys -> NP f ys
+    go :: forall ys . All c ys => SList ys -> s ys -> NP f ys
     go SNil  _ = Nil
     go SCons s = case uncons s of
       (x, s') -> x :* go sList s'
