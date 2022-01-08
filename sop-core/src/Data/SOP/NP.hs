@@ -759,7 +759,7 @@ ccata_NP _ nil cons = go
 ana_NP ::
      forall s f xs .
      SListI xs
-  => (forall y ys . s (y ': ys) -> (f y, s ys))
+  => (forall y ys . SListI ys => s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
 ana_NP uncons =
@@ -777,7 +777,7 @@ ana_NP uncons =
 cana_NP ::
      forall c proxy s f xs . (All c xs)
   => proxy c
-  -> (forall y ys . c y => s (y ': ys) -> (f y, s ys))
+  -> (forall y ys . (c y, SListI ys) => s (y ': ys) -> (f y, s ys))
   -> s xs
   -> NP f xs
 cana_NP _ uncons = go sList
