@@ -1,3 +1,9 @@
+# 0.6.0.0
+
+* Generalise the type signatures of cata- and anamorphisms
+  to pass down the constraint dictionaries, as suggested
+  in #144.
+
 # 0.5.0.2 (2022-01-02)
 
 * Compatibility with GHC-9.0 and GHC-9.2.

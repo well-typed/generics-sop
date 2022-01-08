@@ -770,30 +770,29 @@ ctraverse_SOP = hctraverse
 --
 cata_NS ::
      forall r f xs .
-     (forall y ys . f y -> r (y ': ys))
-  -> (forall y ys . r ys -> r (y ': ys))
+     SListI xs
+  => (forall y ys . SListI ys => f y -> r (y ': ys))
+  -> (forall y ys . SListI ys => r ys -> r (y ': ys))
   -> NS f xs
   -> r xs
-cata_NS z s = go
-  where
-    go :: forall ys . NS f ys -> r ys
-    go (Z x) = z x
-    go (S i) = s (go i)
+cata_NS z s =
+  ccata_NS topP z s
 
 -- | Constrained catamorphism for 'NS'.
 --
 -- @since 0.2.3.0
 --
 ccata_NS ::
-     forall c proxy r f xs . (All c xs)
+     forall c proxy r f xs .
+     All c xs
   => proxy c
-  -> (forall y ys . c y => f y -> r (y ': ys))
-  -> (forall y ys . c y => r ys -> r (y ': ys))
+  -> (forall y ys . (c y, All c ys) => f y -> r (y ': ys))
+  -> (forall y ys . (c y, All c ys) => r ys -> r (y ': ys))
   -> NS f xs
   -> r xs
 ccata_NS _ z s = go
   where
-    go :: forall ys . (All c ys) => NS f ys -> r ys
+    go :: forall ys . All c ys => NS f ys -> r ys
     go (Z x) = z x
     go (S i) = s (go i)
 
@@ -802,7 +801,8 @@ ccata_NS _ z s = go
 -- @since 0.2.3.0
 --
 ana_NS ::
-     forall s f xs . (SListI xs)
+     forall s f xs .
+     SListI xs
   => (forall r . s '[] -> r)
   -> (forall y ys . SListI ys => s (y ': ys) -> Either (f y) (s ys))
   -> s xs
@@ -816,15 +816,15 @@ ana_NS refute decide =
 -- @since 0.2.3.0
 --
 cana_NS :: forall c proxy s f xs .
-     (All c xs)
+     All c xs
   => proxy c
   -> (forall r . s '[] -> r)
-  -> (forall y ys . (c y, SListI ys) => s (y ': ys) -> Either (f y) (s ys))
+  -> (forall y ys . (c y, All c ys) => s (y ': ys) -> Either (f y) (s ys))
   -> s xs
   -> NS f xs
 cana_NS _ refute decide = go sList
   where
-    go :: forall ys . (All c ys) => SList ys -> s ys -> NS f ys
+    go :: forall ys . All c ys => SList ys -> s ys -> NS f ys
     go SNil  s = refute s
     go SCons s = case decide s of
       Left x   -> Z x
