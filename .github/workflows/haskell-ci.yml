@@ -8,9 +8,9 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.13.20211113
+# version: 0.15.20220808
 #
-# REGENDATA ("0.13.20211113",["github","--config=cabal.haskell-ci","--benchmarks-jobs=<9.0","cabal.project"])
+# REGENDATA ("0.15.20220808",["github","--config=cabal.haskell-ci","--benchmarks-jobs=<9.0","cabal.project"])
 #
 name: Haskell-CI
 on:
@@ -19,7 +19,7 @@ on:
 jobs:
   linux:
     name: Haskell-CI - Linux - ${{ matrix.compiler }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes:
       60
     container:
@@ -28,24 +28,29 @@ jobs:
     strategy:
       matrix:
         include:
-          - compiler: ghc-9.2.1
+          - compiler: ghc-9.4.1
             compilerKind: ghc
-            compilerVersion: 9.2.1
+            compilerVersion: 9.4.1
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-9.0.1
+          - compiler: ghc-9.2.4
             compilerKind: ghc
-            compilerVersion: 9.0.1
-            setup-method: hvr-ppa
+            compilerVersion: 9.2.4
+            setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-8.10.4
+          - compiler: ghc-9.0.2
             compilerKind: ghc
-            compilerVersion: 8.10.4
-            setup-method: hvr-ppa
+            compilerVersion: 9.0.2
+            setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-8.8.2
+          - compiler: ghc-8.10.7
             compilerKind: ghc
-            compilerVersion: 8.8.2
+            compilerVersion: 8.10.7
+            setup-method: ghcup
+            allow-failure: false
+          - compiler: ghc-8.8.4
+            compilerKind: ghc
+            compilerVersion: 8.8.4
             setup-method: hvr-ppa
             allow-failure: false
           - compiler: ghc-8.6.5
@@ -76,18 +81,18 @@ jobs:
           apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5
           if [ "${{ matrix.setup-method }}" = ghcup ]; then
             mkdir -p "$HOME/.ghcup/bin"
-            curl -sL https://downloads.haskell.org/ghcup/0.1.17.3/x86_64-linux-ghcup-0.1.17.3 > "$HOME/.ghcup/bin/ghcup"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.18.0/x86_64-linux-ghcup-0.1.18.0 > "$HOME/.ghcup/bin/ghcup"
             chmod a+x "$HOME/.ghcup/bin/ghcup"
-            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER"
-            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0
+            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER" || (cat "$HOME"/.ghcup/logs/*.* && false)
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
           else
             apt-add-repository -y 'ppa:hvr/ghc'
             apt-get update
             apt-get install -y "$HCNAME"
             mkdir -p "$HOME/.ghcup/bin"
-            curl -sL https://downloads.haskell.org/ghcup/0.1.17.3/x86_64-linux-ghcup-0.1.17.3 > "$HOME/.ghcup/bin/ghcup"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.18.0/x86_64-linux-ghcup-0.1.18.0 > "$HOME/.ghcup/bin/ghcup"
             chmod a+x "$HOME/.ghcup/bin/ghcup"
-            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
           fi
         env:
           HCKIND: ${{ matrix.compilerKind }}
@@ -163,7 +168,7 @@ jobs:
       - name: cache (tools)
         uses: actions/cache@v2
         with:
-          key: ${{ runner.os }}-${{ matrix.compiler }}-tools-fc3fb5d3
+          key: ${{ runner.os }}-${{ matrix.compiler }}-tools-b15036f8
           path: ~/.haskell-ci-tools
       - name: install cabal-plan
         run: |
@@ -176,8 +181,8 @@ jobs:
           cabal-plan --version
       - name: install doctest
         run: |
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then $CABAL --store-dir=$HOME/.haskell-ci-tools/store v2-install $ARG_COMPILER --ignore-project -j2 doctest --constraint='doctest ^>=0.17' ; fi
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then doctest --version ; fi
+          if [ $((HCNUMVER < 90400)) -ne 0 ] ; then $CABAL --store-dir=$HOME/.haskell-ci-tools/store v2-install $ARG_COMPILER --ignore-project -j2 doctest --constraint='doctest ^>=0.20' ; fi
+          if [ $((HCNUMVER < 90400)) -ne 0 ] ; then doctest --version ; fi
       - name: checkout
         uses: actions/checkout@v2
         with:
@@ -241,10 +246,10 @@ jobs:
           $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct
       - name: doctest
         run: |
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then cd ${PKGDIR_sop_core} || false ; fi
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then doctest --preserve-it -XCPP -XScopedTypeVariables -XTypeFamilies -XRankNTypes -XTypeOperators -XGADTs -XConstraintKinds -XMultiParamTypeClasses -XTypeSynonymInstances -XFlexibleInstances -XFlexibleContexts -XDeriveFunctor -XDeriveFoldable -XDeriveTraversable -XDefaultSignatures -XKindSignatures -XDataKinds -XFunctionalDependencies -XAutoDeriveTypeable src ; fi
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then cd ${PKGDIR_generics_sop} || false ; fi
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then doctest --preserve-it -XCPP -XScopedTypeVariables -XTypeFamilies -XRankNTypes -XTypeOperators -XGADTs -XConstraintKinds -XMultiParamTypeClasses -XTypeSynonymInstances -XFlexibleInstances -XFlexibleContexts -XDeriveFunctor -XDeriveFoldable -XDeriveTraversable -XDefaultSignatures -XKindSignatures -XDataKinds -XFunctionalDependencies -XAutoDeriveTypeable src ; fi
+          if [ $((HCNUMVER < 90400)) -ne 0 ] ; then cd ${PKGDIR_sop_core} || false ; fi
+          if [ $((HCNUMVER < 90400)) -ne 0 ] ; then doctest --preserve-it -XHaskell2010 -XCPP -XScopedTypeVariables -XTypeFamilies -XRankNTypes -XTypeOperators -XGADTs -XConstraintKinds -XMultiParamTypeClasses -XTypeSynonymInstances -XFlexibleInstances -XFlexibleContexts -XDeriveFunctor -XDeriveFoldable -XDeriveTraversable -XDefaultSignatures -XKindSignatures -XDataKinds -XFunctionalDependencies -XAutoDeriveTypeable src ; fi
+          if [ $((HCNUMVER < 90400)) -ne 0 ] ; then cd ${PKGDIR_generics_sop} || false ; fi
+          if [ $((HCNUMVER < 90400)) -ne 0 ] ; then doctest --preserve-it -XHaskell2010 -XCPP -XScopedTypeVariables -XTypeFamilies -XRankNTypes -XTypeOperators -XGADTs -XConstraintKinds -XMultiParamTypeClasses -XTypeSynonymInstances -XFlexibleInstances -XFlexibleContexts -XDeriveFunctor -XDeriveFoldable -XDeriveTraversable -XDefaultSignatures -XKindSignatures -XDataKinds -XFunctionalDependencies -XAutoDeriveTypeable src ; fi
       - name: cabal check
         run: |
           cd ${PKGDIR_sop_core} || false
@@ -253,7 +258,7 @@ jobs:
           ${CABAL} -vnormal check
       - name: haddock
         run: |
-          $CABAL v2-haddock $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
+          $CABAL v2-haddock --haddock-all $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
       - name: unconstrained build
         run: |
           rm -f cabal.project.local
