@@ -1,22 +1,31 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE EmptyCase #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 module Main (main, toTreeC, toDataFamC) where
 
+import Data.Coerce
 import qualified GHC.Generics as GHC
+import qualified GHC.Generics.Generically as GHC
 import Generics.SOP
+import qualified Generics.SOP as SOP
 import Generics.SOP.TH
 import qualified Generics.SOP.Type.Metadata as T
 
 import HTransExample
+
+instance (Generic a, All2 Show (Code a)) => Show (SOP.Generically a) where
+  show :: SOP.Generically a -> String
+  show (SOP.Generically a) = gshow a
 
 -- Generic show, kind of
 gshow :: (Generic a, All2 Show (Code a)) => a -> String
@@ -34,6 +43,10 @@ gshowP (I x :* xs) = show x ++ (gshowP xs)
 class Enumerable a where
   enum :: [a]
 
+instance (Generic a, All2 Enumerable (Code a)) => Enumerable (SOP.Generically a) where
+  enum :: [SOPGenerically a]
+  enum = coerce (genum @a)
+
 genum :: (Generic a, All2 Enumerable (Code a)) => [a]
 genum =
   fmap to genumS
@@ -45,7 +58,14 @@ genumS =
 
 -- GHC.Generics
 data Tree = Leaf Int | Node Tree Tree
-  deriving (GHC.Generic)
+  deriving
+  stock GHC.Generic
+
+  deriving (SOP.Generic, HasDatatypeInfo)
+  via GHC.Generically Tree
+
+  deriving Show
+  via SOP.Generically Tree
 
 tree :: Tree
 tree = Node (Leaf 1) (Leaf 2)
@@ -53,48 +73,39 @@ tree = Node (Leaf 1) (Leaf 2)
 abc :: ABC
 abc = B
 
-instance Generic Tree
-instance HasDatatypeInfo Tree
-
 data ABC = A | B | C
-  deriving (GHC.Generic)
+  deriving
+  stock GHC.Generic
 
-instance Generic ABC
-instance HasDatatypeInfo ABC
+  deriving (Generic, HasDatatypeInfo)
+  via GHC.Generically ABC
+
+  deriving (Show, Enumerable)
+  via SOP.Generically ABC
 
 data Void
-  deriving (GHC.Generic)
+  deriving
+  stock GHC.Generic
 
-instance Generic Void
-instance HasDatatypeInfo Void
+  deriving (Generic, HasDatatypeInfo)
+  via GHC.Generically Void
+
+  deriving (Show, Enumerable)
+  via SOP.Generically Void
 
 data family   DataFam a b c
 data instance DataFam Int (Maybe b) c = DF b c
-  deriving (GHC.Generic)
+  deriving
+  stock GHC.Generic
+
+  deriving (Generic, HasDatatypeInfo)
+  via GHC.Generically (DataFam Int (Maybe b) c)
+
+  deriving Show
+  via SOP.Generically (DataFam Int (Maybe b) c)
 
 dataFam :: DataFam Int (Maybe Int) Int
 dataFam = DF 1 2
-
-instance Generic (DataFam Int (Maybe b) c)
-instance HasDatatypeInfo (DataFam Int (Maybe b) c)
-
-instance Show Tree where
-  show = gshow
-
-instance Show ABC where
-  show = gshow
-
-instance Show Void where
-  show = gshow
-
-instance (Show b, Show c) => Show (DataFam Int (Maybe b) c) where
-  show = gshow
-
-instance Enumerable ABC where
-  enum = genum
-
-instance Enumerable Void where
-  enum = genum
 
 -- Template Haskell
 data TreeB = LeafB Int | NodeB TreeB TreeB

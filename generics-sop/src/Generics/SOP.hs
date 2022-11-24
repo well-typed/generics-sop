@@ -50,20 +50,30 @@
 -- > data A   = C Bool | D A Int | E (B ())
 -- > data B a = F | G a Char Bool
 --
--- To create 'Generic' instances for @A@ and @B@ via "GHC.Generics", we say
+-- To create 'Generic' instances for @A@ and @B@ via "GHC.Generics",
+-- we first derive @GHC.Generic@ and use that to @GHC.Generically@
+-- derive @SOP.Generic@:
 --
--- > {-# LANGUAGE DeriveGeneric #-}
+-- > {-# LANGUAGE DeriveGeneric      #-}
+-- > {-# LANGUAGE DerivingStrategies #-}
+-- > {-# LANGUAGE DerivingVia        #-}
 -- >
 -- > import qualified GHC.Generics as GHC
 -- > import Generics.SOP
 -- >
--- > data A   = C Bool | D A Int | E (B ())
--- >   deriving (Show, GHC.Generic)
--- > data B a = F | G a Char Bool
--- >   deriving (Show, GHC.Generic)
+-- > data A = C Bool | D A Int | E (B ())
+-- >   deriving
+-- >   stock (Show, GHC.Generic)
 -- >
--- > instance Generic A     -- empty
--- > instance Generic (B a) -- empty
+-- >   deriving Generic
+-- >   via GHC.Generically A
+-- >
+-- > data B a = F | G a Char Bool
+-- >   deriving
+-- >   stock (Show, GHC.Generic)
+-- >
+-- >   deriving Generic
+-- >   via GHC.Generically B
 --
 -- Now we can convert between @A@ and @'Rep' A@ (and between @B@ and @'Rep' B@).
 -- For example,
@@ -81,6 +91,9 @@
 -- "Generics.SOP.Universe" module.
 --
 -- == Defining a generic function
+--
+-- To define a type class generically write an instance of
+-- @SOP.Generically@.
 --
 -- As an example of a generic function, let us define a generic
 -- version of 'Control.DeepSeq.rnf' from the @deepseq@ package.
@@ -100,24 +113,54 @@
 -- sums and products, looks as follows:
 --
 -- @
--- grnf :: ('Generic' a, 'All2' NFData ('Code' a)) => a -> ()
+-- grnf :: 'Generic' a => 'All2' NFData ('Code' a) => a -> ()
 -- grnf x = grnfS ('from' x)
 --
--- grnfS :: ('All2' NFData xss) => 'SOP' 'I' xss -> ()
+-- grnfS :: 'All2' NFData xss => 'SOP' 'I' xss -> ()
 -- grnfS ('SOP' ('Z' xs))  = grnfP xs
 -- grnfS ('SOP' ('S' xss)) = grnfS ('SOP' xss)
 --
--- grnfP :: ('All' NFData xs) => 'NP' 'I' xs -> ()
+-- grnfP :: 'All' NFData xs => 'NP' 'I' xs -> ()
 -- grnfP 'Nil'         = ()
 -- grnfP ('I' x ':*' xs) = x \`deepseq\` (grnfP xs)
 -- @
 --
--- The @grnf@ function performs the conversion between @a@ and @'Rep' a@
--- by applying 'from' and then applies @grnfS@. The type of @grnf@
--- indicates that @a@ must be in the 'Generic' class so that we can
--- apply 'from', and that all the components of @a@ (i.e., all the types
--- that occur as constructor arguments) must be in the 'NFData' class
--- ('All2').
+-- This defines the generic 'Control.DeepEq.NFData' instance:
+--
+-- @
+-- instance (SOP.Generic a, All2 NFData (Code a)) => NFData (SOP.Generically a) where
+--   rnf :: SOP.Generically a -> ()
+--   rnf (SOP.Generically a) = grnf a
+-- @
+--
+-- We can now derive an instance of 'NFData' using the SOP mechanism.
+--
+-- @
+-- {-# Language DerivingStrategies #-}
+-- {-# Language DerivingVia #-}
+--
+-- import qualified Generics.SOP as SOP
+-- import qualified GHC.Generics as GHC
+--
+-- -- >> rnf (N 10 False [undefined])
+-- -- *** Exception: Prelude.undefined
+-- data Nice = N Int Bool [Nice]
+--   deriving
+--   stock GHC.Generic
+--
+--   deriving SOP.Generic
+--   via GHC.Generically Nice
+--
+--   deriving NFData
+--   via SOP.Generically Nice
+-- @
+--
+-- The 'from' function performs the conversion between @a@ and @'Rep'
+-- a@ and then @grnfS@ is applied to evaluate it to normal form. The
+-- constraints indicate that @a@ must be in the 'Generic' class so
+-- that we can apply 'from', and that all the components of @a@ (i.e.,
+-- all the types that occur as constructor arguments) must be in the
+-- 'NFData' class ('All2').
 --
 -- The function @grnfS@ traverses the outer sum structure of the
 -- sum of products (note that @'Rep' a = 'SOP' 'I' ('Code' a)@). It
@@ -144,7 +187,7 @@
 -- as follows:
 --
 -- @
--- grnf :: ('Generic' a, 'All2' NFData ('Code' a)) => a -> ()
+-- grnf :: 'Generic' a => 'All2' NFData ('Code' a) => a -> ()
 -- grnf = 'rnf' . 'hcollapse' . 'hcmap' ('Proxy' :: 'Proxy' NFData) ('mapIK' rnf) . 'from'
 -- @
 --
@@ -192,8 +235,8 @@
 -- in order to be able to use the 'grnf' function. But we can use 'grnf'
 -- to supply the instance definitions:
 --
--- > instance NFData A where rnf = grnf
--- > instance NFData a => NFData (B a) where rnf = grnf
+-- > deriving via SOP.Generically A instance NFData A
+-- > deriving via SOP.Generically A instance NFData a => NFData (B a)
 --
 -- = More examples
 --
@@ -222,6 +265,7 @@
 module Generics.SOP (
     -- * Codes and interpretations
     Generic(..)
+  , Generically(..)
   , Rep
   , IsProductType
   , ProductCode
