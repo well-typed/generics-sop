@@ -1,5 +1,7 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE InstanceSigs            #-}
+{-# LANGUAGE UndecidableInstances    #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
@@ -10,10 +12,11 @@ import qualified GHC.Generics as GHC
 
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
-import Generics.SOP.NP
-import Generics.SOP.NS
 import Generics.SOP.GGP
 import Generics.SOP.Metadata
+import Generics.SOP.NP
+import Generics.SOP.NS
+import qualified GHC.Generics.Generically   as GHC
 import qualified Generics.SOP.Type.Metadata as T
 
 -- | The (generic) representation of a datatype.
@@ -41,26 +44,38 @@ type Rep a = SOP I (Code a)
 -- 'from' '.' 'to' === 'id' :: 'Rep' a -> 'Rep' a
 -- @
 --
+-- Implementations that are based on 'Generic' are given to the
+-- 'Generically' datatype.
+--
 -- You typically don't define instances of this class by hand, but
 -- rather derive the class instance automatically.
 --
 -- /Option 1:/ Derive via the built-in GHC-generics. For this, you
 -- need to use the @DeriveGeneric@ extension to first derive an
 -- instance of the 'GHC.Generics.Generic' class from module "GHC.Generics".
--- With this, you can then give an empty instance for 'Generic', and
+-- With this you can derive it via 'GHC.Generics.Generically' or give an
+-- empty instance for 'Generic' (deriving @anyclass@) and
 -- the default definitions will just work. The pattern looks as
 -- follows:
 --
 -- @
+-- {-# Language DerivingVia        #-}
+-- {-# Language DerivingStrategies #-}
+--
 -- import qualified "GHC.Generics" as GHC
 -- import "Generics.SOP"
 --
 -- ...
 --
--- data T = ... deriving (GHC.'GHC.Generics.Generic', ...)
+-- data T = ...
+--   deriving
+--   stock GHC.'GHC.Generics.Generic'
 --
--- instance 'Generic' T -- empty
--- instance 'HasDatatypeInfo' T -- empty, if you want/need metadata
+--   deriving
+--     ( Generic
+--     , HasDatatypeInfo   --^ if you want metadata
+--     )
+--   via GHC.Generically T
 -- @
 --
 -- /Option 2:/ Derive via Template Haskell. For this, you need to
@@ -128,6 +143,78 @@ class (All SListI (Code a)) => Generic (a :: Type) where
              => Rep a -> a
   to = gto
 
+-- | A generic ('GHC.Generics') implementation of SOP generic
+-- behaviour.
+--
+-- @
+-- {-# Language DerivingStrategies #-}
+-- {-# Language DerivingVia        #-}
+--
+-- import qualified GHC.Generics as GHC
+-- import qualified Generics.SOP as SOP
+--
+-- data T = ...
+--   deriving
+--   stock GHC.Generic
+--
+--   deriving (SOP.Generic, SOP.HasDatatypeInfo)
+--   via GHC.Generically T
+-- @
+instance (GHC.Generic a, GFrom a, GTo a, All SListI (GCode a)) => Generic (GHC.Generically a) where
+  type Code (GHC.Generically a) = GCode a
+
+  from :: GHC.Generically a -> Rep (GHC.Generically a)
+  from (GHC.Generically a) = gfrom a
+
+  to :: Rep (GHC.Generically a) -> GHC.Generically a
+  to rep = GHC.Generically (gto rep)
+
+-- | An implementation of 'GHC.Generics.Generically' for
+-- 'Generics.SOP.Generics'. Should be imported qualified when used
+-- with 'GHC.Generics':
+--
+-- @
+-- import Generics.SOP hiding (Generic, Generically)
+-- import GHC.Generics hiding (Generic, Generically)
+-- import qualified Generics.SOP as SOP
+-- import qualified GHC.Generics as GHC
+-- @
+--
+-- Type classes that have SOP-generic behaviour should be given an
+-- instance of this newtype.
+--
+-- @
+-- instance (SOP.Generic a, All2 Eq (Code a)) => Eq (SOP.Generically a) where
+--   (==) :: SOP.Generically a -> SOP.Generically a -> Bool
+--   SOP.Generically a == SOP.Generically b = geq a b
+-- @
+--
+-- The process of deriving an SOP-instance:
+-- 1. Derive @GHC.Generic@.
+-- 2. Use that to derive @SOP.Generic@.
+-- 3. Use that to derive your instance of choice via @SOP.Generically@.
+--
+-- @
+-- {-# Language DerivingStrategies #-}
+-- {-# Language DerivingVia        #-}
+--
+-- import qualified GHC.Generics as GHC
+-- import qualified Generics.SOP as SOP
+--
+-- -- >> Ok 1 2 == Ok 1 300
+-- -- False
+-- data Ok = Ok Int Int
+--   deriving -- (1)
+--   stock GHC.Generic
+--
+--   deriving SOP.Generic -- (2)
+--   via GHC.Generically T
+--
+--   deriving Eq -- (3)
+--   via SOP.Generically T
+-- @
+newtype Generically a = Generically a
+
 -- | A class of datatypes that have associated metadata.
 --
 -- It is possible to use the sum-of-products approach to generic programming
@@ -149,6 +236,29 @@ class Generic a => HasDatatypeInfo a where
   datatypeInfo         :: proxy a -> DatatypeInfo (Code a)
   default datatypeInfo :: (GDatatypeInfo a, GCode a ~ Code a) => proxy a -> DatatypeInfo (Code a)
   datatypeInfo = gdatatypeInfo
+
+-- | A generic ('GHC.Generics') implementation of datatype metadata.
+--
+-- @
+-- {-# Language DerivingStrategies #-}
+-- {-# Language DerivingVia        #-}
+--
+-- import qualified GHC.Generics as GHC
+-- import qualified Generics.SOP as SOP
+-- import Generics.SOP
+--
+-- data T = ...
+--   deriving
+--   stock GHC.Generic
+--
+--   deriving (SOP.Generic, HasDatatypeInfo)
+--   via GHC.Generically T
+-- @
+instance (All SListI (GCode a), GHC.Generic a, GFrom a, GTo a, GDatatypeInfo a) => SOP.HasDatatypeInfo (GHC.Generically a) where
+  type DatatypeInfoOf (GHC.Generically a) = GDatatypeInfoOf a
+
+  datatypeInfo :: proxy (GHC.Generically a) -> SOP.DatatypeInfo (SOP.Code (GHC.Generically a))
+  datatypeInfo _ = gdatatypeInfo (Proxy :: Proxy a)
 
 -- | Constraint that captures that a datatype is a product type,
 -- i.e., a type with a single constructor.
