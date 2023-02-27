@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell #-}
 -- | Generate @generics-sop@ boilerplate instances using Template Haskell.
 module Generics.SOP.TH
@@ -580,7 +581,17 @@ withDataDec (TH.DatatypeInfo { datatypeContext   = ctxt
                              , datatypeInstTypes = instTypes
                              , datatypeVariant   = variant
                              , datatypeCons      = cons }) f =
+  checkForTypeData variant $
   f variant ctxt name bndrs instTypes cons
+
+checkForTypeData :: DatatypeVariant -> Q a -> Q a
+checkForTypeData variant q = do
+  case variant of
+#if MIN_VERSION_th_abstraction(0,5,0)
+    TH.TypeData -> fail $ "`type data` declarations not supported"
+#endif
+    _ -> return ()
+  q
 
 checkForGADTs :: TH.ConstructorInfo -> Q a -> Q a
 checkForGADTs (ConstructorInfo { constructorVars    = exVars
@@ -594,3 +605,6 @@ isNewtypeVariant Datatype        = False
 isNewtypeVariant DataInstance    = False
 isNewtypeVariant Newtype         = True
 isNewtypeVariant NewtypeInstance = True
+#if MIN_VERSION_th_abstraction(0,5,0)
+isNewtypeVariant TH.TypeData     = False
+#endif
