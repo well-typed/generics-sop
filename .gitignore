@@ -6,3 +6,10 @@
 dist/
 dist-newstyle/
 .ghc.environment.*
+
+# direnv
+.envrc
+.direnv
+
+# nix 
+result*

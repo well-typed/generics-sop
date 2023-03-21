@@ -1,1 +1,7 @@
 packages: sop-core/ generics-sop/
+
+repository hackage.haskell.org
+  url: http://hackage.haskell.org/packages/archive
+
+index-state:
+  , hackage.haskell.org 2023-03-21T09:55:23Z

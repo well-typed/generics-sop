@@ -1,4 +1,4 @@
-{-# LANGUAGE PolyKinds, DeriveGeneric #-}
+{-# LANGUAGE PolyKinds, DeriveGeneric, UnliftedNewtypes, StandaloneKindSignatures #-}
 -- | Basic functors.
 --
 -- Definitions of the type-level equivalents of
@@ -41,12 +41,13 @@ module Data.SOP.BasicFunctors
   , mapKIK
   , mapKKI
   , mapKKK
+  -- * Convenience helpers
+  , BoxedType
   ) where
 
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup (..))
 #endif
-import Data.Kind (Type)
 import qualified GHC.Generics as GHC
 
 import Data.Functor.Classes
@@ -57,6 +58,12 @@ import Control.DeepSeq (NFData1(..), NFData2(..))
 #endif
 
 import Data.Coerce (coerce)
+import GHC.Exts (TYPE, RuntimeRep(BoxedRep), Levity (Lifted, Unlifted))
+import Data.Kind (Type)
+
+-- | convenience type to make working with levity polymorphic types easier
+type BoxedType :: Levity -> Type
+type BoxedType levity = TYPE ('BoxedRep levity)
 
 -- * Basic functors
 
@@ -65,8 +72,13 @@ import Data.Coerce (coerce)
 -- Like 'Data.Functor.Constant.Constant', but kind-polymorphic
 -- in its second argument and with a shorter name.
 --
-newtype K (a :: Type) (b :: k) = K a
+data family K :: forall levin levout k. BoxedType levin -> k -> BoxedType levout
+newtype instance K @'Lifted @'Lifted a b = K a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
+
+newtype instance K @'Unlifted @'Unlifted a b = UK a
+
+data instance K @'Unlifted @'Lifted a b = ULK a
 
 -- | @since 0.2.4.0
 instance Eq2 K where
@@ -128,8 +140,13 @@ unK (K x) = x
 --
 -- Like 'Data.Functor.Identity.Identity', but with a shorter name.
 --
-newtype I (a :: Type) = I a
+data family I :: forall levin levout. BoxedType levin -> BoxedType levout
+newtype instance I @'Lifted @'Lifted a = I a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
+
+newtype instance I @'Unlifted @'Unlifted a = UI a
+
+data instance I @'Unlifted @'Lifted a = ULI a
 
 -- | @since 0.4.0.0
 instance Semigroup a => Semigroup (I a) where
@@ -178,8 +195,14 @@ unI (I x) = x
 -- Like 'Data.Functor.Compose.Compose', but kind-polymorphic
 -- and with a shorter name.
 --
-newtype (:.:) (f :: l -> Type) (g :: k -> l) (p :: k) = Comp (f (g p))
+data family (:.:) :: forall levin levout k l.
+  (l -> BoxedType levin) -> (k -> l) -> k -> BoxedType levout
+newtype instance (:.:) @'Lifted @'Lifted f g p = Comp (f (g p))
   deriving (GHC.Generic)
+
+newtype instance (:.:) @'Unlifted @'Unlifted f g p = UComp (f (g p))
+
+data instance (:.:) @'Unlifted @'Lifted f g p = ULComp (f (g p))
 
 infixr 7 :.:
 

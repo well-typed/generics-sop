@@ -1,4 +1,4 @@
-{-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE EmptyCase, UnliftedDatatypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -freduction-depth=100 #-}
@@ -73,9 +73,9 @@ import Generics.SOP.TH
 
 -- Types from Generics.SOP:
 
-deriveGeneric ''I
-deriveGeneric ''K
-deriveGeneric ''(:.:)
+deriveGeneric 'I
+deriveGeneric 'K
+deriveGeneric 'Comp
 deriveGeneric ''(-.->) -- new
 
 -- Cannot derive instances for Sing

@@ -1,5 +1,6 @@
 {-# LANGUAGE EmptyCase, PolyKinds, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-unticked-promoted-constructors #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
 -- | Derive @generics-sop@ boilerplate instances from GHC's 'GHC.Generic'.
 --
 -- The technique being used here is described in the following paper:
@@ -17,16 +18,19 @@ module Generics.SOP.GGP
   , gfrom
   , gto
   , gdatatypeInfo
+  , DeferMkLifted
   ) where
 
 import Data.Proxy (Proxy (..))
-import Data.Kind (Type)
+import Data.Kind (Type, Constraint)
 import GHC.Generics as GHC
 import Generics.SOP.NP as SOP
 import Generics.SOP.NS as SOP
 import Generics.SOP.BasicFunctors as SOP
 import qualified Generics.SOP.Type.Metadata as SOP.T
 import Generics.SOP.Metadata as SOP
+import GHC.Exts (Levity(Lifted))
+import GHC.TypeLits (TypeError, ErrorMessage (Text, ShowType, (:<>:), (:$$:)))
 
 type family ToSingleCode (a :: Type -> Type) :: Type
 type instance ToSingleCode (K1 _i a) = a
@@ -121,7 +125,7 @@ class GSingleTo (a :: Type -> Type) where
   gSingleTo :: ToSingleCode a -> a x
 
 instance GSingleTo (K1 i a) where
-  gSingleTo a = K1 a
+  gSingleTo = K1
 
 class GProductTo (a :: Type -> Type) where
   gProductTo :: NP I (ToProductCode a xs) -> (a x -> NP I xs -> r) -> r
@@ -175,7 +179,20 @@ instance (GProductTo a) => GSumTo (M1 C c a) where
   gSumTo (SOP (S xs)) _ k = k (SOP xs)
 
 instance (GSumTo a) => GSumTo (M1 D c a) where
-  gSumTo xss s k = gSumTo xss (s . M1) k
+  gSumTo xss s = gSumTo xss (s . M1)
+
+type MkTUnliftedError :: ErrorMessage -> k -> l
+type family MkTUnliftedError tfName ty where
+  MkTUnliftedError tfName ty = TypeError
+    (tfName :<>: 'Text " only supports Lifted Types"
+      :$$: 'Text "but " :<>: 'ShowType ty :<>: 'Text " is unlifted"
+    )
+
+type DeferMkLifted :: (Type -> Constraint) -> BoxedType levity -> Constraint
+type family DeferMkLifted c ty where
+  DeferMkLifted @'Lifted c ty = c ty
+  DeferMkLifted c ty = MkTUnliftedError ('ShowType c) ty
+ 
 
 -- | Compute the SOP code of a datatype.
 --
@@ -185,13 +202,22 @@ instance (GSumTo a) => GSumTo (M1 D c a) where
 -- This is the default definition for 'Generics.SOP.Code'.
 -- For more info, see 'Generics.SOP.Generic'.
 --
-type GCode (a :: Type) = ToSumCode (GHC.Rep a) '[]
+type GCode :: BoxedType levity -> [[BoxedType levity]]
+type family GCode a where
+  GCode @'Lifted a = ToSumCode (GHC.Rep a) '[]
+  GCode a = MkTUnliftedError ('Text "GCode") a
 
 -- | Constraint for the class that computes 'gfrom'.
-type GFrom a = GSumFrom (GHC.Rep a)
+type GFrom :: BoxedType levity -> Constraint
+type family GFrom a where
+  GFrom @'Lifted a = GSumFrom (GHC.Rep a)
+  GFrom a = MkTUnliftedError ('Text "GFrom") a
 
 -- | Constraint for the class that computes 'gto'.
-type GTo a = GSumTo (GHC.Rep a)
+type GTo :: BoxedType levity -> Constraint
+type family GTo a where
+  GTo @'Lifted a = GSumTo (GHC.Rep a)
+  GTo a = MkTUnliftedError ('Text "GTo") a
 
 -- | Constraint for the class that computes 'gdatatypeInfo'.
 type GDatatypeInfo a = SOP.T.DemoteDatatypeInfo (GDatatypeInfoOf a) (GCode a)

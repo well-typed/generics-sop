@@ -1,6 +1,8 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UnliftedDatatypes #-}
+{-# LANGUAGE TypeApplications #-}
 -- | n-ary products (and products of products)
 module Data.SOP.NP
   ( -- * Datatypes
@@ -103,6 +105,7 @@ import Data.SOP.BasicFunctors
 import Data.SOP.Classes
 import Data.SOP.Constraint
 import Data.SOP.Sing
+import GHC.Exts (Levity (Lifted, Unlifted))
 
 -- | An n-ary product.
 --
@@ -132,11 +135,18 @@ import Data.SOP.Sing
 -- > K 0      :* K 1     :* Nil  ::  NP (K Int) '[ Char, Bool ]
 -- > Just 'x' :* Nothing :* Nil  ::  NP Maybe   '[ Char, Bool ]
 --
-data NP :: (k -> Type) -> [k] -> Type where
+data family NP :: forall levity k. (k -> BoxedType levity) -> [k] -> BoxedType levity
+data instance NP @'Lifted f xs where
   Nil  :: NP f '[]
-  (:*) :: f x -> NP f xs -> NP f (x ': xs)
+  (:*) :: f x -> NP  f xs -> NP f (x ': xs)
+
+data instance NP @'Unlifted f xs where
+  UNil :: NP f '[]
+  (::*) :: f x -> NP f xs -> NP f (x ': xs)
 
 infixr 5 :*
+infixr 5 ::*
+
 
 -- This is written manually,
 -- because built-in deriving doesn't use associativity information!

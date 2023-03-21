@@ -5,12 +5,16 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
+{-# LANGUAGE UnliftedDatatypes #-}
+{-# LANGUAGE UnliftedNewtypes #-}
+{-# LANGUAGE TypeApplications #-}
 -- | n-ary sums (and sums of products)
 module Data.SOP.NS
   ( -- * Datatypes
     NS(..)
   , SOP(..)
   , unSOP
+  , unUSOP
     -- * Constructing sums
   , Injection
   , injections
@@ -103,6 +107,7 @@ import Data.SOP.Classes
 import Data.SOP.Constraint
 import Data.SOP.NP
 import Data.SOP.Sing
+import GHC.Exts (Levity (Lifted, Unlifted), UnliftedType)
 
 -- * Datatypes
 
@@ -146,9 +151,14 @@ import Data.SOP.Sing
 -- > S (Z (I True)) :: NS I       '[ Char, Bool ]
 -- > S (Z (K 1))    :: NS (K Int) '[ Char, Bool ]
 --
-data NS :: (k -> Type) -> [k] -> Type where
+data family NS :: forall levity k. (k -> BoxedType levity) -> [k] -> BoxedType levity 
+data instance NS @'Lifted f xs where
   Z :: f x -> NS f (x ': xs)
   S :: NS f xs -> NS f (x ': xs)
+
+data instance NS @'Unlifted f xs where
+  UZ :: f x -> NS f (x ': xs)
+  US :: NS f xs -> NS f (x ': xs)
 
 deriving instance All (Show `Compose` f) xs => Show (NS f xs)
 deriving instance All (Eq   `Compose` f) xs => Eq   (NS f xs)
@@ -242,7 +252,10 @@ instance HIndex NS where
 -- constructors, the product structure represents the arguments of
 -- each constructor.
 --
-newtype SOP (f :: (k -> Type)) (xss :: [[k]]) = SOP (NS (NP f) xss)
+data family SOP :: forall levin levout k . (k -> BoxedType levin) -> [[k]] -> BoxedType levout
+newtype instance SOP @'Lifted @'Lifted f xss = SOP (NS (NP f) xss)
+newtype instance SOP @'Unlifted @'Unlifted f xss = USOP (NS (NP f) xss)
+data instance SOP @'Unlifted @'Lifted f xss = ULSOP (NS (NP f) xss)
 
 deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
 deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
@@ -255,6 +268,9 @@ instance (NFData (NS (NP f) xss)) => NFData (SOP f xss) where
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
+
+unUSOP :: forall k (xss :: [[k]]) (f :: k -> UnliftedType). SOP @'Unlifted @'Unlifted f xss -> NS (NP f) xss
+unUSOP (USOP xss) = xss
 
 type instance AllN NS  c = All  c
 type instance AllN SOP c = All2 c

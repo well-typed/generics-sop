@@ -10,7 +10,7 @@ module Generics.SOP.TH
   , deriveMetadataType
   ) where
 
-import Control.Monad (join, replicateM, unless)
+import Control.Monad (replicateM, unless)
 import Data.List (foldl')
 import Data.Maybe (fromMaybe)
 import Data.Proxy
@@ -26,6 +26,7 @@ import qualified Generics.SOP.Type.Metadata as SOP.T
 import Generics.SOP.NP
 import Generics.SOP.NS
 import Generics.SOP.Universe
+import GHC.Exts (UnliftedType)
 
 -- | Generate @generics-sop@ boilerplate for the given datatype.
 --
@@ -87,7 +88,7 @@ deriveGenericOnly n =
 deriveGenericSubst :: Name -> (Name -> Q Type) -> Q [Dec]
 deriveGenericSubst n f = do
   dec <- reifyDatatype n
-  ds1 <- withDataDec dec (deriveGenericForDataDec  f)
+  ds1 <- withDataDec dec . deriveGenericForDataDec f =<< isLiftedKind n
   ds2 <- withDataDec dec (deriveMetadataForDataDec f)
   return (ds1 ++ ds2)
 
@@ -98,7 +99,7 @@ deriveGenericSubst n f = do
 deriveGenericOnlySubst :: Name -> (Name -> Q Type) -> Q [Dec]
 deriveGenericOnlySubst n f = do
   dec <- reifyDatatype n
-  withDataDec dec (deriveGenericForDataDec f)
+  withDataDec dec . deriveGenericForDataDec f =<< isLiftedKind n
 
 -- | Like 'deriveGenericOnly', but don't derive class instance, only functions.
 --
@@ -127,6 +128,7 @@ deriveGenericFunctions n codeName fromName toName = do
   let fromName' = mkName fromName
   let toName'   = mkName toName
   dec <- reifyDatatype n
+  isLifted <- isLiftedKind n
   withDataDec dec $ \_variant _cxt name bndrs instTys cons -> do
     let codeType = codeFor varT cons                     -- '[ '[Int], '[Tree, Tree] ]
     let origType = appTysSubst varT name instTys         -- Tree
@@ -134,9 +136,9 @@ deriveGenericFunctions n codeName fromName toName = do
     sequence
       [ tySynD codeName' bndrs codeType                 -- type TreeCode = '[ '[Int], '[Tree, Tree] ]
       , sigD fromName' [t| $origType -> $repType |]     -- fromTree :: Tree -> SOP I TreeCode
-      , embedding fromName' cons                        -- fromTree ... =
+      , embedding fromName' isLifted cons                        -- fromTree ... =
       , sigD toName' [t| $repType -> $origType |]       -- toTree :: SOP I TreeCode -> Tree
-      , projection toName' cons                         -- toTree ... =
+      , projection toName' isLifted cons                         -- toTree ... =
       ]
 
 -- | Derive @DatatypeInfo@ value for the type.
@@ -189,18 +191,18 @@ deriveMetadataType n datatypeInfoName = do
       [ tySynD datatypeInfoName' [] (metadataType' variant name cons) ]
 
 deriveGenericForDataDec ::
-  (Name -> Q Type) -> DatatypeVariant -> Cxt -> Name -> [TyVarBndrUnit] -> [Type] -> [TH.ConstructorInfo] -> Q [Dec]
-deriveGenericForDataDec f _variant _cxt name _bndrs instTys cons = do
+  (Name -> Q Type) -> Bool -> DatatypeVariant -> Cxt -> Name -> [TyVarBndrUnit] -> [Type] -> [TH.ConstructorInfo] -> Q [Dec]
+deriveGenericForDataDec f isLifted _variant _cxt name _bndrs instTys cons = do
   let typ = appTysSubst f name instTys
-  deriveGenericForDataType f typ cons
+  deriveGenericForDataType f isLifted typ cons
 
-deriveGenericForDataType :: (Name -> Q Type) -> Q Type -> [TH.ConstructorInfo] -> Q [Dec]
-deriveGenericForDataType f typ cons = do
+deriveGenericForDataType :: (Name -> Q Type) -> Bool -> Q Type -> [TH.ConstructorInfo] -> Q [Dec]
+deriveGenericForDataType f isLifted typ cons = do
   let codeSyn = tySynInstDCompat ''Generics.SOP.Universe.Code Nothing [typ] (codeFor f cons)
   inst <- instanceD
             (cxt [])
             [t| Generic $typ |]
-            [codeSyn, embedding 'from cons, projection 'to cons]
+            [codeSyn, embedding 'from isLifted cons , projection 'to isLifted cons ]
   return [inst]
 
 deriveMetadataForDataDec ::
@@ -238,8 +240,8 @@ codeFor f = promotedTypeList . map go
   Computing the embedding/projection pair
 -------------------------------------------------------------------------------}
 
-embedding :: Name -> [TH.ConstructorInfo] -> Q Dec
-embedding fromName = funD fromName . go' (\e -> [| Z $e |])
+embedding :: Name -> Bool -> [TH.ConstructorInfo] -> Q Dec
+embedding fromName isLifted = funD fromName . go' (appProperCon isLifted 'Z 'UZ)
   where
     go' :: (Q Exp -> Q Exp) -> [TH.ConstructorInfo] -> [Q Clause]
     go' _ [] = (:[]) $ do
@@ -249,18 +251,18 @@ embedding fromName = funD fromName . go' (\e -> [| Z $e |])
 
     go :: (Q Exp -> Q Exp) -> [TH.ConstructorInfo] -> [Q Clause]
     go _  []     = []
-    go br (c:cs) = mkClause br c : go (\e -> [| S $(br e) |]) cs
+    go br (c:cs) = mkClause br c : go (appProperCon isLifted 'S 'US . br) cs
 
     mkClause :: (Q Exp -> Q Exp) -> TH.ConstructorInfo -> Q Clause
     mkClause br c = do
       (n, ts) <- conInfo c
       vars    <- replicateM (length ts) (newName "x")
       clause [conP n (map varP vars)]
-             (normalB [| SOP $(br . npE . map (appE (conE 'I) . varE) $ vars) |])
+             (normalB ( appProperCon isLifted 'SOP 'USOP . br . npE isLifted . map (appProperCon isLifted 'I 'UI . varE) $ vars))
              []
 
-projection :: Name -> [TH.ConstructorInfo] -> Q Dec
-projection toName = funD toName . go'
+projection :: Name -> Bool -> [TH.ConstructorInfo] -> Q Dec
+projection toName isLifted = funD toName . go'
   where
     go' :: [TH.ConstructorInfo] -> [Q Clause]
     go' [] = (:[]) $ do
@@ -270,7 +272,7 @@ projection toName = funD toName . go'
 
     go :: (Q Pat -> Q Pat) -> [TH.ConstructorInfo] -> [Q Clause]
     go br [] = [mkUnreachableClause br]
-    go br (c:cs) = mkClause br c : go (\p -> conP 'S [br p]) cs
+    go br (c:cs) = mkClause br c : go (\p -> patProperCon isLifted 'S 'US [br p]) cs
 
     -- Generates a final clause of the form:
     --
@@ -283,18 +285,21 @@ projection toName = funD toName . go'
     -- This, however, would require clients to enable the EmptyCase extension
     -- in their own code, which is something which we have not previously
     -- required. Therefore, we do not generate this code at the moment.
+    --
+    -- for the unlifted case, we don't have to seq the argument because we can
+    -- be sure that the argument is already evaluated
     mkUnreachableClause :: (Q Pat -> Q Pat) -> Q Clause
     mkUnreachableClause br = do
       var <- newName "x"
-      clause [conP 'SOP [br (varP var)]]
-             (normalB [| $(varE var) `seq` error "inaccessible" |])
+      clause [patProperCon isLifted 'SOP 'USOP [br (varP var)]]
+             (normalB $ if isLifted then [| $(varE var) `seq` error "inaccessible (lifted case)" |] else [| error "inaccessible (unlifted case)" |])
              []
 
     mkClause :: (Q Pat -> Q Pat) -> TH.ConstructorInfo -> Q Clause
     mkClause br c = do
       (n, ts) <- conInfo c
       vars    <- replicateM (length ts) (newName "x")
-      clause [conP 'SOP [br . conP 'Z . (:[]) . npP . map (\v -> conP 'I [varP v]) $ vars]]
+      clause [patProperCon isLifted 'SOP 'USOP [br . patProperCon isLifted 'Z 'UZ. (:[]) . npP isLifted . map (\v -> patProperCon isLifted 'I 'UI [varP v]) $ vars]]
              (normalB . appsE $ conE n : map varE vars)
              []
 
@@ -308,20 +313,22 @@ metadataType typ variant typeName cs =
 
 -- | Derive term-level metadata.
 metadata' :: DatatypeVariant -> Name -> [TH.ConstructorInfo] -> Q Exp
-metadata' dataVariant typeName cs = md
+metadata' dataVariant typeName cs =
+  -- FIXME: may be wrong
+  isLiftedKind typeName >>= md
   where
-    md :: Q Exp
-    md | isNewtypeVariant dataVariant
+    md :: Bool -> Q Exp
+    md isLifted | isNewtypeVariant dataVariant
        = [| SOP.Newtype $(stringE (nameModule' typeName))
                         $(stringE (nameBase typeName))
-                        $(mdCon (head cs))
+                        $(mdCon isLifted (head cs))
           |]
 
        | otherwise
        = [| SOP.ADT     $(stringE (nameModule' typeName))
                         $(stringE (nameBase typeName))
-                        $(npE $ map mdCon cs)
-                        $(popE $ map mdStrictness cs)
+                        $(npE isLifted $ map (mdCon isLifted) cs)
+                        $(popE isLifted $ map mdStrictness cs)
           |]
 
     mdStrictness :: TH.ConstructorInfo -> Q [Q Exp]
@@ -339,14 +346,14 @@ metadata' dataVariant typeName cs = md
           $(mdDecidedStrictness  ds)
         |]) bs dss)
 
-    mdCon :: TH.ConstructorInfo -> Q Exp
-    mdCon ci@(ConstructorInfo { constructorName    = n
+    mdCon :: Bool -> TH.ConstructorInfo -> Q Exp
+    mdCon isLifted ci@(ConstructorInfo { constructorName    = n
                               , constructorVariant = conVariant }) =
       checkForGADTs ci $
       case conVariant of
         NormalConstructor    -> [| SOP.Constructor $(stringE (nameBase n)) |]
         RecordConstructor ts -> [| SOP.Record      $(stringE (nameBase n))
-                                                   $(npE (map mdField ts))
+                                                   $(npE isLifted (map mdField ts))
                                  |]
         InfixConstructor     -> do
           fixity <- reifyFixity n
@@ -467,19 +474,18 @@ nameModule' = fromMaybe "" . nameModule
 -- Construct
 --
 -- > a :* b :* c :* Nil
-npE :: [Q Exp] -> Q Exp
-npE []     = [| Nil |]
-npE (e:es) = [| $e :* $(npE es) |]
+npE :: Bool -> [Q Exp] -> Q Exp
+npE isLifted = foldr (\e es -> if isLifted then [| $e :* $es |] else [| $e ::* $es |]) (if isLifted then [| Nil |] else [| UNil |])
 
 -- Construct a POP.
-popE :: [Q [Q Exp]] -> Q Exp
-popE ess =
-  [| POP $(npE (map (join . fmap npE) ess)) |]
+popE :: Bool -> [Q [Q Exp]] -> Q Exp
+popE isLifted ess =
+  [| POP $(npE isLifted (map (npE  isLifted =<<) ess)) |]
 
 -- Like npE, but construct a pattern instead
-npP :: [Q Pat] -> Q Pat
-npP []     = conP 'Nil []
-npP (p:ps) = conP '(:*) [p, npP ps]
+npP :: Bool -> [Q Pat] -> Q Pat
+npP isLifted []     = conP (if isLifted then 'Nil else 'UNil) []
+npP isLifted (p:ps) = conP (if isLifted then '(:*) else '(::*)) [p, npP isLifted ps]
 
 {-------------------------------------------------------------------------------
   Some auxiliary definitions for working with TH
@@ -502,7 +508,7 @@ promotedTypeList (t:ts) = [t| $promotedConsT $t $(promotedTypeList ts) |]
 
 promotedTypeListOfList :: [Q [Q Type]] -> Q Type
 promotedTypeListOfList =
-  promotedTypeList . map (join . fmap promotedTypeList)
+  promotedTypeList . map (promotedTypeList =<<)
 
 promotedTypeListSubst :: (Name -> Q Type) -> [Q Type] -> Q Type
 promotedTypeListSubst _ []     = promotedNilT
@@ -538,6 +544,21 @@ substType f = go
       -- the identity, except if we use TH derivation for the tagged datatypes
       -- in the benchmarking suite. So we can fall back on identity in all
       -- but the cases we need for the benchmarking suite.
+
+-- FIXME: probably doesn't work for data families with unlifted members
+isLiftedKind :: Name -> Q Bool
+isLiftedKind = fmap (/= ConT ''UnliftedType) . reifyType
+
+appProperCon :: Bool -> Name -> Name -> Q Exp -> Q Exp
+appProperCon isLifted liftedCon unliftedCon = if isLifted
+                           then appE $ conE liftedCon
+                           else appE $ conE unliftedCon
+
+patProperCon :: Quote m => Bool -> Name -> Name -> [m Pat] -> m Pat
+patProperCon isLifted liftedCon unliftedCon =
+  if isLifted
+    then conP liftedCon
+    else conP unliftedCon
 
 -- Process a DatatypeInfo using continuation-passing style.
 withDataDec :: TH.DatatypeInfo

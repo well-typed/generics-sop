@@ -7,6 +7,7 @@ module Data.SOP (
   , NS(..)
   , SOP(..)
   , unSOP
+  , unUSOP
   , POP(..)
   , unPOP
     -- * Combinators

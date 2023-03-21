@@ -1,5 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -fprint-explicit-kinds #-}
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
@@ -15,6 +19,7 @@ import Generics.SOP.NS
 import Generics.SOP.GGP
 import Generics.SOP.Metadata
 import qualified Generics.SOP.Type.Metadata as T
+import GHC.Exts (Levity (Lifted))
 
 -- | The (generic) representation of a datatype.
 --
@@ -22,7 +27,10 @@ import qualified Generics.SOP.Type.Metadata as T
 -- The isomorphism is witnessed by 'from' and 'to' from the
 -- 'Generic' class.
 --
-type Rep a = SOP I (Code a)
+
+type Rep :: forall levin levout. BoxedType levin -> BoxedType levout
+type family Rep a where
+  Rep @levin @levout a = SOP (I ::  BoxedType levin -> BoxedType levout) (Code a)
 
 -- | The class of representable datatypes.
 --
@@ -94,7 +102,7 @@ type Rep a = SOP I (Code a)
 --
 -- still holds.
 --
-class (All SListI (Code a)) => Generic (a :: Type) where
+class (All SListI (Code a)) => Generic (a :: BoxedType levity) where
   -- | The code of a datatype.
   --
   -- This is a list of lists of its components. The outer list contains
@@ -112,21 +120,42 @@ class (All SListI (Code a)) => Generic (a :: Type) where
   -- >    , '[ Tree, Tree ]
   -- >    ]
   --
-  type Code a :: [[Type]]
-  type Code a = GCode a
+  type Code a :: [[BoxedType levity]]
+  type Code (a :: BoxedType levity) = GCode a
+
+  -- | The output levity of the representation
+  --
+  --   This is the levity the representation of the type 'a' will have
+  --   by default it's the same levity as the levity of the incoming type
+  --   if we have a lifted type, the out levity cannot be unlifted anyway so we monomorphise
+  --   that happens
+  type OutLev a :: Levity
+  type OutLev (a :: BoxedType lev) = lev
 
   -- | Converts from a value to its structural representation.
-  from         :: a -> Rep a
-  default from :: (GFrom a, GHC.Generic a, Rep a ~ SOP I (GCode a))
-               => a -> Rep a
+  from         :: a -> Rep @levity @(CompOutLev a) a
+  default from :: (levity ~ 'Lifted, CompOutLev a ~ 'Lifted, GFrom a, DeferMkLifted GHC.Generic a, Rep a ~ SOP I (GCode a))
+               => a -> Rep @levity @(CompOutLev a) a
   from = gfrom
 
   -- | Converts from a structural representation back to the
   -- original value.
-  to         :: Rep a -> a
-  default to :: (GTo a, GHC.Generic a, Rep a ~ SOP I (GCode a))
-             => Rep a -> a
+  to         :: Rep @levity @(CompOutLev a) a -> a
+  default to :: (levity ~ 'Lifted, CompOutLev a ~ 'Lifted, GTo a, DeferMkLifted GHC.Generic a, Rep a ~ SOP I (GCode a))
+             => Rep @levity @(CompOutLev a) a -> a
   to = gto
+
+type KindOf :: k -> Type
+type family KindOf t where
+  KindOf (t :: k) = k
+
+type DefaultOutLevWhenLifted :: Levity -> Type -> Levity
+type family DefaultOutLevWhenLifted col il where
+  DefaultOutLevWhenLifted col Type = 'Lifted
+  DefaultOutLevWhenLifted col _ = col
+
+type CompOutLev :: BoxedType levity -> Levity
+type CompOutLev a = DefaultOutLevWhenLifted (OutLev a) (KindOf a)
 
 -- | A class of datatypes that have associated metadata.
 --

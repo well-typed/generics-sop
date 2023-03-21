@@ -242,6 +242,7 @@ module Generics.SOP (
   , NS(..)
   , SOP(..)
   , unSOP
+  , unUSOP
   , POP(..)
   , unPOP
     -- * Metadata

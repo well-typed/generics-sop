@@ -3,12 +3,19 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE UnliftedDatatypes #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
+{-# OPTIONS_GHC -fprint-explicit-kinds #-}
 module Main (main, toTreeC, toDataFamC) where
 
 import qualified GHC.Generics as GHC
@@ -17,6 +24,8 @@ import Generics.SOP.TH
 import qualified Generics.SOP.Type.Metadata as T
 
 import HTransExample
+import GHC.Exts (UnliftedType, Levity (Unlifted))
+import Data.Kind (Constraint, Type)
 
 -- Generic show, kind of
 gshow :: (Generic a, All2 Show (Code a)) => a -> String
@@ -28,7 +37,7 @@ gshowS (SOP (S xss)) = gshowS (SOP xss)
 
 gshowP :: (All Show xs) => NP I xs -> String
 gshowP Nil         = ""
-gshowP (I x :* xs) = show x ++ (gshowP xs)
+gshowP (I x :* xs) = show x ++ gshowP xs
 
 -- Generic enum, kind of
 class Enumerable a where
@@ -40,8 +49,7 @@ genum =
 
 genumS :: (All SListI xss, All2 Enumerable xss) => [SOP I xss]
 genumS =
-  concat (fmap apInjs_POP
-    (hsequence (hcpure (Proxy :: Proxy Enumerable) enum)))
+  concatMap apInjs_POP (hsequence (hcpure (Proxy :: Proxy Enumerable) enum))
 
 -- GHC.Generics
 data Tree = Leaf Int | Node Tree Tree
@@ -206,30 +214,68 @@ instance Enumerable ABCC where
 instance Enumerable VoidC where
   enum = fmap toVoidC genumS
 
+type UT :: UnliftedType
+data UT = UL | UN UT UT
+
+deriveGenericOnly ''UT
+
+type UEq :: UnliftedType -> Constraint
+class UEq a where
+  ueq :: a -> a -> Bool
+  default ueq :: (Generic a, All2 UEq (Code a), OutLev a ~ 'Unlifted) => a -> a -> Bool
+  ueq = gueq
+
+infix 4 `ueq`
+
+gueq :: forall (a :: UnliftedType). (Generic a, All2 UEq (Code a), OutLev a ~ 'Unlifted) => a -> a -> Bool
+gueq x y =
+  let repx :: Rep @'Unlifted @'Unlifted a
+      repx = from x
+      repy :: Rep @'Unlifted @'Unlifted a
+      repy = from y
+   in constrsSame (unUSOP repx) (unUSOP repy)
+  where
+    constrsSame :: forall (xss :: [[UnliftedType]]). (All2 UEq xss) => NS (NP (I @'Unlifted @'Unlifted)) xss -> NS (NP (I @'Unlifted @'Unlifted)) xss -> Bool
+    constrsSame (US x') (US y') = constrsSame x' y'
+    constrsSame (UZ x') (UZ y') = fieldsSame x' y'
+    constrsSame _ _ = False
+
+    fieldsSame :: forall (xs :: [UnliftedType]). All UEq xs => NP (I @'Unlifted @'Unlifted) xs -> NP (I @'Unlifted @'Unlifted) xs -> Bool
+    fieldsSame (UI x' ::* xs) (UI y' ::* ys) = x' `ueq` y' && fieldsSame xs ys
+    fieldsSame UNil UNil = True
+
+instance UEq UT 
+
+type Wrap :: UnliftedType -> Type 
+data Wrap a = MkWrap a
+
+instance UEq a => Eq (Wrap a) where
+  MkWrap a == MkWrap b = a `ueq` b
+
 -- Tests
 main :: IO ()
 main = do
   print tree
   print abc
   print dataFam
-  print $ (enum :: [ABC])
-  print $ (enum :: [Void])
+  print (enum :: [ABC])
+  print (enum :: [Void])
   print $ datatypeInfo (Proxy :: Proxy Tree)
   print $ datatypeInfo (Proxy :: Proxy Void)
   print $ datatypeInfo (Proxy :: Proxy (DataFam Int (Maybe Int) Int))
   print treeB
   print abcB
   print dataFamB
-  print $ (enum :: [ABCB])
-  print $ (enum :: [VoidB])
+  print (enum :: [ABCB])
+  print (enum :: [VoidB])
   print $ datatypeInfo (Proxy :: Proxy TreeB)
   print $ datatypeInfo (Proxy :: Proxy VoidB)
   print $ datatypeInfo (Proxy :: Proxy (DataFamB Int (Maybe Int) Int))
   print treeC
   print abcC
   print dataFamC
-  print $ (enum :: [ABCC])
-  print $ (enum :: [VoidC])
+  print (enum :: [ABCC])
+  print (enum :: [VoidC])
   print treeDatatypeInfo
   print demotedTreeDatatypeInfo
   print demotedDataFamDatatypeInfo
@@ -238,3 +284,4 @@ main = do
   print (voidDatatypeInfo == demotedVoidDatatypeInfo)
   print (dataFamDatatypeInfo == demotedDataFamDatatypeInfo)
   print $ convertFull tree
+  print $ UN (UN UL UL) (UN UL UL) `ueq` UN (UN UL UL) (UN UL UL)
