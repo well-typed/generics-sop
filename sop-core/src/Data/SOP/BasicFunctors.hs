@@ -1,4 +1,5 @@
 {-# LANGUAGE PolyKinds, DeriveGeneric, UnliftedNewtypes, StandaloneKindSignatures #-}
+{-# LANGUAGE TypeApplications #-}
 -- | Basic functors.
 --
 -- Definitions of the type-level equivalents of
@@ -76,9 +77,11 @@ data family K :: forall levin levout k. BoxedType levin -> k -> BoxedType levout
 newtype instance K @'Lifted @'Lifted a b = K a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
 
-newtype instance K @'Unlifted @'Unlifted a b = UK a
+-- | @since 0.6.0.0
+newtype instance K @'Unlifted @'Unlifted a b = UK {unUK :: a}
 
-data instance K @'Unlifted @'Lifted a b = ULK a
+-- | @since 0.6.0.0
+data instance K @'Unlifted @'Lifted a b = ULK {unULK :: a}
 
 -- | @since 0.2.4.0
 instance Eq2 K where
@@ -132,7 +135,7 @@ instance Monoid a => Applicative (K a) where
   pure _      = K mempty
   K x <*> K y = K (mappend x y)
 
--- | Extract the contents of a 'K' value.
+-- | @since 0.6.0.0
 unK :: K a b -> a
 unK (K x) = x
 
@@ -144,9 +147,11 @@ data family I :: forall levin levout. BoxedType levin -> BoxedType levout
 newtype instance I @'Lifted @'Lifted a = I a
   deriving (Functor, Foldable, Traversable, GHC.Generic)
 
-newtype instance I @'Unlifted @'Unlifted a = UI a
+-- | @since 0.6.0.0
+newtype instance I @'Unlifted @'Unlifted a = UI {unUI :: a}
 
-data instance I @'Unlifted @'Lifted a = ULI a
+-- | @since 0.6.0.0
+data instance I @'Unlifted @'Lifted a = ULI {unULI :: a}
 
 -- | @since 0.4.0.0
 instance Semigroup a => Semigroup (I a) where
@@ -200,9 +205,11 @@ data family (:.:) :: forall levin levout k l.
 newtype instance (:.:) @'Lifted @'Lifted f g p = Comp (f (g p))
   deriving (GHC.Generic)
 
-newtype instance (:.:) @'Unlifted @'Unlifted f g p = UComp (f (g p))
+-- | @since 0.6.0.0
+newtype instance (:.:) @'Unlifted @'Unlifted f g p = UComp {unUComp :: f (g p)}
 
-data instance (:.:) @'Unlifted @'Lifted f g p = ULComp (f (g p))
+-- | @since 0.6.0.0
+data instance (:.:) @'Unlifted @'Lifted f g p = ULComp {unULComp :: f (g p)}
 
 infixr 7 :.:
 

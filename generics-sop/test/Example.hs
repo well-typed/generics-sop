@@ -13,9 +13,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# OPTIONS_GHC -Wno-unused-matches #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
-{-# OPTIONS_GHC -fprint-explicit-kinds #-}
 module Main (main, toTreeC, toDataFamC) where
 
 import qualified GHC.Generics as GHC
@@ -25,7 +23,7 @@ import qualified Generics.SOP.Type.Metadata as T
 
 import HTransExample
 import GHC.Exts (UnliftedType, Levity (Unlifted))
-import Data.Kind (Constraint, Type)
+import Data.Kind (Constraint)
 
 -- Generic show, kind of
 gshow :: (Generic a, All2 Show (Code a)) => a -> String
@@ -245,12 +243,6 @@ gueq x y =
     fieldsSame UNil UNil = True
 
 instance UEq UT 
-
-type Wrap :: UnliftedType -> Type 
-data Wrap a = MkWrap a
-
-instance UEq a => Eq (Wrap a) where
-  MkWrap a == MkWrap b = a `ueq` b
 
 -- Tests
 main :: IO ()

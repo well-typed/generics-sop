@@ -2,6 +2,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UnliftedDatatypes #-}
+{-# LANGUAGE UnliftedNewtypes #-}
 {-# LANGUAGE TypeApplications #-}
 -- | n-ary products (and products of products)
 module Data.SOP.NP
@@ -105,7 +106,7 @@ import Data.SOP.BasicFunctors
 import Data.SOP.Classes
 import Data.SOP.Constraint
 import Data.SOP.Sing
-import GHC.Exts (Levity (Lifted, Unlifted))
+import GHC.Exts (Levity (Lifted, Unlifted), UnliftedType)
 
 -- | An n-ary product.
 --
@@ -194,7 +195,14 @@ instance All (NFData `Compose` f) xs => NFData (NP f xs) where
 -- information that is available for all arguments of all constructors
 -- of a datatype.
 --
-newtype POP (f :: (k -> Type)) (xss :: [[k]]) = POP (NP (NP f) xss)
+data family POP :: forall levin levout k. (k -> BoxedType levin) -> [[k]] -> BoxedType levout
+newtype instance POP @'Lifted @'Lifted f xss  = POP (NP (NP f) xss)
+
+-- | @since 0.6.0.0
+newtype instance POP @'Unlifted @'Unlifted f xss = UPOP {unUPOP :: NP (NP f) xss}
+
+-- | @since 0.6.0.0
+data instance POP @'Unlifted @'Lifted f xss = ULPOP {unULPOP :: NP (NP f) xss}
 
 deriving instance (Show (NP (NP f) xss)) => Show (POP f xss)
 deriving instance (Eq   (NP (NP f) xss)) => Eq   (POP f xss)

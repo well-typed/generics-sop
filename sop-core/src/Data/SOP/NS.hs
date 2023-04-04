@@ -14,7 +14,7 @@ module Data.SOP.NS
     NS(..)
   , SOP(..)
   , unSOP
-  , unUSOP
+
     -- * Constructing sums
   , Injection
   , injections
@@ -252,10 +252,14 @@ instance HIndex NS where
 -- constructors, the product structure represents the arguments of
 -- each constructor.
 --
-data family SOP :: forall levin levout k . (k -> BoxedType levin) -> [[k]] -> BoxedType levout
+data family SOP :: forall levin levout k. (k -> BoxedType levin) -> [[k]] -> BoxedType levout
 newtype instance SOP @'Lifted @'Lifted f xss = SOP (NS (NP f) xss)
-newtype instance SOP @'Unlifted @'Unlifted f xss = USOP (NS (NP f) xss)
-data instance SOP @'Unlifted @'Lifted f xss = ULSOP (NS (NP f) xss)
+
+-- | @since 0.6.0.0
+newtype instance SOP @'Unlifted @'Unlifted f xss = USOP {unUSOP :: NS (NP f) xss}
+
+-- | @since 0.6.0.0
+data instance SOP @'Unlifted @'Lifted f xss = ULSOP {unULSOP :: NS (NP f) xss}
 
 deriving instance (Show (NS (NP f) xss)) => Show (SOP f xss)
 deriving instance (Eq   (NS (NP f) xss)) => Eq   (SOP f xss)
@@ -268,9 +272,6 @@ instance (NFData (NS (NP f) xss)) => NFData (SOP f xss) where
 -- | Unwrap a sum of products.
 unSOP :: SOP f xss -> NS (NP f) xss
 unSOP (SOP xss) = xss
-
-unUSOP :: forall k (xss :: [[k]]) (f :: k -> UnliftedType). SOP @'Unlifted @'Unlifted f xss -> NS (NP f) xss
-unUSOP (USOP xss) = xss
 
 type instance AllN NS  c = All  c
 type instance AllN SOP c = All2 c
