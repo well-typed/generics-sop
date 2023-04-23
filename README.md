@@ -1,6 +1,6 @@
 ## sop-core and generics-sop
 
-[![Build Status](https://travis-ci.org/well-typed/generics-sop.svg?branch=master)](https://travis-ci.org/well-typed/generics-sop)
+[![Build Status](https://github.com/well-typed/generics-sop/actions/workflows/haskell-ci.yml/badge.svg)](https://github.com/well-typed/generics-sop/actions/workflows/haskell-ci.yml)
 [![Hackage](https://img.shields.io/hackage/v/generics-sop.svg)](https://hackage.haskell.org/package/generics-sop)
 
 `generics-sop` is a library to support the definition of generic functions.
