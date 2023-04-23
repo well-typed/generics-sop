@@ -1,3 +1,8 @@
+# 0.5.1.3 (2023-04-23)
+
+* Compatibility with GHC-9.6 / th-abstraction-0.5
+  (thanks to Ryan Scott).
+
 # 0.5.1.2 (2022-01-02)
 
 * Compatibility with GHC-9.2.
