@@ -1,5 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE CPP #-}
 -- | Codes and interpretations
 module Generics.SOP.Universe where
 
@@ -8,6 +9,12 @@ import Data.Coerce (Coercible, coerce)
 import Data.Proxy
 import qualified GHC.Generics as GHC
 
+#if MIN_VERSION_base(4,17,0)
+import GHC.Generics (Generically(Generically))
+#else
+import GHC.Generics.Generically(Generically(Generically))
+#endif
+
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Constraint
 import Generics.SOP.NP
@@ -15,6 +22,7 @@ import Generics.SOP.NS
 import Generics.SOP.GGP
 import Generics.SOP.Metadata
 import qualified Generics.SOP.Type.Metadata as T
+import Language.Haskell.TH (Extension(DeriveLift))
 
 -- | The (generic) representation of a datatype.
 --
@@ -270,3 +278,35 @@ newtypeFrom = coerce
 newtypeTo :: IsNewtype a x => x -> a
 newtypeTo = coerce
 {-# INLINE newtypeTo #-}
+
+#if MIN_VERSION_GLASGOW_HASKELL(8,6,1,0)
+-- | Derive 'Generic' via 'Generically'
+--
+-- /Example:/
+--
+-- >>> :set -XDerivingStrategies -XDerivingVia -XDeriveGeneric -XUndecidableInstances
+-- >>> data A = B Int | C Bool deriving stock GHC.Generic deriving Generic via Generically A
+-- >>> :kind! Code A
+-- Code A :: [[*]]
+-- = '[ '[Int], '[Bool]]
+-- >>> from (B 4)
+-- SOP (Z (I 4 :* Nil))
+-- >>> from (C False)
+-- SOP (S (Z (I False :* Nil)))
+--
+-- @since 0.5.2.0
+#else 
+-- | Derive 'Generic' via 'Generically'
+--
+-- @since 0.5.2.0
+#endif
+instance
+  (GHC.Generic a
+  , GFrom a
+  , GTo a
+  , Rep a ~ SOP I (GCode a)
+  , All SListI (Code a)
+  ) => Generic (Generically a) where
+    type Code (Generically a) = GCode a
+    from (Generically a) = gfrom a
+    to rep = Generically (gto rep)
