@@ -195,6 +195,39 @@
 -- > instance NFData A where rnf = grnf
 -- > instance NFData a => NFData (B a) where rnf = grnf
 --
+-- == Deriving Generic
+--
+-- The 'Generic' class can also be derived in two ways
+-- (this uses @-XDerivingStrategies@ for more clarity)
+--
+-- === Using @-XDeriveAnyClass@
+--
+-- > {-# LANGUAGE DeriveGeneric, DerivingStrategies, DeriveAnyClass #-}
+-- >
+-- > import qualified GHC.Generics as GHC
+-- > import Generics.SOP
+-- > data A = B Bool | C Int
+-- >   deriving stock GHC.Generic
+-- >   deriving anyclass Generic
+--
+-- === Using @-XDerivingVia@ (GHC versions greater or equal 8.6.1)
+--
+-- > {-# LANGUAGE DeriveGeneric, DerivingStrategies, DerivingVia #-}
+-- >
+-- > import qualified GHC.Generics as GHC
+-- > import Generics.SOP
+-- > import GHC.Generics (Generically (Generically))
+-- > data A = B Bool | C Int
+-- >   deriving stock GHC.Generic
+-- >   deriving Generic via Generically A
+--
+-- In the @-XDerivingVia@ case be careful to
+--
+-- 1. import the constructor of 'Generically'
+-- 2. import the correct module i.e. on base versions older than 4.17 which was
+--   first shipped with GHC 9.4.1 @import GHC.Generics.Generically (Generically (Generically))@
+--   from package [@generically@](https://hackage.haskell.org/package/generically)
+--
 -- = More examples
 --
 -- The best way to learn about how to define generic functions in the SOP style
