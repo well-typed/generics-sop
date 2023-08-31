@@ -70,6 +70,9 @@ import Text.Read.Lex
 import Generics.SOP.BasicFunctors
 import Generics.SOP.Classes
 import Generics.SOP.TH
+#if MIN_VERSION_base(4,15,0)
+import GHC.Tuple (Solo)
+#endif
 
 -- Types from Generics.SOP:
 
@@ -90,6 +93,9 @@ deriveGeneric ''Ordering
 deriveGeneric ''Maybe
 deriveGeneric ''Either
 deriveGeneric ''()
+#if MIN_VERSION_base(4,15,0)
+deriveGeneric ''Solo
+#endif
 deriveGeneric ''(,)              -- 2
 deriveGeneric ''(,,)
 deriveGeneric ''(,,,)
