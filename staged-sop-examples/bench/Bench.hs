@@ -1,9 +1,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -ddump-simpl #-}
+
+{-# LANGUAGE IncoherentInstances #-}
+
+{-# OPTIONS_GHC -ddump-splices #-}
+-- {-# OPTIONS_GHC -ddump-simpl -dsuppress-all #-}
 module Main where
 
 import Codec.CBOR.Encoding
@@ -13,6 +18,7 @@ import ExampleTypes
 import ExampleFunctions
 import Gauge.Main
 import Gauge.Main.Options
+import Generics.SOP.Staged
 
 genum_Ordering :: () -> [Ordering]
 genum_Ordering () = genum
@@ -30,7 +36,11 @@ gsappend_Foo :: Foo -> Foo -> Foo
 gsappend_Foo = gsappend
 
 sgsappend_Foo :: Foo -> Foo -> Foo
-sgsappend_Foo = $$(sgsappend')
+sgsappend_Foo  =
+  let
+    c = constraints @Foo
+  in
+    $$(sgsappend' (pallC [|| c ||]))
 
 msappend_Foo :: Foo -> Foo -> Foo
 msappend_Foo (Foo is1 o1 txt1) (Foo is2 o2 txt2) =
@@ -48,7 +58,11 @@ instance Eq a => Eq (Tree GHCGenerics a) where
   (==) = ghcgeq
 
 instance Eq a => Eq (Tree StagedSOP a) where
-  x1 == x2 = $$(sgeq [|| x1 ||] [|| x2 ||])
+  x1 == x2 =
+    let
+      c = constraints @(Tree StagedSOP a)
+    in
+      $$(sgeq (allC [|| c ||]) [|| x1 ||] [|| x2 ||])
 
 instance Eq a => Eq (Tree Manual a) where
   Leaf a1 == Leaf a2 = a1 == a2
@@ -64,7 +78,11 @@ instance Eq (Prop GHCGenerics) where
   (==) = ghcgeq
 
 instance Eq (Prop StagedSOP) where
-  x1 == x2 = $$(sgeq [|| x1 ||] [|| x2 ||])
+  x1 == x2 =
+    let
+      c = constraints @(Prop StagedSOP)
+    in
+      $$(sgeq (allC [|| c ||]) [|| x1 ||] [|| x2 ||])
 
 instance Eq (Prop Manual) where
   Var x1 == Var x2 = x1 == x2
@@ -79,9 +97,21 @@ instance Serialise (Prop GenericsSOP) where
   encode = gencode
   decode = gdecode
 
+-- NOTE: decode currently requires IncoherentInstances because the
+-- way we are passing the Applicative instance for Decoder via an
+-- explicit dictionary, it ends up being in scope twice!
+--
 instance Serialise (Prop StagedSOP) where
-  encode = $$(sgencode)
-  decode = $$(sgdecode)
+  encode =
+    let
+      c = constraints @(Prop StagedSOP)
+    in
+      $$(sgencode (allC [|| c ||]))
+  decode =
+    let
+      c = constraints @(Prop StagedSOP)
+    in
+      $$(sgdecode (allC [|| c ||]))
 
 instance Serialise (Prop GHCGenerics)
 
