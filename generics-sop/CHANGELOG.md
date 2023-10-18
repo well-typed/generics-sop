@@ -1,3 +1,8 @@
+# 0.5.1.4 (2023-10-18)
+
+* Compatibility with GHC-9.8 / th-abstraction-0.6
+  (thanks to Ganesh Sittampalam).
+
 # 0.5.1.3 (2023-04-23)
 
 * Compatibility with GHC-9.6 / th-abstraction-0.5
