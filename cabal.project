@@ -3,12 +3,17 @@ packages: ./sop-core, ./generics-sop, ./staged-sop, ./staged-sop-examples
 -- constraints:
 --   th-abstraction < 0.3.2
 
--- allow-newer:
---   generics-sop:template-haskell,
---   th-abstraction:template-haskell,
---   vector-th-unbox:template-haskell,
---   aeson:template-haskell,
---   tagged:template-haskell
+allow-newer:
+  serialise:base,
+  serialise:ghc-prim,
+  serialise:bytestring,
+  serialise:text,
+  serialise:primitive,
+  cborg:base,
+  cborg:ghc-prim,
+  cborg:bytestring,
+  cborg:deepseq,
+  cborg:text
 
 -- repository head.hackage.ghc.haskell.org
 --    url: https://ghc.gitlab.haskell.org/head.hackage/
