@@ -1,4 +1,4 @@
-cabal-version: >= 2.0
+cabal-version: 2.0
 name: staged-sop
 version: 0.1
 build-type: Simple
@@ -9,6 +9,8 @@ library
   build-depends:
     base,
     sop-core ^>= 0.5,
-    template-haskell
+    template-haskell,
+    th-abstraction >= 0.5
   exposed-modules:
     Generics.SOP.Staged
+    Generics.SOP.Staged.TH

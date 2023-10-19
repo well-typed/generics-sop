@@ -12,13 +12,16 @@ import Data.Time
 import qualified Generics.SOP.TH as SOP
 import qualified Generics.SOP as SOP
 import Generics.SOP.Staged
+import qualified Generics.SOP.Staged.TH as SSOP
 import qualified GHC.Generics as GHC
 
 data Foo = Foo [Int] Ordering Text
   deriving GHC.Generic
 
 SOP.deriveGeneric ''Foo
+SSOP.deriveGeneric ''Foo
 
+{-
 instance SGeneric Foo where
   type SDescription Foo = SOP.Code Foo
   type Constraints c Foo = (c [Int], c Ordering, c Text)
@@ -38,6 +41,7 @@ instance SGeneric Foo where
       (  Comp (C [|| case $$c of CFoo d _ _ -> d ||])
       :* Comp (C [|| case $$c of CFoo _ d _ -> d ||])
       :* Comp (C [|| case $$c of CFoo _ _ d -> d ||]) :* Nil) :* Nil
+-}
 
 instance NFData Foo where
   rnf (Foo is o txt) = rnf is `seq` rnf o `seq` rnf txt
@@ -51,7 +55,9 @@ data Tree (tag :: Tag) a = Leaf a | Node (Tree tag a) (Tree tag a)
   deriving GHC.Generic
 
 SOP.deriveGeneric ''Tree
+SSOP.deriveGeneric ''Tree
 
+{-
 instance SGeneric (Tree tag a) where
   type SDescription (Tree tag a) = SOP.Code (Tree tag a)
   type Constraints c (Tree tag a) = (c a, c (Tree tag a))
@@ -77,6 +83,7 @@ instance SGeneric (Tree tag a) where
            (da :* Nil)
         :* (dt :* dt :* Nil)
         :* Nil
+-}
 
 instance NFData a => NFData (Tree tag a) where
   rnf (Leaf a) = rnf a
@@ -86,7 +93,9 @@ data Pair a b = Pair a b
   deriving GHC.Generic
 
 SOP.deriveGeneric ''Pair
+SSOP.deriveGeneric ''Pair
 
+{-
 instance SGeneric (Pair a b) where
   type SDescription (Pair a b) = '[ '[ a, b ] ]
   type Constraints c (Pair a b) = (c a, c b)
@@ -109,10 +118,13 @@ instance SGeneric (Pair a b) where
       POP $
            (da :* db :* Nil)
         :* Nil
+-}
 
 instance (NFData a, NFData b) => NFData (Pair a b) where
   rnf (Pair a b) = rnf a `seq` rnf b
 
+SSOP.deriveGeneric ''Ordering
+{-
 instance SGeneric Ordering where
   type SDescription Ordering = '[ '[], '[], '[] ]
   type Constraints c Ordering = ()
@@ -133,12 +145,15 @@ instance SGeneric Ordering where
     COrdering
   allC _ =
     POP $ Nil :* Nil :* Nil :* Nil
+-}
 
 data Person = Person { personId :: Int, name :: String, date :: Day }
   deriving GHC.Generic
 
 SOP.deriveGeneric ''Person
+SSOP.deriveGeneric ''Person
 
+{-
 instance SGeneric Person where
   type SDescription Person = '[ '[ Int, String, Day ] ]
   type Constraints c Person = (c Int, c String, c Day)
@@ -162,6 +177,7 @@ instance SGeneric Person where
       POP $
            (di :* ds :* dd :* Nil)
         :* Nil
+-}
 
 instance NFData Person where
   rnf (Person i n d) = rnf i `seq` rnf n `seq` rnf d
@@ -176,7 +192,9 @@ data Prop (tag :: Tag) =
   deriving GHC.Generic
 
 SOP.deriveGeneric ''Prop
+SSOP.deriveGeneric ''Prop
 
+{-
 instance SGeneric (Prop tag) where
   type SDescription (Prop tag) = SOP.Code (Prop tag)
   type Constraints c (Prop tag) = (c String, c (Prop tag))
@@ -214,6 +232,7 @@ instance SGeneric (Prop tag) where
         :* (dp :* dp :* Nil)
         :* (dp :* dp :* Nil)
         :* Nil
+-}
 
 instance NFData (Prop tag) where
   rnf (Var s) = rnf s
@@ -262,7 +281,9 @@ data S15 =
   deriving GHC.Generic
 
 SOP.deriveGeneric ''S15
+SSOP.deriveGeneric ''S15
 
+{-
 instance SGeneric S15 where
   type SDescription S15 = SOP.Code S15
   type Constraints c S15 = ()
@@ -323,6 +344,7 @@ instance SGeneric S15 where
     :* Nil
     :* Nil
     :* Nil
+-}
 
 tree :: Tree tag Int
 tree = Node (Node (Leaf 1) (Leaf 2)) (Node (Leaf 3) (Leaf 4))
