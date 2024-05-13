@@ -1,2 +1,3 @@
+distribution:    focal
 doctest:         <9.0
 doctest-options: --preserve-it
