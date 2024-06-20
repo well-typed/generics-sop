@@ -73,28 +73,33 @@ class (AllF c xs, SListI xs) => All (c :: k -> Constraint) (xs :: [k]) where
     -> (forall y ys . (c y, All c ys) => r ys -> r (y ': ys))
     -> r xs
 
+  -- | Constrained case distinction on a type-level list.
+  --
+  -- @since 0.4.0.0
+  --
+  ccase_SList ::
+       All c xs
+    => proxy c
+    -> ((xs ~ '[]) => r '[])
+    -> (forall y ys . (c y, All c ys, (y ': ys) ~ xs) => r (y ': ys))
+    -> r xs
+
 instance All c '[] where
   cpara_SList _p nil _cons = nil
   {-# INLINE cpara_SList #-}
+
+  ccase_SList _p nil _cons =
+    nil
+  {-# INLINE ccase_SList #-}
 
 instance (c x, All c xs) => All c (x ': xs) where
   cpara_SList p nil cons =
     cons (cpara_SList p nil cons)
   {-# INLINE cpara_SList #-}
 
--- | Constrained case distinction on a type-level list.
---
--- @since 0.4.0.0
---
-ccase_SList ::
-     All c xs
-  => proxy c
-  -> r '[]
-  -> (forall y ys . (c y, All c ys) => r (y ': ys))
-  -> r xs
-ccase_SList p nil cons =
-  cpara_SList p nil (const cons)
-{-# INLINE ccase_SList #-}
+  ccase_SList _p _nil cons =
+    cons
+  {-# INLINE ccase_SList #-}
 
 -- | Type family used to implement 'All'.
 --
