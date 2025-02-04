@@ -185,6 +185,47 @@ productTypeTo :: IsProductType a xs => NP I xs -> a
 productTypeTo = to . SOP . Z
 {-# INLINE productTypeTo #-}
 
+-- | Constraint that captures that a datatype is a (simple) sum type,
+-- i.e., a type with some number of constructors, each of which 
+-- has a single argument.
+--
+-- It also gives access to the list of types which make up the union.
+--
+-- @since 0.5.2.0
+--
+type IsSumType (a :: Type) (xs :: [Type]) =
+  (Generic a, AllZip IsSingletonOf xs (Code a))
+
+-- | Direct access to the list of types that makes up a sum type.
+--
+-- @since 0.5.2.0
+--
+type SumCode (a :: Type) = Heads (Code a)
+
+-- | Convert from a sum type to its sum representation.
+--
+-- @since 0.5.2.0
+--
+sumTypeTo :: IsSumType a xs => a -> NS I xs
+sumTypeTo = go . unSOP . from
+  where
+    go :: AllZip IsSingletonOf xs xss => NS (NP I) xss -> NS I xs
+    go (Z (x :* Nil)) = Z x
+    go (S xss) = S $ go xss
+{-# INLINE sumTypeTo #-}
+
+-- | Convert a sum representation to the original type.
+--
+-- @since 0.5.2.0
+--
+sumTypeFrom :: IsSumType a xs => NS I xs -> a
+sumTypeFrom = to . SOP . go
+  where
+    go :: AllZip IsSingletonOf xs xss => NS I xs -> NS (NP I) xss
+    go (Z x) = Z (x :* Nil)
+    go (S xss) = S $ go xss
+{-# INLINE sumTypeFrom #-}
+
 -- | Constraint that captures that a datatype is an enumeration type,
 -- i.e., none of the constructors have any arguments.
 --
@@ -201,7 +242,7 @@ enumTypeFrom :: IsEnumType a => a -> NS (K ()) (Code a)
 enumTypeFrom = map_NS (const (K ())) . unSOP . from
 {-# INLINE enumTypeFrom #-}
 
--- | Convert a sum representation to ihe original type.
+-- | Convert a enum representation to ihe original type.
 --
 enumTypeTo :: IsEnumType a => NS (K ()) (Code a) -> a
 enumTypeTo = to . SOP . cmap_NS (Proxy :: Proxy ((~) '[])) (const Nil)
