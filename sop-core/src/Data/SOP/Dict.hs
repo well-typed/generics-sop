@@ -123,9 +123,11 @@ all_NP (Dict :* ds) = withDict (all_NP ds) Dict
 --
 -- @since 0.2
 --
-all_POP :: SListI xss => POP (Dict c) xss -> Dict (All2 c) xss
-all_POP = all2 . all_NP . hmap all_NP . unPOP
--- TODO: Is the constraint necessary?
+all_POP :: POP (Dict c) xss -> Dict (All2 c) xss
+all_POP = all2 . all_NP . map_NP' all_NP . unPOP where
+    map_NP' :: (forall x. f x -> g x) -> NP f xs -> NP g xs
+    map_NP' _ Nil       = Nil
+    map_NP' f (x :* xs) = f x :* map_NP' f xs
 
 -- | The constraint @'All2' c@ is convertible to @'All' ('All' c)@.
 --
