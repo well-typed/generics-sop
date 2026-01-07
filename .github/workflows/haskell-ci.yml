@@ -8,14 +8,15 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.19.20250710
+# version: 0.19.20260104
 #
-# REGENDATA ("0.19.20250710",["github","--config=cabal.haskell-ci","--benchmarks-jobs=<9.0","cabal.project"])
+# REGENDATA ("0.19.20260104",["github","--config=cabal.haskell-ci","--benchmarks-jobs=<9.0","cabal.project"])
 #
 name: Haskell-CI
 on:
   - push
   - pull_request
+  - merge_group
 jobs:
   linux:
     name: Haskell-CI - Linux - ${{ matrix.compiler }}
@@ -28,6 +29,11 @@ jobs:
     strategy:
       matrix:
         include:
+          - compiler: ghc-9.14.1
+            compilerKind: ghc
+            compilerVersion: 9.14.1
+            setup-method: ghcup
+            allow-failure: false
           - compiler: ghc-9.12.1
             compilerKind: ghc
             compilerVersion: 9.12.1
@@ -106,8 +112,8 @@ jobs:
           chmod a+x "$HOME/.ghcup/bin/ghcup"
       - name: Install cabal-install
         run: |
-          "$HOME/.ghcup/bin/ghcup" install cabal 3.14.2.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
-          echo "CABAL=$HOME/.ghcup/bin/cabal-3.14.2.0 -vnormal+nowrap" >> "$GITHUB_ENV"
+          "$HOME/.ghcup/bin/ghcup" install cabal 3.16.0.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
+          echo "CABAL=$HOME/.ghcup/bin/cabal-3.16.0.0 -vnormal+nowrap" >> "$GITHUB_ENV"
       - name: Install GHC (GHCup)
         if: matrix.setup-method == 'ghcup'
         run: |
@@ -198,7 +204,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.compiler }}-tools-1e18572f
           path: ~/.haskell-ci-tools
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: source
       - name: initial cabal.project for sdist
