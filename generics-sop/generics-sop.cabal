@@ -43,7 +43,7 @@ category:            Generics
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  CHANGELOG.md doctest.sh
-tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.7, GHC == 9.4.4, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1, GHC == 9.12.1
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.7, GHC == 9.4.4, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1, GHC == 9.12.1, GHC == 9.14.1
 
 source-repository head
   type:                git
@@ -66,9 +66,9 @@ library
                        Generics.SOP.NP
                        Generics.SOP.NS
                        Generics.SOP.Sing
-  build-depends:       base                 >= 4.9  && < 4.22,
+  build-depends:       base                 >= 4.9  && < 4.23,
                        sop-core             == 0.5.0.*,
-                       template-haskell     >= 2.8  && < 2.24,
+                       template-haskell     >= 2.8  && < 2.25,
                        th-abstraction       >= 0.6  && < 0.8,
                        ghc-prim             >= 0.3  && < 0.14
   hs-source-dirs:      src
