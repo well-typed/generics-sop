@@ -8,6 +8,12 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 module Main (main, toTreeC, toDataFamC) where
 
@@ -206,6 +212,22 @@ instance Enumerable ABCC where
 instance Enumerable VoidC where
   enum = fmap toVoidC genumS
 
+-- Use with derving via: much better than trying to write an overlapping
+-- `(xs ~ SumCode a, IsSumType a xs, All Show xs) => Show a` instance
+newtype AsSum a = AsSum a
+instance (xs ~ SumCode a, IsSumType a xs, All Show xs) => Show (AsSum a) where
+  show (AsSum a) = go @xs $ sumTypeTo a
+    where 
+      go :: (All Show xs') => NS I xs' -> String
+      go (Z (I x)) = show x
+      go (S xss)   = go xss
+
+data UnionType = C1 Tree | C2 TreeB
+  deriving stock (GHC.Generic)
+  -- Use anyclass deriving via GHC generics to fit this all in one deriving clause
+  deriving anyclass (Generic)
+  deriving Show via (AsSum UnionType) 
+
 -- Tests
 main :: IO ()
 main = do
@@ -238,3 +260,5 @@ main = do
   print (voidDatatypeInfo == demotedVoidDatatypeInfo)
   print (dataFamDatatypeInfo == demotedDataFamDatatypeInfo)
   print $ convertFull tree
+  print $ C1 $ Leaf 1
+  print $ C2 $ LeafB 2

@@ -227,6 +227,10 @@ module Generics.SOP (
   , ProductCode
   , productTypeFrom
   , productTypeTo
+  , IsSumType
+  , SumCode
+  , sumTypeFrom
+  , sumTypeTo
   , IsEnumType
   , enumTypeFrom
   , enumTypeTo
