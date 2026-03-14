@@ -1,5 +1,9 @@
 # 0.6.0.0
 
+* `collapse_NP` now uses `build` for list fusion. Added rewrite
+  rules for `collapse_NS` and `collapse_SOP` to optimize small
+  sums (up to 3 constructors).
+
 * Generalise the type signatures of cata- and anamorphisms
   to pass down the constraint dictionaries, as suggested
   in #144.

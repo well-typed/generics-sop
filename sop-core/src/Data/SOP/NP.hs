@@ -96,6 +96,7 @@ import Unsafe.Coerce
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup (..))
 #endif
+import GHC.Exts (build)
 
 import Control.DeepSeq (NFData(..))
 
@@ -527,16 +528,25 @@ collapse_NP  ::              NP  (K a) xs  ->  [a]
 --
 collapse_POP :: SListI xss => POP (K a) xss -> [[a]]
 
-collapse_NP Nil         = []
-collapse_NP (K x :* xs) = x : collapse_NP xs
+collapse_NP np = build (\(c :: a -> r -> r) n ->
+  let go :: forall ys. NP (K a) ys -> r
+      go Nil           = n
+      go (K x :* xs) = x `c` go xs
+   in go np)
+{-# INLINE collapse_NP #-}
 
 collapse_POP = collapse_NP . hliftA (K . collapse_NP) . unPOP
+{-# INLINE collapse_POP #-}
 
 type instance CollapseTo NP  a = [a]
 type instance CollapseTo POP a = [[a]]
 
-instance HCollapse NP  where hcollapse = collapse_NP
-instance HCollapse POP where hcollapse = collapse_POP
+instance HCollapse NP  where
+  hcollapse = collapse_NP
+  {-# INLINE hcollapse #-}
+instance HCollapse POP where
+  hcollapse = collapse_POP
+  {-# INLINE hcollapse #-}
 
 -- * Folding
 

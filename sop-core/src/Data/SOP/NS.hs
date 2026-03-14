@@ -576,14 +576,52 @@ collapse_SOP :: SListI xss => SOP (K a) xss ->  [a]
 
 collapse_NS (Z (K x)) = x
 collapse_NS (S xs)    = collapse_NS xs
+{-# NOINLINE collapse_NS #-}
 
 collapse_SOP = collapse_NS . hliftA (K . collapse_NP) . unSOP
+{-# INLINE [1] collapse_SOP #-}
+
+-- Note [Collapse fusion staging]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- collapse_NP participates in build/foldr fusion via GHC.List.build.
+--
+-- collapse_NS is recursive and cannot be inlined, so the NS and SOP
+-- collapse paths do not benefit from fusion on their own. It is marked
+-- NOINLINE simply to guarantee a stable target for rules.
+--
+-- We use RULES to short-circuit the common case of small sums, rewriting
+-- directly to unK or collapse_NP.
+--
+-- For the SOP rules to fire, hcollapse must inline first to expose the
+-- underlying collapse_SOP call, and collapse_SOP must remain visible
+-- long enough for the rules to match. We achieve this by inlining
+-- hcollapse early and holding collapse_SOP until phase 1.
+
+-- See Note [Collapse fusion staging]
+{-# RULES
+"collapse_NS/Z" [~1] forall x.
+  collapse_NS (Z x) = unK x
+"collapse_NS/SZ" [~1] forall x.
+  collapse_NS (S (Z x)) = unK x
+"collapse_NS/SSZ" [~1] forall x.
+  collapse_NS (S (S (Z x))) = unK x
+"collapse_SOP/Z" [~1] forall np.
+  collapse_SOP (SOP (Z np)) = collapse_NP np
+"collapse_SOP/SZ" [~1] forall np.
+  collapse_SOP (SOP (S (Z np))) = collapse_NP np
+"collapse_SOP/SSZ" [~1] forall np.
+  collapse_SOP (SOP (S (S (Z np)))) = collapse_NP np
+#-}
 
 type instance CollapseTo NS  a =  a
 type instance CollapseTo SOP a = [a]
 
-instance HCollapse NS  where hcollapse = collapse_NS
-instance HCollapse SOP where hcollapse = collapse_SOP
+instance HCollapse NS  where
+  hcollapse = collapse_NS
+  {-# INLINE [2] hcollapse #-}
+instance HCollapse SOP where
+  hcollapse = collapse_SOP
+  {-# INLINE [2] hcollapse #-}
 
 -- * Folding
 
