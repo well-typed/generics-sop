@@ -139,6 +139,16 @@ benchmark generics-sop-bench
                        SOPBench.Roundtrip
                        SOPBench.Eq
                        SOPBench.Show
+                       -- Measured by bench/core-size.sh rather than imported
+                       -- by the benchmark; listed here so they keep building.
+                       CoreSize.S10.GGP
+                       CoreSize.S10.TH
+                       CoreSize.S20.GGP
+                       CoreSize.S20.TH
+                       CoreSize.S40.GGP
+                       CoreSize.S40.TH
+                       CoreSize.S80.GGP
+                       CoreSize.S80.TH
   hs-source-dirs:      bench
   default-language:    Haskell2010
   ghc-options:         -Wall
