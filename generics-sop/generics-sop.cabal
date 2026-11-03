@@ -101,6 +101,7 @@ library
   other-extensions:    PolyKinds
                        UndecidableInstances
                        TemplateHaskell
+                       InstanceSigs
                        StandaloneDeriving
                        EmptyCase
                        UndecidableSuperClasses
@@ -117,6 +118,8 @@ test-suite generics-sop-examples
   other-extensions:    DeriveGeneric
                        EmptyCase
                        TemplateHaskell
+                       InstanceSigs
+                       TypeOperators
                        ConstraintKinds
                        GADTs
                        DataKinds
