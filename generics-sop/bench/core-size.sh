@@ -44,18 +44,24 @@ done
 # affect how generics-sop itself is built, which is left to cabal.
 GHC_OPT=${GHC_OPT:--O}
 
+# haskell-ci's jobs install a versioned cabal that is not on PATH as plain
+# "cabal", and export its path as $CABAL, so take that when it is set. The
+# compiler is whichever ghc cabal picks, which the caller selects via PATH:
+# passing --with-compiler to cabal exec loses the package environment.
+CABAL=${CABAL:-cabal}
+
 outputdir=$(mktemp -d)
 trap 'rm -rf "$outputdir"' EXIT
 
 # So that cabal exec below can resolve generics-sop itself, not just its deps.
-cabal build generics-sop -v0
+$CABAL build generics-sop -v0
 
 size_re='terms: ([0-9]+).*types: ([0-9]+).*coercions: ([0-9]+)'
 
 printf '%-14s %10s %10s %12s\n' module terms types coercions
 
 for m in "${MODULES[@]}"; do
-  if ! passes=$(cabal exec -v0 -- ghc \
+  if ! passes=$($CABAL exec -v0 -- ghc \
                   "$GHC_OPT" -fforce-recomp -dshow-passes \
                   -outputdir "$outputdir" -c "CoreSize/$m.hs" 2>&1); then
     printf '%s\n' "$passes" >&2
@@ -63,9 +69,14 @@ for m in "${MODULES[@]}"; do
     exit 1
   fi
 
-  # Commas are thousands separators in GHC's output, not field separators.
+  # GHC lays the size out with hang, so whether it breaks after the header
+  # depends on how wide the numbers print; join both lines so that either
+  # shape matches, then keep the first {..} alone, or a greedy match would
+  # read the counts of the pass reported after this one. Commas are thousands
+  # separators in that output, not field separators.
   size=$(printf '%s\n' "$passes" \
-         | grep -A1 'Result size of Tidy Core' | tail -1 | tr -d ',') || true
+         | grep -A1 'Result size of Tidy Core' | tr -d ',\n' \
+         | grep -o '{[^}]*}' | head -1) || true
 
   if [[ ! $size =~ $size_re ]]; then
     echo "core-size.sh: no Tidy Core size for CoreSize/$m.hs, got: $size" >&2

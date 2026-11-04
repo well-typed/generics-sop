@@ -269,6 +269,9 @@ jobs:
       - name: build
         run: |
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --write-ghc-environment-files=always
+      - name: core size
+        run: |
+          PATH="$(dirname "$HC"):$PATH" bash ${PKGDIR_generics_sop}/bench/core-size.sh
       - name: tests
         run: |
           $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct
