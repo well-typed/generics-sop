@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Report how much Core a derived Generic instance costs, split into terms,
-# types and coercions.
+# types and coercions. Pass --full to include the variants that only matter
+# when working on the derivation itself.
 #
 # Every module under CoreSize/ contains exactly one datatype derived in exactly
 # one way, so each row below is attributable to that single derivation, and the
@@ -15,28 +16,27 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-MODULES=(
-  S10/GGP
-  S10/TH
-  S10/THOnly
-  S10/Inj
-  S10/InjLocal
-  S20/GGP
-  S20/TH
-  S20/THOnly
-  S20/Inj
-  S20/InjLocal
-  S40/GGP
-  S40/TH
-  S40/THOnly
-  S40/Inj
-  S40/InjLocal
-  S80/GGP
-  S80/TH
-  S80/THOnly
-  S80/Inj
-  S80/InjLocal
-)
+SIZES=(S10 S20 S40 S80)
+
+# GGP and TH are the two derivations a user actually picks between, so they are
+# what we report by default. The rest exist to attribute the cost of individual
+# implementation choices within TH (THOnly as a metadata-free baseline, Inj and
+# InjLocal for the injections-based variants), which is only of interest while
+# working on the derivation itself: --full.
+VARIANTS=(GGP TH)
+
+case ${1-} in
+  --full) VARIANTS+=(THOnly Inj InjLocal) ;;
+  "")     ;;
+  *)      echo "usage: ${BASH_SOURCE[0]##*/} [--full]" >&2; exit 2 ;;
+esac
+
+MODULES=()
+for s in "${SIZES[@]}"; do
+  for v in "${VARIANTS[@]}"; do
+    MODULES+=("$s/$v")
+  done
+done
 
 # Optimization level for the measured modules. -O2 gives byte-identical Core
 # for these: the passes it adds over -O are SpecConstr and Liberate case, and
