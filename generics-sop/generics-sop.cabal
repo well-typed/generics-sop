@@ -150,7 +150,7 @@ benchmark generics-sop-bench
 
   -- earlier versions take too long on these
   if impl(ghc >= 9.2.7)
-    ghc-options: -DINJECT
+    cpp-options: -DINJECT
     other-modules:
                        SOPBench.Inject
                        CoreSize.S10.THNoSig
