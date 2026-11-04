@@ -16,17 +16,19 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-SIZES=(S10 S20 S40 S80)
+SIZES=(S10 S20 S40)
 
 # GGP and TH are the two derivations a user actually picks between, so they are
-# what we report by default. The rest exist to attribute the cost of individual
-# implementation choices within TH (THOnly as a metadata-free baseline, Inj and
-# InjLocal for the injections-based variants), which is only of interest while
-# working on the derivation itself: --full.
+# what we report by default, alongside THNoSig: that one is TH's own output with
+# the instance signatures of from and to removed, and so is the row that says
+# whether those signatures are still earning their keep. The rest attribute the
+# cost of individual implementation choices within TH (THOnly as a metadata-free
+# baseline, Inj and InjLocal for the injections-based variants), which is only of
+# interest while working on the derivation itself: --full.
 VARIANTS=(GGP TH)
 
 case ${1-} in
-  --full) VARIANTS+=(THOnly Inj InjLocal) ;;
+  --full) VARIANTS+=(THOnly Inj InjLocal THNoSig); SIZES+=(S80) ;;
   "")     ;;
   *)      echo "usage: ${BASH_SOURCE[0]##*/} [--full]" >&2; exit 2 ;;
 esac
@@ -51,7 +53,7 @@ GHC_OPT=${GHC_OPT:--O}
 CABAL=${CABAL:-cabal}
 
 outputdir=$(mktemp -d)
-trap 'rm -rf "$outputdir"' EXIT
+#trap 'rm -rf "$outputdir"' EXIT
 
 # So that cabal exec below can resolve generics-sop itself, not just its deps.
 $CABAL build generics-sop -v0
