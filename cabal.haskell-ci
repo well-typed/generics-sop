@@ -1,3 +1,4 @@
 distribution:    focal
 doctest:         <9.0
 doctest-options: --preserve-it
+github-patches:  .github/core-size.patch

@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -9,7 +11,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PolyKinds #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
-module Main (main, toTreeC, toDataFamC) where
+module Main (main, toTreeC, toDataFamC, fieldB1, fieldB2, fieldB3) where
 
 import qualified GHC.Generics as GHC
 import Generics.SOP
@@ -188,6 +190,50 @@ demotedVoidDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy VoidDatatypeInfo)
 demotedDataFamDatatypeInfo :: DatatypeInfo (DataFamCCode b c)
 demotedDataFamDatatypeInfo = T.demoteDatatypeInfo (Proxy :: Proxy DataFamDatatypeInfo)
 
+-- Shapes that exercise the generated type synonyms: records, newtypes,
+-- infix and operator constructors, and unused (phantom) type parameters.
+
+data RecordB a = MkRecordB { fieldB1 :: a, fieldB2 :: !Int, fieldB3 :: Char }
+
+recordB :: RecordB Bool
+recordB = MkRecordB True 1 'x'
+
+deriveGeneric ''RecordB
+
+newtype NewtypeB a = MkNewtypeB a
+
+newtypeB :: NewtypeB Int
+newtypeB = MkNewtypeB 1
+
+deriveGeneric ''NewtypeB
+
+infixr 5 :+:
+data a :+: b = a :+: b | NotInfix a
+
+opB :: Int :+: Char
+opB = 1 :+: 'x'
+
+deriveGeneric ''(:+:)
+
+data PhantomB a = MkPhantomB Int
+
+phantomB :: PhantomB Bool
+phantomB = MkPhantomB 1
+
+deriveGeneric ''PhantomB
+
+instance Show a => Show (RecordB a) where
+  show = gshow
+
+instance Show a => Show (NewtypeB a) where
+  show = gshow
+
+instance (Show a, Show b) => Show (a :+: b) where
+  show = gshow
+
+instance Show (PhantomB a) where
+  show = gshow
+
 instance Show TreeC where
   show x = gshowS (fromTreeC x)
 
@@ -225,6 +271,14 @@ main = do
   print $ datatypeInfo (Proxy :: Proxy TreeB)
   print $ datatypeInfo (Proxy :: Proxy VoidB)
   print $ datatypeInfo (Proxy :: Proxy (DataFamB Int (Maybe Int) Int))
+  print recordB
+  print newtypeB
+  print opB
+  print phantomB
+  print $ datatypeInfo (Proxy :: Proxy (RecordB Bool))
+  print $ datatypeInfo (Proxy :: Proxy (NewtypeB Int))
+  print $ datatypeInfo (Proxy :: Proxy (Int :+: Char))
+  print $ datatypeInfo (Proxy :: Proxy (PhantomB Bool))
   print treeC
   print abcC
   print dataFamC

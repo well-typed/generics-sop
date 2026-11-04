@@ -1,9 +1,12 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds, CPP #-}
 module Main where
 
 import Criterion.Main
 import SOPBench.Type
 import SOPBench.Roundtrip
+#ifdef INJECT
+import SOPBench.Inject
+#endif
 
 main :: IO ()
 main =
@@ -79,4 +82,7 @@ main =
         , bench "SOPTH"       $ nf show (tree_large :: Tree 'SOPTH      )
         ]
       ]
+#ifdef INJECT
+    , bgroup "Inject" injectBenchmarks
+#endif
     ]

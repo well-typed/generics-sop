@@ -1,3 +1,28 @@
+# Unreleased
+
+* The Template Haskell deriving functions now bind everything in the
+  types they generate that scales with the number of constructors or
+  the number of fields of the datatype to a top-level type synonym,
+  so that each of the generated types stays small. The names of these
+  synonyms are derived from the names of the datatype, its constructors
+  and its fields, qualified by the module the datatype is defined in;
+  structurally equal types share a synonym. The code additionally gets
+  an unqualified alias, so that `TreeCode` can be referred to directly
+  unless that name is already taken.
+
+* `deriveGeneric` now gives `from` and `to` instance signatures that
+  mention the synonym for the code directly, rather than leaving them
+  to refer to the `Code` type family via `Rep`.
+
+  As a consequence, modules using `deriveGeneric` now have to enable
+  `InstanceSigs` in addition to `TypeFamilies` and `DataKinds`, and
+  `PolyKinds` if the datatype is kind-polymorphic.
+
+  Because the generated synonyms are top-level definitions, their names
+  can still clash, in which case they are primed until they are free.
+  Two instances of the same data family in a single module will clash,
+  as the names are derived from the name of the data family.
+
 # 0.5.1.4 (2023-10-18)
 
 * Compatibility with GHC-9.8 / th-abstraction-0.6

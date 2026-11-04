@@ -42,7 +42,7 @@ maintainer:          andres@well-typed.com
 category:            Generics
 build-type:          Simple
 cabal-version:       >=1.10
-extra-source-files:  CHANGELOG.md doctest.sh
+extra-source-files:  CHANGELOG.md doctest.sh bench/core-size.sh
 tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.7, GHC == 9.4.4, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1, GHC == 9.12.1, GHC == 9.14.1
 
 source-repository head
@@ -101,6 +101,7 @@ library
   other-extensions:    PolyKinds
                        UndecidableInstances
                        TemplateHaskell
+                       InstanceSigs
                        StandaloneDeriving
                        EmptyCase
                        UndecidableSuperClasses
@@ -117,6 +118,8 @@ test-suite generics-sop-examples
   other-extensions:    DeriveGeneric
                        EmptyCase
                        TemplateHaskell
+                       InstanceSigs
+                       TypeOperators
                        ConstraintKinds
                        GADTs
                        DataKinds
@@ -136,6 +139,38 @@ benchmark generics-sop-bench
                        SOPBench.Roundtrip
                        SOPBench.Eq
                        SOPBench.Show
+                       -- Measured by bench/core-size.sh; the S20 and S80
+                       -- variants are also used by SOPBench.Inject.
+                       CoreSize.S10.GGP
+                       CoreSize.S10.TH
+                       CoreSize.S20.GGP
+                       CoreSize.S20.TH
+                       CoreSize.S40.GGP
+                       CoreSize.S40.TH
+
+  -- earlier versions take too long on these
+  if impl(ghc >= 9.2.7)
+    cpp-options: -DINJECT
+    other-modules:
+                       SOPBench.Inject
+                       CoreSize.S10.THNoSig
+                       CoreSize.S10.THOnly
+                       CoreSize.S10.Inj
+                       CoreSize.S10.InjLocal
+                       CoreSize.S20.THNoSig
+                       CoreSize.S20.THOnly
+                       CoreSize.S20.Inj
+                       CoreSize.S20.InjLocal
+                       CoreSize.S40.THNoSig
+                       CoreSize.S40.THOnly
+                       CoreSize.S40.Inj
+                       CoreSize.S40.InjLocal
+                       CoreSize.S80.GGP
+                       CoreSize.S80.TH
+                       CoreSize.S80.THNoSig
+                       CoreSize.S80.THOnly
+                       CoreSize.S80.Inj
+                       CoreSize.S80.InjLocal
   hs-source-dirs:      bench
   default-language:    Haskell2010
   ghc-options:         -Wall

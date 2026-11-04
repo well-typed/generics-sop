@@ -1,0 +1,20 @@
+haskell-ci has no hook for adding a step, so this patch adds one, and
+cabal.haskell-ci points at it so that regenerating the workflow keeps it.
+Applied by haskell-ci via plain patch(1), which takes the target file from
+its command line, so the file names below are only documentation.
+
+The step reports Core sizes for the derived Generic instances on every
+compiler in the matrix; it is a measurement, not a check, so it is only ever
+read out of the log. It costs ~10s, as the package is built by then.
+--- a/.github/workflows/haskell-ci.yml
++++ b/.github/workflows/haskell-ci.yml
+@@ -269,6 +269,9 @@
+       - name: build
+         run: |
+           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --write-ghc-environment-files=always
++      - name: core size
++        run: |
++          PATH="$(dirname "$HC"):$PATH" bash ${PKGDIR_generics_sop}/bench/core-size.sh
+       - name: tests
+         run: |
+           $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct
