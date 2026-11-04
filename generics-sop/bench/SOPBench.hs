@@ -4,6 +4,7 @@ module Main where
 import Criterion.Main
 import SOPBench.Type
 import SOPBench.Roundtrip
+import SOPBench.Inject
 
 main :: IO ()
 main =
@@ -79,4 +80,5 @@ main =
         , bench "SOPTH"       $ nf show (tree_large :: Tree 'SOPTH      )
         ]
       ]
+    , bgroup "Inject" injectBenchmarks
     ]

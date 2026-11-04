@@ -139,16 +139,29 @@ benchmark generics-sop-bench
                        SOPBench.Roundtrip
                        SOPBench.Eq
                        SOPBench.Show
-                       -- Measured by bench/core-size.sh rather than imported
-                       -- by the benchmark; listed here so they keep building.
+                       SOPBench.Inject
+                       -- Measured by bench/core-size.sh; the S20 and S80
+                       -- variants are also used by SOPBench.Inject.
                        CoreSize.S10.GGP
                        CoreSize.S10.TH
+                       CoreSize.S10.THOnly
+                       CoreSize.S10.Inj
+                       CoreSize.S10.InjLocal
                        CoreSize.S20.GGP
                        CoreSize.S20.TH
+                       CoreSize.S20.THOnly
+                       CoreSize.S20.Inj
+                       CoreSize.S20.InjLocal
                        CoreSize.S40.GGP
                        CoreSize.S40.TH
+                       CoreSize.S40.THOnly
+                       CoreSize.S40.Inj
+                       CoreSize.S40.InjLocal
                        CoreSize.S80.GGP
                        CoreSize.S80.TH
+                       CoreSize.S80.THOnly
+                       CoreSize.S80.Inj
+                       CoreSize.S80.InjLocal
   hs-source-dirs:      bench
   default-language:    Haskell2010
   ghc-options:         -Wall

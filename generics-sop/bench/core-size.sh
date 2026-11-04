@@ -18,12 +18,24 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 MODULES=(
   S10/GGP
   S10/TH
+  S10/THOnly
+  S10/Inj
+  S10/InjLocal
   S20/GGP
   S20/TH
+  S20/THOnly
+  S20/Inj
+  S20/InjLocal
   S40/GGP
   S40/TH
+  S40/THOnly
+  S40/Inj
+  S40/InjLocal
   S80/GGP
   S80/TH
+  S80/THOnly
+  S80/Inj
+  S80/InjLocal
 )
 
 # Optimization level for the measured modules. -O2 gives byte-identical Core
@@ -40,7 +52,7 @@ cabal build generics-sop -v0
 
 size_re='terms: ([0-9]+).*types: ([0-9]+).*coercions: ([0-9]+)'
 
-printf '%-10s %10s %10s %12s\n' module terms types coercions
+printf '%-14s %10s %10s %12s\n' module terms types coercions
 
 for m in "${MODULES[@]}"; do
   if ! passes=$(cabal exec -v0 -- ghc \
@@ -60,6 +72,6 @@ for m in "${MODULES[@]}"; do
     exit 1
   fi
 
-  printf '%-10s %10s %10s %12s\n' \
+  printf '%-14s %10s %10s %12s\n' \
     "$m" "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
 done
